@@ -1,0 +1,25 @@
+.marker {
+  /* position: 'absolute';
+    width: 40px ;
+    height: 40px ;
+    background-color: white;
+    border: '5px solid #f44336' ;
+    color: '#3f51b5';
+    font-size: 14px;
+    padding: 0.5em ; */
+
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: -10px;
+  top: -10px;
+  border: 3px solid #f44336;
+  border-radius: 20px;
+  background-color: white;
+  text-align: center;
+  color: #3f51b5;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px;
+  line-height: 20px;
+}

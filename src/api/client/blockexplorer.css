@@ -1,0 +1,393 @@
+.mdl-layout__header {
+  background-color: #084b8a;
+}
+.contentTitle {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  font-size: 2em;
+  font-weight: bold;
+  color: #6e6e6e;
+}
+.inCardTitle {
+  margin-top: 0em;
+  font-size: 1.2em;
+  color: white;
+  font-weight: 500;
+}
+.errTitle {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  font-size: 2em;
+  font-weight: bold;
+  color: #c5521d;
+}
+.main {
+  padding: 2em;
+}
+.table_margined {
+  margin-top: 2em;
+  width: 100%;
+}
+.blockTable {
+  width: 65% !important;
+}
+.table_margined tbody td i {
+  padding-top: 0.2em;
+}
+.tableBorder_Header {
+  background-color: #fafafa;
+  border-bottom: solid;
+  border-bottom-style: double;
+  border-top: solid;
+  border-top-width: 0.1em;
+  border-color: #d8d8d8;
+  padding: 0.5em;
+}
+/*#81BEF7 #58ACFA #045FB4*/
+.coloredText,
+a {
+  color: #58acfa;
+  float: left;
+  text-decoration: none;
+}
+.coloredBlack {
+  color: black;
+  float: left;
+  text-decoration: none;
+}
+.timeStampArea {
+  float: right;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+.tableDivision {
+  padding-left: 0.8em;
+  padding-top: 0.5em;
+}
+.addrTd {
+  width: 40%;
+}
+.arrowImg {
+  margin-left: 50px;
+  margin-right: 50px;
+  padding-top: 0.5em;
+}
+.NoFrom {
+  color: #6e6e6e;
+  font-weight: bold;
+}
+.CantDecode {
+  color: red;
+}
+.amountTd {
+  width: 20%;
+  text-align: right;
+}
+.tablesInRow {
+  display: inline-table;
+  margin-top: 2em;
+  margin-right: 2em;
+}
+.twoTablesInRow {
+  width: 43%;
+}
+.threeTablesInRow {
+  width: 25%;
+}
+.txSummaryTable {
+  width: 47%;
+  margin-top: 0em !important;
+}
+.tableHeader_floatLeft {
+  text-align: left;
+  color: #6e6e6e;
+  padding-left: 1em;
+}
+.tdSubTitle {
+  padding-left: 1em;
+}
+.subTitle_width20 {
+  width: 20%;
+}
+.subTitle_width40 {
+  width: 50%;
+}
+.numericTd {
+  padding-right: 5% !important;
+}
+.numericTd a {
+  float: right;
+}
+.seeMoreLink {
+  float: right;
+  text-align: right;
+  font-size: 75%;
+}
+.QRSpan {
+  float: right;
+}
+table {
+  border-collapse: collapse;
+  border: none;
+}
+.tablesInRow tbody td,
+.blockTable tbody td {
+  border-bottom: 1px solid #d8d8d8;
+  height: 1.8em;
+}
+.txAmtBtn {
+  float: right;
+  margin: 0% 0% 3% 0.5%;
+  width: 18em;
+  height: 2.5em;
+}
+.addrBtn {
+  float: right;
+  font-size: 0.9em;
+}
+.AddrBtnDiv {
+  margin-right: 28%;
+}
+.progressBar {
+  width: 100%;
+}
+.hide {
+  display: none;
+}
+.green {
+  background-color: #5fb404 !important;
+}
+.red {
+  background-color: red !important;
+}
+.mdl-button {
+  text-transform: none !important;
+}
+.mdl-grid {
+  width: 100%;
+}
+.txBtnDiv {
+  height: 1em;
+}
+.mdl-button--raised {
+  border-radius: 0.5em;
+}
+.mnemonicInput {
+  width: 45em;
+}
+.disable {
+  background-color: grey;
+  position: relative;
+  z-index: 100;
+}
+.addAccountBtnTd {
+  text-align: right;
+}
+.addAccountBtn {
+  width: 7em;
+  margin-left: 1em;
+}
+.mnemonicTable {
+  width: 51.5em;
+}
+.recoverTable {
+  width: 64.5em;
+}
+.mdl-textfield {
+  padding: 15px 0;
+}
+.warningMsg {
+  color: red;
+  font-size: 2em;
+  margin-bottom: 1em;
+}
+.mdl-card {
+  min-height: unset;
+}
+.mdl-card__title {
+  padding: 1% 1%;
+}
+.cardMarginTop {
+  margin-top: 1.5em;
+  width: 48%;
+  float: left;
+  margin-right: 1em;
+}
+.walletIcon_grey {
+  color: grey;
+  font-size: 6em;
+  margin-right: 0.2em;
+  float: left;
+}
+.walletIcon_white {
+  font-size: 3em;
+  margin-right: 0.2em;
+}
+.walletTitleDiv {
+  background-color: #929292;
+}
+.cardTag {
+  padding: 0px;
+  height: auto;
+}
+.cardAddress {
+  text-align: left;
+  padding-left: 3em;
+  height: 3em;
+}
+.balanceInfo {
+  float: right;
+  margin: 2.5% 0 0 0;
+}
+.addressSpan {
+  line-height: 2em;
+}
+.walletTable_NameAddr {
+  float: left;
+  margin-top: 0.3em;
+}
+.walletNameTd {
+  font-size: 1.5em;
+  color: #6e6e6e;
+  font-weight: bold;
+}
+.walletTxTitle {
+  font-size: 1.3em;
+  padding-top: 1em;
+}
+.QRCodeInWalletDetail {
+  padding-left: 1.5em;
+  float: right;
+}
+.table_wallet_txs {
+  width: 100%;
+}
+.flaotLeft {
+  float: left;
+}
+.addressDiv {
+  margin-top: 3%;
+}
+.copyBtn {
+  padding: 0 0 0 0 !important;
+  min-width: unset;
+}
+.walletDetailFunctionTd {
+  text-align: right;
+  padding-bottom: 1em;
+}
+.mdl-color--teal {
+  background-color: black !important;
+}
+.walletSummaryTable {
+  width: 88%;
+}
+.walletViewBtnDiv {
+  text-align: right;
+}
+.noMarginTitle {
+  margin: 0;
+}
+.addressFont {
+  font-size: 0.9em;
+}
+
+.selectBox{
+  width: 100%;
+}
+
+.leftAlignForm{
+  text-align: left;
+}
+
+.balanceOfAccount{
+  float: right;
+}
+
+.accountDialogContent{
+  padding: 0px 0px 10px 2px !important;
+}
+
+.accountList{
+  padding: 0px 0px 10px 2px !important;
+  overflow: scroll;
+  height: 5em;
+}
+
+.dialog{
+  border-radius: 2px;
+  background-color: #fff;
+  box-shadow: 0px 11px 15px -7px rgba(0, 0, 0, 0.2), 0px 24px 38px 3px rgba(0, 0, 0, 0.14), 0px 9px 46px 8px rgba(0, 0, 0, 0.12);
+}
+
+.fee-font{
+  font-size: 13px !important;
+}
+.displayBlock{
+  display: block;
+}
+
+.navMargin{
+  margin-left: 4em;
+}
+
+.searchBox{
+  height: 2.5em;
+  margin: 0 0 0 0 !important;
+}
+
+.txSendInput{
+  padding: 10px 20px !important;
+  width: 100%;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.txSendInputPwd{
+  width: 75% !important;
+}
+
+.txLabel{
+  width: 33em !important;
+}
+
+.hintBtn{
+  display: initial;
+  margin-left: 1em !important;
+  width: 21% !important;
+}
+/* .selectAccountDiv{
+    padding: 1em 2em 1em 2em;
+} */
+
+.led-green {
+  width: 10px;
+  height: 10px;
+  background-color: #ABFF00;
+  border-radius: 50%;
+  box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #304701 0 -1px 9px, #89FF00 0 2px 12px;
+  -webkit-animation: blinkRed 0.5s infinite;
+  -moz-animation: blinkRed 0.5s infinite;
+  -ms-animation: blinkRed 0.5s infinite;
+  -o-animation: blinkRed 0.5s infinite;
+  animation: blinkRed 0.5s infinite;
+}
+
+.led-red {
+  width: 10px;
+  height: 10px;
+  background-color: #F00;
+  border-radius: 50%;
+  box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 12px;
+}
+
+.textRed{
+  color: red;
+}
+.walletName{
+  vertical-align: super;
+  padding-left: 10px;
+}

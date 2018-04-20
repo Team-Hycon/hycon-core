@@ -1,0 +1,6 @@
+syntax = "proto3";
+import "network.proto";
+import "block.proto";
+import "blockHeader.proto";
+import "tx.proto";
+import "state.proto";
