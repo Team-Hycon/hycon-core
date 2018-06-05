@@ -31,8 +31,9 @@ export interface IConsensus extends EventEmitter {
     getNextTxs(address: Address, txHash: Hash, index: number, count?: number): Promise<DBTx[]>
     getMinedBlocks(address: Address, count?: number, index?: number, blockHash?: Hash): Promise<DBMined[]>
     getBlockStatus(hash: Hash): Promise<BlockStatus>
-    getHeaderTip(): { hash: Hash, height: number }
-    getBlocksTip(): { hash: Hash, height: number }
+    getBlocksTip(): { hash: Hash, height: number, totalwork: number }
+    getCurrentDiff(): number
+    getHeadersTip(): { hash: Hash, height: number, totalwork: number }
     getTx(hash: Hash): Promise<{ tx: DBTx, confirmation: number } | undefined>
     txValidity(tx: SignedTx): Promise<TxValidity>
     getHash(height: number): Promise<Hash>

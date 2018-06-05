@@ -15,6 +15,7 @@ import { TxPoolList } from "./txPoolList"
 import { TxView } from "./txView"
 
 import { AddWallet } from "./addWallet"
+import { MinerView } from "./minerView"
 import { RecoverWallet } from "./recoverWallet"
 import { WalletDetail } from "./walletDetail"
 import { WalletList } from "./walletList"
@@ -35,6 +36,7 @@ export const routes: RouteConfig[] = [
     { exact: true, path: "/wallet/detail/:name" },
     { exact: true, path: "/transaction/:name" },
     { exact: true, path: "/peersView" },
+    { exact: true, path: "/minerView" },
     // { exact: true, path: "/peer/:hash" },
 ]
 
@@ -60,6 +62,7 @@ export class App extends React.Component<{ rest: IRest }, any> {
     public addWallet: ({ match }: RouteComponentProps<{}>) => JSX.Element
     public recoverWallet: ({ match }: RouteComponentProps<{}>) => JSX.Element
     public walletDetail: ({ match }: RouteComponentProps<{ name: string }>) => JSX.Element
+    public minerView: ({ match }: RouteComponentProps<{ name: string }>) => JSX.Element
     public notFound: boolean
 
     constructor(props: any) {
@@ -113,6 +116,10 @@ export class App extends React.Component<{ rest: IRest }, any> {
         this.walletDetail = ({ match }: RouteComponentProps<{ name: string }>) => (
             <WalletDetail name={match.params.name} rest={this.rest} notFound={this.notFound} />
         )
+
+        this.minerView = ({ match }: RouteComponentProps<{}>) => (
+            <MinerView rest={this.rest} />
+        )
     }
     public handleBlockHash(data: any) {
         this.setState({ blockHash: data.target.value })
@@ -157,6 +164,7 @@ export class App extends React.Component<{ rest: IRest }, any> {
                             <Link className="mdl-navigation__link" to="/txPool">Tx</Link>
                             <Link className="mdl-navigation__link" to="/wallet">Wallet</Link>
                             <Link className="mdl-navigation__link" to="/peersView">Peers List</Link>
+                            <Link className="mdl-navigation__link" to="/minerView">Miner</Link>
                         </nav>
                     </div>
                     <div className={`mdl-progress mdl-js-progress mdl-progress__indeterminate progressBar ${this.state.loading ? "" : "hide"}`} />
@@ -176,6 +184,7 @@ export class App extends React.Component<{ rest: IRest }, any> {
                             <Route exact path="/wallet/recoverWallet" component={this.recoverWallet} />
                             <Route exact path="/wallet/detail/:name" component={this.walletDetail} />
                             <Route exact path="/peersView" component={this.peersView} />
+                            <Route exact path="/minerView" component={this.minerView} />
                         </Switch>
                     </div>
                 </main>

@@ -304,8 +304,9 @@ table {
   float: right;
 }
 
-.accountDialogContent{
+.dialogContent{
   padding: 0px 0px 10px 2px !important;
+  text-align: "center";
 }
 
 .accountList{

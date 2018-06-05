@@ -1,9 +1,9 @@
-import { } from "es6-promise/auto"
 import {
     IBlock,
     IHyconWallet,
     ILocationDetails,
     IMinedInfo,
+    IMiner,
     IPeer,
     IResponseError,
     IRest,
@@ -245,9 +245,9 @@ export class RestClient implements IRest {
         )
     }
 
-    public getPeerConnected(): Promise<IPeer[]> {
+    public getPeerConnected(index: number): Promise<{ peersInPage: IPeer[], pages: number }> {
         return Promise.resolve(
-            fetch(`/api/${this.apiVersion}/peerConnected`)
+            fetch(`/api/${this.apiVersion}/peerConnected/${index}`)
                 .then((response) => response.json())
                 .catch((err: Error) => {
                     console.log(err)
@@ -295,4 +295,72 @@ export class RestClient implements IRest {
         )
     }
 
+    public getMiner(): Promise<IMiner> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/getMiner`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+
+    public setMiner(address: string): Promise<boolean> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/setMiner/${address}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+
+    public startGPU(): Promise<boolean> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/startGPU`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+
+    public setMinerCount(count: number): Promise<void> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/setMinerCount/${count}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+
+    public getFavoriteList(): Promise<Array<{ alias: string, address: string }>> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/favorites`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+
+    public addFavorite(alias: string, address: string): Promise<boolean> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/favorites/add/${alias}/${address}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+    public deleteFavorite(alias: string) {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/favorites/delete/${alias}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
 }

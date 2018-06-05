@@ -18,13 +18,6 @@ npm run block:build
 echo "==================UI build finish==============="
 pkg . --target $platform -o hycon
 mkdir $output_dir
-if [ -e "wallet" ]
-then
-    rm -rf wallet
-fi
-
-./node_modules/.bin/ts-node src/util/genWallet.ts
-echo "==================wallet build finish==============="
 if [ -e $output_dir ]
 then
     rm -rf $output_dir
@@ -61,6 +54,19 @@ cp -f ../documents/* .
 mkdir node_modules
 cp -rf ../node_modules/react* ./node_modules/
 
+rm data/config.json
+if [ $platform = "macos" ]
+then
+   cp ../platform-config/config_mac.json data/config.json 
+   cp ../xmrig-opencl-mac/* .
+elif [ $platform = "linux" ]
+then
+   cp ../platform-config/config_linux.json data/config.json 
+   cp ../xmrig-opencl-linux/* .
+else
+   cp ../platform-config/config-win.json data/config.json 
+   cp ../xmrig-opencl-win/* .
+fi
 
 cd ..
 zip -r $file_name $output_dir

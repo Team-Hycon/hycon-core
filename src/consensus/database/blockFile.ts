@@ -32,11 +32,10 @@ export class BlockFile {
 
     public async get(n: number, offset: number, length: number): Promise<AnyBlock> {
         if (this.n === n) {
-            return this.writeFileLock.critical(async () => {
-                const data: Buffer = Buffer.alloc(length)
-                await fs.read(this.fd, data, 0, length, offset)
-                return Block.decode(data)
-            })
+            const data: Buffer = Buffer.alloc(length)
+            await fs.read(this.fd, data, 0, length, offset)
+            return Block.decode(data)
+
         } else {
             const fd = await this.open(n, false)
             const data: Buffer = Buffer.alloc(length)

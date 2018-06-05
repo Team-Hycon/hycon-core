@@ -1,0 +1,8 @@
+{
+    "os" : "win",
+    "dataGenesis": "./data/genesis.dat",
+    "dataRaw": "./data/raw",
+    "dataRoot": "./data",
+    "dataWallet": "./wallet",
+    "minerAddress": ""
+}

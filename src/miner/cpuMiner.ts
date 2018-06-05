@@ -70,7 +70,7 @@ export class CpuMiner {
         this.minerServer = minerServer
         this.minerCount = minerCount
         this.miners = []
-        setInterval(() => logger.info(`CPU Hashrate: ${this.hashRate()} H/s`), 10000)
+        setInterval(() => logger.info(`CPU Hashrate: ${this.hashRate()} H/s / CPU Count : ${this.minerCount}`), 10000)
     }
 
     public hashRate() {

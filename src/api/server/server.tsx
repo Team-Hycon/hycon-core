@@ -48,7 +48,7 @@ export class HttpServer {
         this.app.use(express.static("data/clientDist"))
         this.app.use(express.static("node_modules"))
         this.routeRest()
-        this.rest = new RestServer(hyconServer.consensus, hyconServer.network, hyconServer.txQueue)
+        this.rest = new RestServer(hyconServer.consensus, hyconServer.network, hyconServer.txQueue, hyconServer.miner)
         this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
             res.status(404)
             res.json({
@@ -120,9 +120,9 @@ export class HttpServer {
                     to: req.body.to,
                     amount: req.body.amount,
                     fee: req.body.fee,
-                }, (tx: SignedTx) => {
-                    this.hyconServer.txQueue.putTxs([tx])
-                    this.hyconServer.broadcastTxs([tx])
+                }, async (tx: SignedTx) => {
+                    const newTxs = await this.hyconServer.txQueue.putTxs([tx])
+                    this.hyconServer.broadcastTxs(newTxs)
                 }),
             )
         })
@@ -136,9 +136,9 @@ export class HttpServer {
                     fee: req.body.fee,
                     nonce: req.body.nonce,
                     recovery: req.body.recovery,
-                }, (tx: SignedTx) => {
-                    this.hyconServer.txQueue.putTxs([tx])
-                    this.hyconServer.broadcastTxs([tx])
+                }, async (tx: SignedTx) => {
+                    const newTxs = await this.hyconServer.txQueue.putTxs([tx])
+                    this.hyconServer.broadcastTxs(newTxs)
                 }),
             )
         })
@@ -203,38 +203,58 @@ export class HttpServer {
                     address: req.body.address,
                     amount: req.body.amount,
                     minerFee: req.body.minerFee,
-                }, (tx: SignedTx) => {
-                    this.hyconServer.txQueue.putTxs([tx])
-                    this.hyconServer.broadcastTxs([tx])
+                }, async (tx: SignedTx) => {
+                    const newTxs = await this.hyconServer.txQueue.putTxs([tx])
+                    this.hyconServer.broadcastTxs(newTxs)
                 }),
             )
         })
-
         router.get("/txList/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getPendingTxs(req.params.index))
         })
-
         router.get("/peerList", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getPeerList())
         })
 
-        router.get("/peerConnected", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.getPeerConnected())
+        router.get("/peerConnected/:index", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getPeerConnected(req.params.index))
         })
-
         router.get("/hint/:name", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getHint(req.params.name))
         })
         router.get("/nextTxs/:address/:txHash/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getNextTxs(req.params.address, req.params.txHash, req.params.index))
         })
-
         router.get("/dupleName/:name", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.checkDupleName(req.params.name))
         })
-
         router.get("/getMinedInfo/:address/:blockHash/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMinedBlocks(req.params.address, req.params.blockHash, req.params.index))
+        })
+        router.get("/favorites", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getFavoriteList())
+        })
+        router.get("/favorites/add/:alias/:address", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.addFavorite(req.params.alias, req.params.address))
+        })
+        router.get("/favorites/delete/:alias", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.deleteFavorite(req.params.alias))
+        })
+
+        router.get("/getMiner", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getMiner())
+        })
+
+        router.get("/setMiner/:address", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.setMiner(req.params.address))
+        })
+
+        router.get("/startGPU", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.startGPU())
+        })
+
+        router.get("/setMinerCount/:count", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.setMinerCount(req.params.count))
         })
 
         this.app.use(`/api/${apiVersion}`, router)

@@ -39,7 +39,7 @@ export class TxPool implements ITxPool {
         this.txsMap = new Map<string, SignedTx[]>()
     }
 
-    public async putTxs(newTxsOriginal: SignedTx[]): Promise<number> {
+    public async putTxs(newTxsOriginal: SignedTx[]): Promise<SignedTx[]> {
         const filteredTxs: Array<{ tx: SignedTx, valid: TxValidity }> = []
         for (const tx of newTxsOriginal) {
             if (tx.fee.lessThan(this.minFee.toUnsigned())) {
@@ -53,7 +53,6 @@ export class TxPool implements ITxPool {
             }
             filteredTxs.push({ tx, valid: isValid })
         }
-        const newTxsCount: number = 0
 
         const validTxs: Array<{ validity: TxValidity, tx: SignedTx }> = []
         for (const tx of newTxsOriginal) {
@@ -74,13 +73,15 @@ export class TxPool implements ITxPool {
             validTxs.push({ tx, validity })
         }
 
+        const newTx: SignedTx[] = []
         // drop it, if we already has it
         for (const { tx, validity } of validTxs) {
             if (this.insertIntoAddressMap(tx) && validity === TxValidity.Valid) {
                 this.setAddresses(tx.from.toString(), tx)
+                newTx.push(tx)
             }
         }
-        return newTxsCount
+        return newTx
     }
 
     public insertIntoAddressMap(tx: SignedTx) {

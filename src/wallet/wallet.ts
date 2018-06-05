@@ -260,7 +260,6 @@ export class Wallet {
             logger.error(`Fail to getAllPubliclist : ${e}`)
             return Promise.reject(e)
         }
-
     }
 
     public static async walletList(): Promise<Array<{ name: string, address: string }>> {
@@ -303,6 +302,50 @@ export class Wallet {
 
     public static async checkDupleName(name: string): Promise<boolean> {
         return await fs.pathExists(`./wallet/rootKey/${name}`)
+    }
+
+    public static async getFavoriteList(): Promise<Array<{ alias: string, address: string }>> {
+        const listArray: Array<{ alias: string, address: string }> = []
+        try {
+            await fs.ensureFile("./wallet/favorite")
+            const fd = await fs.readFile("./wallet/favorite")
+            const favoriteList = fd.toString().split(",")
+            for (const favorite of favoriteList) {
+                const data = favorite.split(":")
+                if (data.length === 2) {
+                    listArray.push({ alias: data[0], address: data[1] })
+                }
+            }
+            return Promise.resolve(listArray)
+        } catch (e) {
+            logger.error(`Fail to getFavoriteList : ${e}`)
+            return Promise.reject(e)
+        }
+    }
+
+    public static async addFavorite(alias: string, address: string): Promise<boolean> {
+        await fs.appendFile("./wallet/favorite", `${alias}:${address},`)
+        return Promise.resolve(true)
+    }
+
+    public static async deleteFavorite(alias: string): Promise<boolean> {
+        try {
+            await fs.ensureFile("./wallet/favorite")
+            const fd = await fs.readFile("./wallet/favorite")
+
+            const favoriteList = fd.toString().split(",")
+            for (const favorite of favoriteList) {
+                const data = favorite.split(":")
+                if (data[0] === alias) {
+                    favoriteList.splice(favoriteList.indexOf(favorite), 1)
+                    await fs.writeFile("./wallet/favorite", favoriteList.join(","))
+                }
+            }
+            return Promise.resolve(true)
+        } catch (e) {
+            logger.error(`Fail to deleteFavorite : ${e}`)
+            return Promise.reject(e)
+        }
     }
 
     public readonly privKey: PrivateKey

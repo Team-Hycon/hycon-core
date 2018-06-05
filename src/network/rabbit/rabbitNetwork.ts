@@ -36,7 +36,7 @@ export class RabbitNetwork implements INetwork {
         } else { return ipv6 }
     }
     public networkid: string = "hycon"
-    public readonly version: number = 3
+    public readonly version: number = 4
     public port: number
     public publicPort: number
     public guid: string // unique id to prevent self connecting
@@ -60,7 +60,7 @@ export class RabbitNetwork implements INetwork {
         this.port = port
         this.publicPort = -1
         this.networkid = networkid
-        this.targetConnectedPeers = 25
+        this.targetConnectedPeers = 50
         this.peers = new Map<number, RabbitPeer>()
         this.endPoints = new Map<number, proto.IPeer>()
         this.pendingConnections = new Map<number, proto.IPeer>()
@@ -122,9 +122,9 @@ export class RabbitNetwork implements INetwork {
         return connection
     }
 
-    public broadcastTxs(txs: proto.ITx[]): void {
+    public broadcastTxs(txs: proto.ITx[], exempt?: RabbitPeer): void {
         const packet = proto.Network.encode({ putTx: { txs } }).finish()
-        this.broadcast(packet)
+        this.broadcast(packet, exempt)
     }
 
     public broadcastBlocks(blocks: proto.IBlock[]): void {
@@ -132,10 +132,10 @@ export class RabbitNetwork implements INetwork {
         this.broadcast(packet)
     }
 
-    public broadcast(packet: Uint8Array, exempt?: RabbitPeer): void {
+    public broadcast(packet: Uint8Array, exempt?: RabbitPeer) {
         for (const [key, peer] of this.peers) {
             if (peer !== exempt) {
-                peer.sendPacket(packet).catch((e) => { logger.warn(e) })
+                peer.sendPacket(packet).catch((e) => logger.debug(e)) // TODO:
             }
         }
     }
@@ -196,9 +196,9 @@ export class RabbitNetwork implements INetwork {
 
     public showInfo() {
         let i = 1
-        logger.info(`All Peers ${this.peers.size}`)
+        logger.debug(`All Peers ${this.peers.size}`)
         for (const [key, value] of this.peers) {
-            logger.info(`${i}/${this.peers.size} ${value.socketBuffer.getInfo()}`)
+            logger.debug(`${i}/${this.peers.size} ${value.socketBuffer.getInfo()}`)
             i++
         }
     }
@@ -309,12 +309,17 @@ export class RabbitNetwork implements INetwork {
         const ipeer = { host: socket.remoteAddress, port: socket.remotePort }
         const key = PeerDb.ipeer2key(ipeer)
         this.peers.set(key, peer)
-        socket.on("close", async (error) => {
+        socket.on("close", async () => {
+            socket.end()
             this.peers.delete(key)
-            if (this.endPoints.has(key)) {
-                this.endPoints.delete(key)
-            }
+            this.endPoints.delete(key)
             logger.debug(`disconnected from ${key} ${ipeer.host}:${ipeer.port}`)
+        })
+        socket.on("end", async () => {
+            socket.end()
+            this.peers.delete(key)
+            this.endPoints.delete(key)
+            logger.debug(`ended connection with ${key} ${ipeer.host}:${ipeer.port}`)
 
         })
         socket.on("error", async (error) => {

@@ -8,7 +8,7 @@ export class AddWallet extends React.Component<any, any> {
     public mounted: boolean = false
     public errMsg1: string = "Please enter required value"
     public errMsg2: string = "Invalid wallet name: the wallet name must be between 2 to 20 characters with no spaces. Use only English or number."
-    public errMsg3: string = "Not matched password"
+    public errMsg3: string = "Not matched passphrase"
     public errMsg4: string = "Check your mnemonic words"
     public errMsg5: string = "Please enter your mnemonic"
     public errMsg6: string = "Duplicate wallet name"
@@ -48,7 +48,7 @@ export class AddWallet extends React.Component<any, any> {
     }
 
     public receiveMnemonic() {
-        if (this.state.name === undefined || this.state.password === undefined || this.state.hint === undefined) {
+        if (this.state.name === undefined) {
             alert(this.errMsg1)
         } else if (this.state.name.search(/\s/) !== -1 || !this.pattern1.test(this.state.name)) {
             alert(this.errMsg2)
@@ -173,7 +173,7 @@ export class AddWallet extends React.Component<any, any> {
                     <table>
                         <tbody>
                             <tr>
-                                <td className="subTitle_width20">Wallet Name</td>
+                                <td className="subTitle_width20">Wallet Name<span style={{ color: "red" }}>*</span></td>
                                 <td>
                                     <form action="#">
                                         <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
@@ -191,7 +191,7 @@ export class AddWallet extends React.Component<any, any> {
                                 </td>
                             </tr>
                             <tr>
-                                <td className="subTitle_width20">Password</td>
+                                <td className="subTitle_width20">Passphrase</td>
                                 <td>
                                     <form action="#">
                                         <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
@@ -209,7 +209,7 @@ export class AddWallet extends React.Component<any, any> {
                                 </td>
                             </tr>
                             <tr>
-                                <td className="subTitle_width20">Confirm Password</td>
+                                <td className="subTitle_width20">Confirm Passphrase</td>
                                 <td>
                                     <form action="#">
                                         <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
@@ -227,7 +227,7 @@ export class AddWallet extends React.Component<any, any> {
                                 </td>
                             </tr>
                             <tr>
-                                <td className="subTitle_width20">Password Hint</td>
+                                <td className="subTitle_width20">Passphrase Hint</td>
                                 <td>
                                     <form action="#">
                                         <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">

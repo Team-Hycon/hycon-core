@@ -77,6 +77,7 @@ export class SocketParser {
         if (this.socket) {
             logger.debug(`Disconnecting from ${this.socket.remoteAddress}:${this.socket.remotePort} due to protocol error: ${e}, ${e ? e.stack : ""}`)
             logger.debug(`Disconnect ${this.getInfo()}`)
+            this.socket.end()
             this.socket.unref()
             this.socket.destroy()
         }

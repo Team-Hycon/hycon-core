@@ -3,7 +3,7 @@ import { AnyBlock, Block } from "../common/block"
 import { AnyBlockHeader, BlockHeader } from "../common/blockHeader"
 import { INetwork } from "../network/inetwork"
 import { IPeer } from "../network/ipeer"
-import { Server } from "../server"
+import { RabbitNetwork } from "../network/rabbit/rabbitNetwork"
 import { Hash } from "../util/hash"
 import { IConsensus } from "./iconsensus"
 const logger = getLogger("Sync")
@@ -15,12 +15,13 @@ export enum BlockStatus {
     Block = 2,
     MainChain = 3,
 }
-const blockCount = 1
+const blockCount = 100
 const headerCount = 100
 
 interface ITip {
     hash: Hash,
-    height: number
+    height: number,
+    totalwork: number
 }
 
 interface ISyncInfo {
@@ -36,52 +37,71 @@ export class Sync {
     private commonMainChain: ISyncInfo
     private commonBlock: ISyncInfo
     private commonHeader: ISyncInfo
-    private network: INetwork
 
-    constructor(server: Server) {
-        this.network = server.network
-        this.consensus = server.consensus
+    constructor(peer: IPeer, consensus: IConsensus) {
+        this.peer = peer
+        this.consensus = consensus
     }
 
     public async sync() {
-        logger.info(`Start Syncing`)
+        logger.debug(`Start Syncing`)
         try {
-            const localTip = this.consensus.getBlocksTip()
+            const localBlockTip = this.consensus.getBlocksTip()
+            const localHeaderTip = this.consensus.getHeadersTip()
 
-            this.peer = this.network.getRandomPeer()
             if (!this.peer) {
-                logger.info(`No peer to sync with, Local=${localTip.height} `)
-                
+                logger.info(`No peer to sync with, Local=${localHeaderTip.height} `)
                 return
             }
 
             logger.debug(`Get remote tip`)
-            const remoteTip = await this.peer.getTip()
 
-            logger.info(`Local=${localTip.height}  Remote=${remoteTip.height}`)
+            const remoteBlockTip = await this.peer.getTip()
+            const remoteHeaderTip = await this.peer.getTip(true)
+
+            // Penalize older clients
+            if (remoteBlockTip.totalwork === 0 || remoteBlockTip.totalwork === undefined) {
+                logger.debug("Peer is an old version, using fallback sync")
+                remoteBlockTip.totalwork = 0
+            }
+            if (remoteHeaderTip.totalwork === 0 || remoteHeaderTip.totalwork === undefined) {
+                remoteHeaderTip.totalwork = 0
+            }
+
+            const remoteHeaderWork = remoteHeaderTip.height - remoteHeaderTip.totalwork
+            const remoteBlockWork = remoteBlockTip.height - remoteBlockTip.totalwork
+
+            const localHeaderWork = localHeaderTip.height - localHeaderTip.totalwork
+            const localBlockWork = localBlockTip.height - localBlockTip.totalwork
+
+            if (!localHeaderTip.hash.equals(remoteHeaderTip.hash)) {
+                logger.info(`Local=${localHeaderTip.height}:${localHeaderTip.hash}  Remote=${remoteHeaderTip.height}:${remoteHeaderTip.hash}`)
+            }
 
             logger.debug(`Finding Commons`)
-            await this.findCommons(localTip, remoteTip)
+            await this.findCommons(localBlockTip, remoteBlockTip)
 
             const startHeaderHeight = await this.findStartHeader()
-            logger.info(`Find Start Header=${startHeaderHeight}`)
-            if (remoteTip.height > localTip.height) {
-                logger.info(`Getting Headers`)
+            logger.debug(`Find Start Header=${startHeaderHeight}`)
+            if (remoteHeaderTip.hash.equals(localHeaderTip.hash)) {
+                logger.debug(`synchronized`)
+            } else if (remoteHeaderWork > localHeaderWork) {
+                logger.info(`Receiving Headers from ${this.peer.getInfo()}`)
                 await this.getHeaders(startHeaderHeight)
             } else {
-                logger.info(`Putting Headers`)
+                logger.info(`Sending Headers to ${this.peer.getInfo()}`)
                 await this.putHeaders(startHeaderHeight)
             }
 
             const startBlockHeight = await this.findStartBlock(startHeaderHeight)
-            logger.info(`Find Start Block=${startBlockHeight}`)
-            if (remoteTip.height === localTip.height) {
+            logger.debug(`Find Start Block=${startBlockHeight}`)
+            if (remoteBlockTip.hash.equals(localBlockTip.hash)) {
                 logger.debug(`synchronized`)
-            } else if (remoteTip.height > localTip.height) {
-                logger.info(`Getting Blocks`)
+            } else if (remoteBlockWork > localBlockWork) {
+                logger.info(`Receiving Blocks from ${this.peer.getInfo()}`)
                 await this.getBlocks(startBlockHeight)
             } else {
-                logger.info(`Putting Blocks`)
+                logger.info(`Sending Blocks to ${this.peer.getInfo()}`)
                 await this.putBlocks(startBlockHeight)
             }
             this.peer = undefined

@@ -1,4 +1,3 @@
-import { } from "es6-promise/auto"
 // tslint:disable:ban-types
 export interface IResponseError {
     status: number,
@@ -86,6 +85,14 @@ export interface IMinedInfo {
     miner: string
     feeReward: string
 }
+
+export interface IMiner {
+    cpuHashRate: number
+    cpuCount: number
+    networkHashRate: number
+    currentMinerAddress: string
+}
+
 export interface IRest {
     loadingListener(callback: (loading: boolean) => void): void
     setLoading(loading: boolean): void
@@ -116,10 +123,17 @@ export interface IRest {
     // [Depreciated: Use above] recoverWalletForce(Hwallet: IHyconWallet): Promise<string | boolean>
     sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }>
     getPeerList(): Promise<IPeer[]>
-    getPeerConnected(): Promise<IPeer[]>
+    getPeerConnected(index: number): Promise<{ peersInPage: IPeer[], pages: number }>
     getPendingTxs(index: number): Promise<{ txs: ITxProp[], length: number, totalCount: number, totalAmount: string, totalFee: string }>
     getHint(name: string): Promise<string>
     getNextTxs(address: string, txHash: string, index: number): Promise<ITxProp[]>
     checkDupleName(name: string): Promise<boolean>
     getMinedBlocks(address: string, blockHash: string, index: number): Promise<IMinedInfo[]>
+    getMiner(): Promise<IMiner>
+    setMiner(address: string): Promise<boolean>
+    startGPU(): Promise<boolean>
+    setMinerCount(count: number): Promise<void>
+    getFavoriteList(): Promise<Array<{ alias: string, address: string }>>
+    addFavorite(alias: string, address: string): Promise<boolean>
+    deleteFavorite(alias: string): Promise<boolean>
 }

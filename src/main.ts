@@ -1,7 +1,7 @@
 import { configure, getLogger } from "log4js"
 configure({
     appenders: {
-        
+
         console: {
             type: "log4js-protractor-appender",
         },
@@ -105,8 +105,18 @@ async function createDefaultWallet(): Promise<string> {
     return address
 }
 
+export async function setMiner(address: string) {
+    globalOptions.minerAddress = conf.minerAddress = address
+    await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
+}
+
 async function main() {
     let configChange = false
+
+    if (globalOptions.os === undefined || globalOptions.os === "") {
+        globalOptions.os = conf.os
+    }
+
     if (globalOptions.minerAddress === undefined || globalOptions.minerAddress === "") {
         globalOptions.minerAddress = conf.minerAddress
     }

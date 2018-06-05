@@ -11,7 +11,7 @@ import { Sync } from "./consensus/sync"
 import { globalOptions } from "./main"
 import { MinerServer } from "./miner/minerServer"
 import { INetwork } from "./network/inetwork"
-import { RabbitNetwork } from "./network/rabbit/rabbitNetwork" 
+import { RabbitNetwork } from "./network/rabbit/rabbitNetwork"
 import { RestManager } from "./rest/restManager"
 import { Wallet } from "./wallet/wallet"
 
@@ -32,7 +32,6 @@ export class Server {
     public httpServer: HttpServer
     public sync: Sync
     constructor() {
-
         const postfix = globalOptions.postfix
         this.txPool = new TxPool(this)
         this.worldState = new WorldState("worldstate" + postfix, this.txPool)
@@ -64,7 +63,7 @@ export class Server {
 
     public async runSync(): Promise<void> {
         logger.debug(`begin sync`)
-        const sync = new Sync(this)
+        const sync = new Sync(this.network.getRandomPeer(), this.consensus)
         await sync.sync()
         setTimeout(async () => {
             await this.runSync()

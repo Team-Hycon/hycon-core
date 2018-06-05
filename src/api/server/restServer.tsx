@@ -1,16 +1,20 @@
 import { getLogger } from "log4js"
 import * as Long from "long"
+import opn = require("opn")
 import { Address } from "../../common/address"
 import { BlockHeader } from "../../common/blockHeader"
 import { ITxPool } from "../../common/itxPool"
 import { Tx } from "../../common/tx"
 import { SignedTx } from "../../common/txSigned"
 import { IConsensus } from "../../consensus/iconsensus"
+import { globalOptions } from "../../main"
+import { setMiner } from "../../main"
+import { MinerServer } from "../../miner/minerServer"
 import { INetwork } from "../../network/inetwork"
 import * as proto from "../../serialization/proto"
 import { Hash } from "../../util/hash"
 import { Wallet } from "../../wallet/wallet"
-import { IBlock, IHyconWallet, IMinedInfo, IPeer, IResponseError, IRest, ITxProp, IUser, IWalletAddress } from "../client/rest"
+import { IBlock, IHyconWallet, IMinedInfo, IMiner, IPeer, IResponseError, IRest, ITxProp, IUser, IWalletAddress } from "../client/rest"
 import { hyconfromString, hycontoString, zeroPad } from "../client/stringUtil"
 const logger = getLogger("RestServer")
 
@@ -28,11 +32,13 @@ export class RestServer implements IRest {
     private consensus: IConsensus
     private txPool: ITxPool
     private network: INetwork
+    private miner: MinerServer
 
-    constructor(consensus: IConsensus, network: INetwork, txPool: ITxPool) {
+    constructor(consensus: IConsensus, network: INetwork, txPool: ITxPool, miner: MinerServer) {
         this.consensus = consensus
         this.network = network
         this.txPool = txPool
+        this.miner = miner
     }
 
     public loadingListener(callback: (loading: boolean) => void): void {
@@ -192,7 +198,7 @@ export class RestServer implements IRest {
                 throw new Error("insufficient wallet balance to send transaction")
             }
             if (queueTx) {
-                queueTx(signedTx)
+                await queueTx(signedTx)
             } else {
                 throw new Error("could not queue transaction")
             }
@@ -221,9 +227,13 @@ export class RestServer implements IRest {
 
     public async generateWallet(Hwallet: IHyconWallet): Promise<string> {
         await Wallet.walletInit()
-        if (Hwallet.name !== undefined && Hwallet.password !== undefined && Hwallet.hint !== undefined && Hwallet.mnemonic !== undefined && Hwallet.language !== undefined) {
-            const wallet = Wallet.generate({ name: Hwallet.name, password: Hwallet.password, mnemonic: Hwallet.mnemonic, language: Hwallet.language, hint: Hwallet.hint })
-            await wallet.save(Hwallet.name, Hwallet.password, Hwallet.hint)
+        if (Hwallet.name !== undefined && Hwallet.mnemonic !== undefined && Hwallet.language !== undefined) {
+            let password = Hwallet.password
+            let hint = Hwallet.hint
+            if (Hwallet.password === undefined) { password = "" }
+            if (Hwallet.hint === undefined) { hint = "" }
+            const wallet = Wallet.generate({ name: Hwallet.name, password, mnemonic: Hwallet.mnemonic, language: Hwallet.language, hint })
+            await wallet.save(Hwallet.name, password, hint)
             const address = await Wallet.getAddress(Hwallet.name)
             return Promise.resolve(address.toString())
         } else {
@@ -562,11 +572,15 @@ export class RestServer implements IRest {
 
     public async recoverWallet(Hwallet: IHyconWallet): Promise<string | boolean> {
         await Wallet.walletInit()
-        if (Hwallet.name !== undefined && Hwallet.password !== undefined && Hwallet.mnemonic !== undefined && Hwallet.language !== undefined && Hwallet.hint !== undefined) {
+        if (Hwallet.name !== undefined && Hwallet.mnemonic !== undefined && Hwallet.language !== undefined) {
             const isValid = Wallet.validateMnemonic(Hwallet.mnemonic, Hwallet.language)
             if (isValid) {
                 try {
-                    const addressString = await Wallet.recoverWallet({ name: Hwallet.name, password: Hwallet.password, mnemonic: Hwallet.mnemonic, language: Hwallet.language, hint: Hwallet.hint })
+                    let password = Hwallet.password
+                    let hint = Hwallet.hint
+                    if (Hwallet.password === undefined) { password = "" }
+                    if (Hwallet.hint === undefined) { hint = "" }
+                    const addressString = await Wallet.recoverWallet({ name: Hwallet.name, password, mnemonic: Hwallet.mnemonic, language: Hwallet.language, hint })
                     return Promise.resolve(addressString)
                 } catch (e) {
                     return Promise.resolve(false)
@@ -674,7 +688,7 @@ export class RestServer implements IRest {
         return peerList
     }
 
-    public getPeerConnected(): Promise<IPeer[]> {
+    public getPeerConnected(index: number): Promise<{ peersInPage: IPeer[], pages: number }> {
         const peerList: IPeer[] = []
         const peers: proto.IPeer[] = this.network.getConnection()
         for (const peer of peers) {
@@ -686,7 +700,11 @@ export class RestServer implements IRest {
             }
             peerList.push(temp)
         }
-        return Promise.resolve(peerList)
+        const start = index * 20
+        const end = start + 20
+        const peersInPage = peerList.slice(start, end)
+        const pages = Math.ceil(peerList.length / 20)
+        return Promise.resolve({ peersInPage, pages })
     }
 
     public getHint(name: string): Promise<string> {
@@ -730,5 +748,60 @@ export class RestServer implements IRest {
             })
         }
         return minedBloks
+    }
+
+    public async getMiner(): Promise<IMiner> {
+        const minerInfo = this.miner.getMinerInfo()
+        const currentDiff = this.consensus.getCurrentDiff()
+        const networkHashRate = 1 / (currentDiff * 30 * Math.LN2)
+        return { cpuHashRate: minerInfo.hashRate, networkHashRate: Math.round(networkHashRate), currentMinerAddress: minerInfo.address, cpuCount: minerInfo.cpuCount }
+    }
+
+    public async setMiner(address: string): Promise<boolean> {
+        try {
+            await setMiner(address)
+            return true
+        } catch (e) { return false }
+    }
+
+    public async startGPU(): Promise<boolean> {
+        try {
+            switch (globalOptions.os) {
+                case "mac":
+                    await opn(`./xmrig-opencl`, { wait: false })
+                    break
+                case "win":
+                    await opn(`./xmrig-opencl.exe`, { wait: false })
+                    break
+                case "linux":
+                    await opn(`./xmrig-opencl`, { wait: false })
+                    break
+                default:
+                    logger.warn(`You can not run GPU Miner because the os is not set in the config file.`)
+                    return false
+            }
+            return true
+        } catch (e) {
+            logger.warn(`Fail to start GPU binary file. Make sure that the binary file exists.`)
+            return false
+        }
+    }
+
+    public async setMinerCount(count: number): Promise<void> {
+        this.miner.setMinerCount(count)
+    }
+
+    public async getFavoriteList(): Promise<Array<{ alias: string, address: string }>> {
+        try {
+            return await Wallet.getFavoriteList()
+        } catch (e) {
+            return Promise.reject("Error get favorite list : " + e)
+        }
+    }
+    public async addFavorite(alias: string, address: string): Promise<boolean> {
+        return await Wallet.addFavorite(alias, address)
+    }
+    public async deleteFavorite(alias: string): Promise<boolean> {
+        return await Wallet.deleteFavorite(alias)
     }
 }

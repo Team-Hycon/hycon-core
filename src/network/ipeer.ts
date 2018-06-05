@@ -15,12 +15,14 @@ export interface IPeer {
     getTxs(minFee?: number): Promise<SignedTx[]>
     putBlocks(blocks: AnyBlock[]): Promise<IStatusChange[]>
     putHeaders(header: AnyBlockHeader[]): Promise<IStatusChange[]>
+    putBlockTxs(hash: Hash, txs: SignedTx[]): Promise<IStatusChange>
+    getBlockTxs(hash: Hash): Promise<SignedTx[]>
     getHash(height: number): Promise<Hash | undefined>
     getBlocksByHashes(hashes: Hash[]): Promise<Block[]>
     getHeadersByHashes(hashes: Hash[]): Promise<AnyBlockHeader[]>
     getBlocksByRange(fromHeight: number, count: number): Promise<Block[]>
     getHeadersByRange(fromHeight: number, count: number): Promise<AnyBlockHeader[]>
-    getTip(): Promise<{ hash: Hash, height: number }>
+    getTip(header?: boolean): Promise<{ hash: Hash, height: number, totalwork: number }>
     getPeers(count: number): Promise<proto.IPeer[]>
     getInfo(): string
 }

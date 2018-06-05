@@ -179,11 +179,16 @@ export class Consensus extends EventEmitter implements IConsensus {
         }
         return this.db.getBlockStatus(hash)
     }
-    public getHeaderTip(): { hash: Hash; height: number } {
-        return { hash: new Hash(this.headerTip.header), height: this.headerTip.height }
+
+    public getBlocksTip(): { hash: Hash; height: number, totalwork: number } {
+        return { hash: new Hash(this.blockTip.header), height: this.blockTip.height, totalwork: this.blockTip.totalWork }
     }
-    public getBlocksTip(): { hash: Hash; height: number } {
-        return { hash: new Hash(this.blockTip.header), height: this.blockTip.height }
+
+    public getCurrentDiff(): number {
+        return this.blockTip.header.difficulty
+    }
+    public getHeadersTip(): { hash: Hash; height: number, totalwork: number } {
+        return { hash: new Hash(this.headerTip.header), height: this.headerTip.height, totalwork: this.headerTip.totalWork }
     }
     public async txValidity(tx: SignedTx): Promise<TxValidity> {
         return this.lock.critical(async () => {
@@ -208,6 +213,10 @@ export class Consensus extends EventEmitter implements IConsensus {
     private async put(header: BlockHeader, block?: Block): Promise<IStatusChange> {
         if (header.timeStamp > Date.now()) {
             await this.futureBlockQueue.waitUntil(header.timeStamp)
+        }
+        if (header.merkleRoot.equals(new Hash()) && this.blockTip.height === this.headerTip.height) {
+            // Block contains no transactions, create a new empty block
+            block = new Block({ header, txs: [] })
         }
         return this.lock.critical(async () => {
             const hash = new Hash(header)

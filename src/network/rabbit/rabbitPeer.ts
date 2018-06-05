@@ -3,13 +3,15 @@ import * as Long from "long"
 import { Socket } from "net"
 import { AsyncLock } from "../../common/asyncLock"
 import { AnyBlock, Block } from "../../common/block"
+import { GenesisBlock } from "../../common/blockGenesis"
 import { AnyBlockHeader, BlockHeader } from "../../common/blockHeader"
 import { ITxPool } from "../../common/itxPool"
 import { SignedTx } from "../../common/txSigned"
 import { IConsensus, IStatusChange } from "../../consensus/iconsensus"
-import { BlockStatus } from "../../consensus/sync"
+import { BlockStatus, Sync } from "../../consensus/sync"
 import { globalOptions } from "../../main"
 import * as proto from "../../serialization/proto"
+import { NewTx } from "../../serialization/proto"
 import { Server } from "../../server"
 import { Hash } from "../../util/hash"
 import { INetwork } from "../inetwork"
@@ -25,6 +27,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private txPool: ITxPool
     private network: RabbitNetwork
     private peerDB: PeerDb
+    private sync: Sync
 
     constructor(socket: Socket, network: RabbitNetwork, consensus: IConsensus, txPool: ITxPool, peerDB: PeerDb) {
         super(socket)
@@ -43,6 +46,10 @@ export class RabbitPeer extends BasePeer implements IPeer {
     }
     public async detectStatus(): Promise<proto.IStatus> {
         const status = await this.status()
+        if ((status !== undefined) && (status.version > this.network.version)) {
+            logger.warn(`Peer is using a higher version number`)
+            logger.warn(`Local Version=${this.network.version} Remote Version=${status.version}`)
+        }
         const remoteNetworkId = status.networkid
         const myNetworkId = globalOptions.networkid
         if (myNetworkId === remoteNetworkId) {
@@ -55,13 +62,15 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return status
     }
 
-    public async getTip(): Promise<{ hash: Hash, height: number }> {
-        const { reply, packet } = await this.sendRequest({ getTip: { dummy: 0 } })
+    public async getTip(header = false): Promise<{ hash: Hash, height: number, totalwork: number }> {
+        // Deprecated in favor of getHeaderTip and getBlockTip
+        const { reply, packet } = await this.sendRequest({ getTip: { dummy: 0, header } })
         if (reply.getTipReturn === undefined) {
             this.protocolError(new Error(`Reply has no 'getTipReturn': ${JSON.stringify(reply)}`))
             throw new Error("Invalid response")
         }
-        return { hash: new Hash(reply.getTipReturn.hash), height: Number(reply.getTipReturn.height) }
+
+        return { hash: new Hash(reply.getTipReturn.hash), height: Number(reply.getTipReturn.height), totalwork: reply.getTipReturn.totalwork }
     }
 
     public async putHeaders(header: AnyBlockHeader[]): Promise<IStatusChange[]> {
@@ -87,8 +96,39 @@ export class RabbitPeer extends BasePeer implements IPeer {
 
             return new Hash(reply.getHashReturn.hash)
         } catch (e) {
-            logger.warn(`Could not getHash() from peer: ${e}`)
+            logger.debug(`Could not getHash() from peer: ${e}`)
             return
+        }
+    }
+
+    public async putBlockTxs(hash: Hash, txs: SignedTx[]): Promise<IStatusChange> {
+        try {
+            const { reply, packet } = await this.sendRequest({ putBlockTxs: { hash, txs } })
+            if (reply.putBlockTxsReturn === undefined) {
+                this.protocolError(new Error(`Reply has no putBlockTxsReturn: ${JSON.stringify(reply)}`))
+                throw new Error("Invalid response")
+            }
+            return reply.putBlockTxsReturn
+        } catch (e) {
+            throw new Error(`Could not send block transactions`)
+        }
+    }
+
+    public async getBlockTxs(hash: Hash): Promise<SignedTx[] | undefined> {
+        try {
+            const { reply, packet } = await this.sendRequest({ getBlockTxs: { hash } })
+            if (reply.getBlockTxsReturn === undefined) {
+                this.protocolError(new Error(`Reply has no getBlockTxsReturn: ${JSON.stringify(reply)}`))
+                throw new Error("Invalid response")
+            }
+            const txs = []
+            for (const itx of reply.getBlockTxsReturn.txs) {
+                const tx = new SignedTx(itx)
+                txs.push(tx)
+            }
+            return txs
+        } catch (e) {
+            throw new Error(`Could not getBlockTxs from peer: ${e}`)
         }
     }
 
@@ -246,6 +286,12 @@ export class RabbitPeer extends BasePeer implements IPeer {
             case "getHeadersByHash":
                 response = await this.respondGetHeadersByHash(reply, request[request.request])
                 break
+            case "getBlockTxs":
+                response = await this.respondGetBlockTxs(reply, request[request.request])
+                break
+            case "putBlockTxs":
+                response = await this.respondPutBlockTxs(reply, request[request.request])
+                break
             case "getBlocksByRange":
                 response = await this.respondGetBlocksByRange(reply, request[request.request])
                 break
@@ -266,7 +312,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
                 this.protocolError(new Error(`Unknown network message '${request.request}': ${JSON.stringify(request)}`))
                 break
         }
-        if (reply) { // i'm replying for the request
+        if (reply) {
             if (response.message !== undefined) {
                 this.send(id, response.message).catch((e) => logger.warn(`Message response could not be delived: ${e}`))
             }
@@ -323,11 +369,10 @@ export class RabbitPeer extends BasePeer implements IPeer {
         if (request.txs !== undefined) {
             try {
                 const txs = request.txs.map((tx) => new SignedTx(tx))
-                const n = await this.txPool.putTxs(txs)
-                success = (n === request.txs.length)
-                if (n === 0) {
-                    // do not relay
-                    success = false
+                const newTxs = await this.txPool.putTxs(txs)
+                success = (newTxs.length > 0 && newTxs.length === request.txs.length)
+                if (newTxs.length > 0 && !success) {
+                    this.network.broadcastTxs(newTxs)
                 }
             } catch (e) {
                 logger.error(`Failed to putTx: ${e}`)
@@ -344,17 +389,22 @@ export class RabbitPeer extends BasePeer implements IPeer {
     }
 
     private async respondPutBlock(reply: boolean, request: proto.IPutBlock): Promise<IResponse> {
-        let relay = false
+        let relay = true
         const statusChanges: IStatusChange[] = []
         try {
-
             for (const iblock of request.blocks) {
                 const block = new Block(iblock)
-                statusChanges.push(await this.consensus.putBlock(block))
+                const result = await this.consensus.putBlock(block)
+                statusChanges.push(result)
+                if (result.oldStatus !== BlockStatus.MainChain || result.status !== BlockStatus.MainChain) {
+                    relay = false
+                }
             }
-            relay = statusChanges.every((change) => (change.status !== undefined && change.status !== BlockStatus.Rejected && change.oldStatus !== change.status))
         } catch (e) {
             logger.debug(`Failed to put block: ${e}`)
+        }
+        if (!relay && this.sync === undefined) {
+            this.forceSync().then(() => { this.sync = undefined }).catch(() => { this.sync = undefined })
         }
         logger.debug(`PutBlock Relay=${relay}`)
         return { message: { putBlockReturn: { statusChanges } }, relay }
@@ -422,13 +472,18 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return { message, relay: false }
     }
 
-    private async respondGetTip(reply: boolean, request: proto.IGetTip): Promise<IResponse> {
+    private async respondGetTip(reply: boolean, request: proto.IGetTip, header = false): Promise<IResponse> {
         let message: proto.INetwork
         try {
-            const tip = await this.consensus.getBlocksTip()
-            message = { getTipReturn: { success: true, hash: tip.hash, height: tip.height } }
+            let tip
+            if (header) {
+                tip = await this.consensus.getHeadersTip()
+            } else {
+                tip = await this.consensus.getBlocksTip()
+            }
+            message = { getTipReturn: { success: true, hash: tip.hash, height: tip.height, totalwork: tip.totalwork } }
         } catch (e) {
-            logger.error(`Failed to getBlockTip: ${e}`)
+            logger.error(`Failed to getTip: ${e}`)
             message = { getTipReturn: { success: false } }
         }
         return { message, relay: false }
@@ -461,5 +516,44 @@ export class RabbitPeer extends BasePeer implements IPeer {
             message = { getHashReturn: { success: false } }
         }
         return { message, relay: false }
+    }
+
+    private async respondPutBlockTxs(reply: boolean, request: proto.IPutBlockTxs): Promise<IResponse> {
+        let message: proto.INetwork
+        const statusChanges: IStatusChange[] = []
+        try {
+            const headerHash = new Hash(request.hash)
+            const header = await this.consensus.getHeaderByHash(headerHash)
+            const txs = []
+            for (const itx of request.txs) {
+                const tx = new SignedTx(itx)
+                txs.push(tx)
+            }
+            const block = new Block({ header, txs })
+            const status = await this.consensus.putBlock(block)
+            message = { putBlockTxsReturn: status }
+
+        } catch (e) {
+            logger.error(`Failed to receive block txs: ${e}`)
+        }
+        return { message, relay: false }
+    }
+
+    private async respondGetBlockTxs(reply: boolean, request: proto.IPutBlockTxs): Promise<IResponse> {
+        let message: proto.INetwork
+        const txs: SignedTx[] = []
+        try {
+            const blockHash = new Hash(request.hash)
+            const block = await this.consensus.getBlockByHash(blockHash)
+            message = { getBlockTxsReturn: { txs: block.txs } }
+        } catch (e) {
+            logger.error(`Failed to send block txs: ${e}`)
+        }
+        return { message, relay: false }
+    }
+
+    private async forceSync() {
+        this.sync = new Sync(this, this.consensus)
+        return this.sync.sync()
     }
 }
