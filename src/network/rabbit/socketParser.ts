@@ -39,7 +39,7 @@ export class SocketParser {
         this.parseReset()
         this.socket.on("data", (data) => this.receive(data))
         this.socket.on("drain", () => {
-            logger.warn(`Resuming socket ${this.socket.remoteAddress}:${this.socket.remotePort}`)
+            logger.debug(`Resuming socket ${this.socket.remoteAddress}:${this.socket.remotePort}`)
             this.socket.resume()
             this.sendLock.releaseLock()
         })
@@ -66,7 +66,7 @@ export class SocketParser {
         } else {
             // for this case, user memory is used
             // it will be released in "drain" event
-            logger.warn(`Pausing socket ${this.socket.remoteAddress}:${this.socket.remotePort}`)
+            logger.debug(`Pausing socket ${this.socket.remoteAddress}:${this.socket.remotePort}`)
             this.socket.pause()
         }
     }

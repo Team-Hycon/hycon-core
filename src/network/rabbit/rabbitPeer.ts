@@ -314,7 +314,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
         }
         if (reply) {
             if (response.message !== undefined) {
-                this.send(id, response.message).catch((e) => logger.warn(`Message response could not be delived: ${e}`))
+                this.send(id, response.message).catch((e) => logger.debug(`Message response could not be delived: ${e}`))
             }
         } else {
             // broadcast mode
@@ -355,7 +355,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private async respondGetPeers(reply: boolean, request: proto.IGetPeers): Promise<IResponse> {
         try {
             const num = request.count
-            const peers: proto.IPeer[] = await this.network.getPeerDb()
+            const peers = this.network.getConnection()
             const message: proto.INetwork = { getPeersReturn: { success: true, peers } }
             const relay = false
             return { message, relay }
@@ -389,15 +389,15 @@ export class RabbitPeer extends BasePeer implements IPeer {
     }
 
     private async respondPutBlock(reply: boolean, request: proto.IPutBlock): Promise<IResponse> {
-        let relay = true
+        let relay = false
         const statusChanges: IStatusChange[] = []
         try {
             for (const iblock of request.blocks) {
                 const block = new Block(iblock)
                 const result = await this.consensus.putBlock(block)
                 statusChanges.push(result)
-                if (result.oldStatus !== BlockStatus.MainChain || result.status !== BlockStatus.MainChain) {
-                    relay = false
+                if ((result.oldStatus === BlockStatus.MainChain) !== (result.status === BlockStatus.MainChain)) {
+                    relay = true
                 }
             }
         } catch (e) {
@@ -406,7 +406,9 @@ export class RabbitPeer extends BasePeer implements IPeer {
         if (!relay && this.sync === undefined) {
             this.forceSync().then(() => { this.sync = undefined }).catch(() => { this.sync = undefined })
         }
-        logger.debug(`PutBlock Relay=${relay}`)
+        if (relay) {
+            logger.info(`PutBlock Relay=${relay}`)
+        }
         return { message: { putBlockReturn: { statusChanges } }, relay }
     }
 

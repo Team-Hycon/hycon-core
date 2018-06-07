@@ -69,7 +69,7 @@ export class MinerServer {
             return
         }
 
-        if (!globalOptions.bootstrap && (Date.now() - previousDBBlock.header.timeStamp > 86400000)) {
+        if (!globalOptions.bootstrap && ((Date.now() - previousDBBlock.header.timeStamp) > 86400000)) {
             logger.info("Last block is more than a day old, waiting for synchronization prior to mining.")
             logger.info("Use --bootstrap to ignore this check")
             return

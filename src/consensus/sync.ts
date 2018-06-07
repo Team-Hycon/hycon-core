@@ -106,7 +106,7 @@ export class Sync {
             }
             this.peer = undefined
         } catch (e) {
-            logger.error(`Syncing failed: ${e}`)
+            logger.warn(`Syncing failed: ${e}`)
         }
         return
     }
