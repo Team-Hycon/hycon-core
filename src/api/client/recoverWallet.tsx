@@ -7,13 +7,14 @@ export class RecoverWallet extends React.Component<any, any> {
     public mounted: boolean = false
     public errMsg1: string = "Please enter required value"
     public errMsg2: string = "Invalid wallet name: the wallet name must be between 2 to 20 characters with no spaces. Use only English or number."
-    public errMsg3: string = "Not matched passphrase"
+    public errMsg3: string = "Not matched password"
     public errMsg4: string = "Check your mnemonic words"
     public errMsg5: string = "Fail to recover wallet"
     public pattern1 = /^[a-zA-Z0-9]{2,20}$/
     constructor(props: any) {
         super(props)
         this.state = {
+            isPassphrase: false,
             language: "English",
             languages: ["English", "Korean", "Chinese - Simplified", "Chinese - Traditional", "Japanese", "French", "Spanish", "Italian"],
             mnemonic: "",
@@ -24,6 +25,9 @@ export class RecoverWallet extends React.Component<any, any> {
 
     public handleName(data: any) {
         this.setState({ name: data.target.value })
+    }
+    public handlePassphrase(data: any) {
+        this.setState({ passphrase: data.target.value })
     }
     public handlePassword(data: any) {
         this.setState({ password: data.target.value })
@@ -48,6 +52,10 @@ export class RecoverWallet extends React.Component<any, any> {
         this.setState({ language: opt })
     }
 
+    public handleCheckbox(data: any) {
+        this.setState({ isPassphrase: data.target.checked })
+    }
+
     public recoverWallet() {
         if (this.state.name === undefined) {
             alert(this.errMsg1)
@@ -63,6 +71,7 @@ export class RecoverWallet extends React.Component<any, any> {
                     language: this.state.language,
                     mnemonic,
                     name: this.state.name,
+                    passphrase: this.state.passphrase,
                     password: this.state.password,
                 }).then((data: string | boolean) => {
                     if (typeof data !== "string") {
@@ -128,7 +137,7 @@ export class RecoverWallet extends React.Component<any, any> {
                             </td>
                         </tr>
                         <tr>
-                            <td className="subTitle_width20">New Passphrase</td>
+                            <td className="subTitle_width20">Encryption Password</td>
                             <td>
                                 <form action="#">
                                     <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
@@ -146,7 +155,7 @@ export class RecoverWallet extends React.Component<any, any> {
                             </td>
                         </tr>
                         <tr>
-                            <td className="subTitle_width20">Confirm Passphrase</td>
+                            <td className="subTitle_width20">Confirm Encryption Password</td>
                             <td>
                                 <form action="#">
                                     <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
@@ -202,6 +211,26 @@ export class RecoverWallet extends React.Component<any, any> {
                                     <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
                                         <input className="mdl-textfield__input mnemonicInput" type="text" id="confirmMnemonic" autoComplete="off"
                                             onChange={(data) => { this.handleTypeMnemonic(data) }}
+                                            onKeyPress={(event) => {
+                                                if (event.key === "Enter") {
+                                                    event.preventDefault()
+                                                    this.recoverWallet()
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td className="subTitle_width20 checkPassphrase">
+                                <input type="checkbox" checked={this.state.isPassphrase} onChange={(data) => { this.handleCheckbox(data) }} />Passphrase
+                            </td>
+                            <td>
+                                <form action="#">
+                                    <div className={`${this.state.isPassphrase ? "mdl-textfield mdl-js-textfield mdl-textfield--floating-label" : "hide"}`}>
+                                        <input className="mdl-textfield__input" type="text" id="walletPassphrase" autoComplete="off"
+                                            onChange={(data) => { this.handlePassphrase(data) }}
                                             onKeyPress={(event) => {
                                                 if (event.key === "Enter") {
                                                     event.preventDefault()

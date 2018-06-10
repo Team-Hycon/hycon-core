@@ -65,14 +65,14 @@ export class RestClient implements IRest {
         )
     }
 
-    public outgoingSignedTx(tx: { privateKey: string, from: string, to: string, amount: string, fee: string }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
+    public outgoingSignedTx(tx: { privateKey: string, to: string, amount: string, fee: string, nonce: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
         const headers = new Headers()
         headers.append("Accept", "application/json")
         headers.append("Content-Type", "application/json")
         return Promise.resolve(fetch(`/api/${this.apiVersion}/signedtx`, {
             method: "POST",
             headers,
-            body: JSON.stringify({ privateKey: tx.privateKey, from: tx.from, to: tx.to, amount: tx.amount, fee: tx.fee }),
+            body: JSON.stringify({ privateKey: tx.privateKey, to: tx.to, amount: tx.amount, fee: tx.fee, nonce: tx.nonce }),
         })
             .then((response) => response.json())
             .catch((err: Error) => {
@@ -80,14 +80,14 @@ export class RestClient implements IRest {
             }))
     }
 
-    public outgoingTx(tx: { signature: string, from: string, to: string, amount: string, fee: string, recovery: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
+    public outgoingTx(tx: { signature: string, from: string, to: string, amount: string, fee: string, recovery: number, nonce: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
         const headers = new Headers()
         headers.append("Accept", "application/json")
         headers.append("Content-Type", "application/json")
         return Promise.resolve(fetch(`/api/${this.apiVersion}/tx`, {
             method: "POST",
             headers,
-            body: JSON.stringify({ signature: tx.signature, from: tx.from, to: tx.to, amount: tx.amount, fee: tx.fee, recovery: tx.recovery }),
+            body: JSON.stringify({ signature: tx.signature, from: tx.from, to: tx.to, amount: tx.amount, fee: tx.fee, recovery: tx.recovery, nonce: tx.nonce }),
         })
             .then((response) => response.json())
             .catch((err: Error) => {
@@ -209,7 +209,7 @@ export class RestClient implements IRest {
                 console.log(err)
             }))
     }
-    public sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
+    public sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number, nonce: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
         console.log(tx.name)
         const headers = new Headers()
         headers.append("Accept", "application/json")
@@ -217,7 +217,7 @@ export class RestClient implements IRest {
         return Promise.resolve(fetch(`/api/${this.apiVersion}/transaction`, {
             method: "POST",
             headers,
-            body: JSON.stringify({ name: tx.name, password: tx.password, address: tx.address, amount: tx.amount, minerFee: tx.minerFee }),
+            body: JSON.stringify({ name: tx.name, password: tx.password, address: tx.address, amount: tx.amount, minerFee: tx.minerFee, nonce: tx.nonce }),
         })
             .then((response) => response.json())
             .catch((err: Error) => {

@@ -392,3 +392,7 @@ table {
   vertical-align: super;
   padding-left: 10px;
 }
+
+.checkPassphrase{
+  padding: 36px 0;
+}

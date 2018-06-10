@@ -35,7 +35,7 @@ export class SocketParser {
         // These buffers will be held for the duration of the connection, and do not need to be intialized
         this.scrapBuffer = Buffer.allocUnsafeSlow(scrapBufferLength)
         this.writeBuffer = Buffer.allocUnsafeSlow(writeBufferLength)
-        this.sendLock = new AsyncLock(false, 30000)
+        this.sendLock = new AsyncLock(0, 30000)
         this.parseReset()
         this.socket.on("data", (data) => this.receive(data))
         this.socket.on("drain", () => {

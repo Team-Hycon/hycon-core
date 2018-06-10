@@ -79,7 +79,7 @@ export class HttpServer {
                 res.send(page)
             }
         } else {
-            logger.info("other: " + req.url)
+            logger.debug("other: " + req.url)
             next()
         }
     }
@@ -116,10 +116,10 @@ export class HttpServer {
             res.json(
                 await this.rest.outgoingSignedTx({
                     privateKey: req.body.privateKey,
-                    from: req.body.from,
                     to: req.body.to,
                     amount: req.body.amount,
                     fee: req.body.fee,
+                    nonce: req.body.nonce,
                 }, async (tx: SignedTx) => {
                     const newTxs = await this.hyconServer.txQueue.putTxs([tx])
                     this.hyconServer.broadcastTxs(newTxs)
@@ -150,6 +150,7 @@ export class HttpServer {
                 await this.rest.generateWallet({
                     name: req.body.name,
                     password: req.body.password,
+                    passphrase: req.body.passphrase,
                     hint: req.body.hint,
                     mnemonic: req.body.mnemonic,
                     language: req.body.language,
@@ -189,6 +190,7 @@ export class HttpServer {
                 await this.rest.recoverWallet({
                     name: req.body.name,
                     password: req.body.password,
+                    passphrase: req.body.passphrase,
                     hint: req.body.hint,
                     mnemonic: req.body.mnemonic,
                     language: req.body.language,
@@ -203,6 +205,7 @@ export class HttpServer {
                     address: req.body.address,
                     amount: req.body.amount,
                     minerFee: req.body.minerFee,
+                    nonce: req.body.nonce,
                 }, async (tx: SignedTx) => {
                     const newTxs = await this.hyconServer.txQueue.putTxs([tx])
                     this.hyconServer.broadcastTxs(newTxs)

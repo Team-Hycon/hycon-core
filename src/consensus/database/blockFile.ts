@@ -19,7 +19,7 @@ export class BlockFile {
 
     constructor(path: string) {
         this.path = path
-        this.writeFileLock = new AsyncLock(true)
+        this.writeFileLock = new AsyncLock(1)
     }
 
     public async fileInit(n: number, filePosition: number): Promise<void> {

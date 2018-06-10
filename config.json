@@ -1,0 +1,38 @@
+{
+    "algo": "cryptonight",
+    "background": false,
+    "colors": true,
+    "donate-level": 1,
+    "log-file": null,
+    "print-time": 60,
+    "retries": 5,
+    "retry-pause": 5,
+    "syslog": false,
+    "threads": [
+        {
+            "index": 0,
+            "threads": 8,
+	    "intensity": 400,
+	    "worksize" : 8,
+            "blocks": 12,
+            "bfactor": 0,
+            "bsleep": 0,
+            "affine_to_cpu": false
+        }
+    ],
+    "pools": [
+        {
+            "url": "127.0.0.1:9081",
+            "user": "userid",
+            "pass": "pw",
+            "keepalive": true,
+            "nicehash": false,
+            "variant": 1
+        }
+    ],
+    "api": {
+        "port": 0,
+        "access-token": null,
+        "worker-id": null
+    }
+}

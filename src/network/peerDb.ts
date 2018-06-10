@@ -77,6 +77,9 @@ export class PeerDb {
     }
 
     public async put(peer: proto.IPeer): Promise<proto.IPeer> {
+        if (peer.port > 10000) {
+            return {}
+        }
         const key = PeerDb.ipeer2key(peer)
         const value = PeerDb.ipeer2value(peer)
         return this.keyListLock.critical<proto.IPeer>(async () => {
@@ -119,10 +122,14 @@ export class PeerDb {
         })
     }
 
-    public async getRandomPeer(connections: Map<number, proto.IPeer>): Promise<proto.IPeer | undefined> {
+    public async getRandomPeer(exemptions: proto.IPeer[]): Promise<proto.IPeer | undefined> {
         return this.keyListLock.critical(async () => {
             let key: number
-            const filtered = this.keys.filter((filterkey) => !connections.has(filterkey))
+            const exemptKeys = exemptions.map((exempt) => PeerDb.ipeer2key(exempt))
+            const filtered = this.keys.filter((filterkey) => {
+                return (exemptKeys.indexOf(filterkey) === -1)
+            })
+
             if (filtered.length === 0) {
                 return undefined
             }
@@ -138,17 +145,28 @@ export class PeerDb {
             throw new Error("Trying to initialize keys after it has already been initialized")
         }
         try {
-            this.keyListLock = new AsyncLock(true)
+            this.keyListLock = new AsyncLock(1)
             this.keys = []
             await new Promise((resolve, reject) => {
-                const stream = this.db.createKeyStream()
-                    .on("data", async (key: Buffer) => {
+                const stream = this.db.createReadStream()
+                    .on("data", async (key: Buffer, value: Buffer) => {
                         const num = Number(key)
                         if (Number.isNaN(num)) {
                             logger.debug(`Peer db contains unexpected key '${key.toString()}'`)
-                        } else {
-                            this.keys.push(num)
+                            return
                         }
+                        try {
+                            const ipeer = proto.Peer.decode(value)
+                            if (ipeer.port > 10000) {
+                                await this.db.del(num)
+                                return
+                            }
+                            this.keys.push(num)
+                        } catch (e) {
+                            logger.info(`Deleteing corrupted peer from peerdb`)
+                            await this.db.del(num)
+                        }
+
                     })
                     .on("error", (e: any) => {
                         logger.debug(`Could not clear all elements from DB: ${e}`)

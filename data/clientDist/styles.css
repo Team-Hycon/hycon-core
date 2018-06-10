@@ -11780,8 +11780,9 @@ table {
   float: right;
 }
 
-.accountDialogContent{
+.dialogContent{
   padding: 0px 0px 10px 2px !important;
+  text-align: "center";
 }
 
 .accountList{
@@ -11866,6 +11867,10 @@ table {
 .walletName{
   vertical-align: super;
   padding-left: 10px;
+}
+
+.checkPassphrase{
+  padding: 36px 0;
 }.marker {
   /* position: 'absolute';
     width: 40px ;

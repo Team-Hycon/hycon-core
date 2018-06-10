@@ -51,7 +51,7 @@ export class Consensus extends EventEmitter implements IConsensus {
         if (this.lock !== undefined) {
             throw new Error("Multiple calls to init")
         }
-        this.lock = new AsyncLock(true)
+        this.lock = new AsyncLock(1)
         try {
             await this.db.init()
             this.blockTip = await this.db.getBlockTip()
@@ -242,7 +242,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                     this.emit("candidate", this.blockTip, hash)
                 }
 
-                logger.info(`Put ${block ? "Block" : "Header"}`
+                logger.info(`Received ${block ? "Block" : "Header"}`
                     + ` ${hash}(${dbBlock.height}, ${dbBlock.totalWork.toExponential()}),`
                     + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
                     + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)

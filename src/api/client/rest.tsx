@@ -68,6 +68,7 @@ export interface ILocationDetails {
 
 export interface IHyconWallet {
     name?: string
+    passphrase?: string
     password?: string
     hint?: string
     mnemonic?: string
@@ -101,7 +102,7 @@ export interface IRest {
     getWalletBalance(address: string): Promise<{ balance: string } | IResponseError>
     getWalletTransactions(address: string, nonce?: number): Promise<{ txs: ITxProp[] } | IResponseError>
 
-    outgoingSignedTx(tx: { privateKey: string, from: string, to: string, amount: string, fee: string }, queueTx?: Function): Promise<{ txHash: string } | IResponseError>
+    outgoingSignedTx(tx: { privateKey: string, to: string, amount: string, fee: string, nonce: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError>
     outgoingTx(tx: { signature: string, from: string, to: string, amount: string, fee: string, nonce: number, recovery: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError>
 
     // tslint:disable:adjacent-overload-signatures
@@ -121,7 +122,7 @@ export interface IRest {
     getWalletList(): Promise<IHyconWallet[]>
     recoverWallet(Hwallet: IHyconWallet): Promise<string | boolean>
     // [Depreciated: Use above] recoverWalletForce(Hwallet: IHyconWallet): Promise<string | boolean>
-    sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }>
+    sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number, nonce: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }>
     getPeerList(): Promise<IPeer[]>
     getPeerConnected(index: number): Promise<{ peersInPage: IPeer[], pages: number }>
     getPendingTxs(index: number): Promise<{ txs: ITxProp[], length: number, totalCount: number, totalAmount: string, totalFee: string }>

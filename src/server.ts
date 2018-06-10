@@ -37,7 +37,7 @@ export class Server {
         this.worldState = new WorldState("worldstate" + postfix, this.txPool)
         this.consensus = new Consensus(this.txPool, this.worldState, "blockdb" + postfix, "rawblock" + postfix, "txDB" + postfix, "minedDB" + postfix)
         this.network = new RabbitNetwork(this.txPool, this.consensus, globalOptions.port, "peerdb" + postfix, globalOptions.networkid)
-        this.miner = new MinerServer(this.worldState, this.consensus, this.network, globalOptions.cpuMiners, globalOptions.str_port)
+        this.miner = new MinerServer(this.txPool, this.worldState, this.consensus, this.network, globalOptions.cpuMiners, globalOptions.str_port)
         this.rest = new RestManager(this)
     }
     public async run() {

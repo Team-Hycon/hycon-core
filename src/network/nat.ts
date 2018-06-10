@@ -4,10 +4,9 @@ import * as proto from "../serialization/proto"
 import { INetwork } from "./inetwork"
 const client = natUpnp.createClient()
 const logger = getLogger("Nat")
-logger.level = "debug"
 
 export class NatUpnp {
-    private static async _mapPort(privatePort: number, publicPort: number, ttl: number = 10) {
+    private static async _mapPort(privatePort: number, publicPort: number, ttl: number) {
         return await new Promise((resolve, reject) => {
             client.portMapping({
                 description: "Hycon",
@@ -20,7 +19,7 @@ export class NatUpnp {
             })
         })
     }
-    private static async mapPort(privatePort: number, maxAttempts: number = 5, ttl?: number): Promise<number> {
+    private static async mapPort(privatePort: number, maxAttempts: number = 2, ttl: number = 5): Promise<number> {
         let publicPort = privatePort
         for (let i = 0; i < maxAttempts; i++) {
             try {
@@ -29,8 +28,7 @@ export class NatUpnp {
                 return publicPort
             } catch (e) {
                 logger.debug(`Failed to map port ${privatePort} --> ${publicPort}, Attempt ${i} of ${maxAttempts}`)
-                // tslint:disable-next-line:no-bitwise
-                publicPort = (1 << 15) + (1 << 14) + Math.floor(Math.random() * ((1 << 14) - 1))
+                publicPort = 8148 + Math.floor(1000 * Math.random())
             }
         }
         logger.debug(`Upnp Port mapping failed`)
@@ -49,7 +47,6 @@ export class NatUpnp {
     private privatePort: number
     private network: INetwork
 
-  
     constructor(port: number, net: INetwork) {
         this.publicIp = ""
         this.privatePort = port

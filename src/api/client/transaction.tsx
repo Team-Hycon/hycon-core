@@ -14,29 +14,12 @@ import { IBlock, IHyconWallet, IRest } from "./rest"
 import { hyconfromString, hycontoString } from "./stringUtil"
 
 export class Transaction extends React.Component<any, any> {
-    public errMsg1 = "Please enter a number with up to 9 decimal places"
-    public errMsg2 = "You can't spend the money you don't have"
-    public errMsg3 = "You can not send HYCON to yourself."
-    public errMsg4 = "Please enter a number with up to 9 decimal places"
-    public errMsg5 = `You can't spend the money you don't have : ${this.currentMinerFee}`
-    public errMsg6 = "Enter a valid miner fee"
-    public errMsg7 = "You can not send HYCON to yourself."
-    public errMsg9 = "Invalid passphrase: You can see a hint about passphrase pressing 'HINT'"
-    public errMsg10 = "Invalid address: Please check 'To Address' input"
-    public errMsg11 = "Fail to transfer hycon"
-    public errMsg12 = "Enter a valid transaction amount"
-    public errMsg13 = "Enter a to address"
-    public pattern1 = /(^[0-9]*)([.]{0,1}[0-9]{0,9})$/
 
     public currentMinerFee = "0"
-    public currentReturnedFee = 0
-
     public mounted = false
 
     constructor(props: any) {
         super(props)
-
-        const random = this.getRandomInt(0, 150)
 
         this.state = {
             address: "",
@@ -54,10 +37,6 @@ export class Transaction extends React.Component<any, any> {
         this.handleInputChange = this.handleInputChange.bind(this)
         this.handleSubmit = this.handleSubmit.bind(this)
         this.handleCancel = this.handleCancel.bind(this)
-    }
-
-    public getRandomInt(min: number, max: number): number {
-        return Math.floor(Math.random() * (max - min + 1)) + min
     }
     public componentWillUnmount() {
         this.mounted = false
@@ -85,81 +64,68 @@ export class Transaction extends React.Component<any, any> {
     }
 
     public handleInputChange(event: any) {
-        const target = event.target
-        let value = target.value
-        const name = target.name
-
+        const name = event.target.name
+        const value = event.target.value
         if (name === "amount") {
-            const temp: string = value
-            try {
-                if (temp.match(this.pattern1) == null) {
-                    alert(this.errMsg1)
-                }
-            } catch (error) {
-
-            }
-            if (hyconfromString(target.value).add(hyconfromString(this.state.minerFee)).greaterThan(hyconfromString(this.state.piggyBank).sub(hyconfromString(this.state.wallet.pendingAmount)))) {
-                alert(this.errMsg2)
-            }
             this.setState({ [name]: value })
-            this.currentMinerFee = hycontoString(hyconfromString(this.state.piggyBank).sub(hyconfromString(target.value).sub(this.state.wallet.pendingAmount)))
+            this.currentMinerFee = hycontoString(hyconfromString(this.state.piggyBank).sub(hyconfromString(event.target.value).sub(this.state.wallet.pendingAmount)))
 
         } else if (name === "address") {
-            if (value === this.state.wallet.address) {
-                alert(this.errMsg3)
-            } else {
-                this.setState({
-                    [name]: value,
-                })
-            }
+            this.setState({
+                [name]: value,
+            })
         } else if (name === "minerFee") {
-            const temp: string = value
-            if (temp.match(this.pattern1) == null) {
-                alert(this.errMsg4)
-                value = ""
-            } else if (hyconfromString(value).greaterThan(hyconfromString(this.currentMinerFee))) {
-                alert(this.errMsg5)
-                if (hyconfromString("1").greaterThan(hyconfromString(this.currentMinerFee))) {
-                    value = this.currentMinerFee
-                } else { value = 1 }
-            }
             this.setState({ minerFee: value })
         }
     }
 
-    public handleSubmit(event: any) {
+    public async handleSubmit(event: any) {
+        const pattern1 = /(^[0-9]*)([.]{0,1}[0-9]{0,9})$/
+
+        if (this.state.amount.match(pattern1) == null) {
+            alert("Please enter a number with up to 9 decimal places")
+        }
+
+        if (this.state.minerFee.match(pattern1) == null) {
+            alert("Please enter a number with up to 9 decimal places")
+        }
+        if (hyconfromString(event.target.value).add(hyconfromString(this.state.minerFee)).greaterThan(hyconfromString(this.state.piggyBank).sub(hyconfromString(this.state.wallet.pendingAmount)))) {
+            alert("You can't spend the money you don't have")
+        }
+
         if (this.state.address !== "" && this.state.address !== undefined) {
             if (this.state.amount > 0) {
                 if (hyconfromString(this.state.minerFee).compare(hyconfromString("0")) === 0) {
-                    alert(this.errMsg6)
+                    alert("Enter a valid miner fee")
                 } else {
                     if (this.state.wallet.address === this.state.address) {
-                        alert(this.errMsg7)
+                        alert("You cannot send HYCON to yourself")
                     } else {
                         this.setState({ isLoading: true })
-                        this.state.rest.sendTx({ name: this.state.name, password: this.state.password, address: this.state.address, amount: this.state.amount.toString(), minerFee: this.state.minerFee.toString() })
+                        const nonce = await this.state.rest.getAddressInfo(this.state.address).nonce + 1
+                        this.state.rest.sendTx({ name: this.state.name, password: this.state.password, address: this.state.address, amount: this.state.amount.toString(), minerFee: this.state.minerFee.toString(), nonce })
                             .then((result: { res: boolean, case?: number }) => {
                                 if (result.res === true) {
                                     alert(`A transaction of ${this.state.amount} HYCON has been submitted to ${this.state.address} with ${this.state.minerFee} HYCON as miner fees.`)
                                     this.setState({ redirect: true })
                                 } else if (result.case === 1) {
-                                    alert(this.errMsg9)
+                                    alert("Invalid password: You can see a hint about password pressing 'HINT'")
                                     window.location.reload()
                                 } else if (result.case === 2) {
-                                    alert(this.errMsg10)
+                                    alert("Invalid address: Please check 'To Address' input")
                                     window.location.reload()
                                 } else if (result.case === 3) {
-                                    alert(this.errMsg11)
+                                    alert("Fail to transfer hycon")
                                     this.setState({ redirect: true })
                                 }
                             })
                     }
                 }
             } else {
-                alert(this.errMsg12)
+                alert("Enter a valid transaction amount")
             }
         } else {
-            alert(this.errMsg13)
+            alert("Enter a to address")
         }
         event.preventDefault()
     }
@@ -168,19 +134,6 @@ export class Transaction extends React.Component<any, any> {
         this.setState({ redirect: true })
     }
 
-    public roundTo(n: number) {
-        const digits = 9
-        const multiplicator = Math.pow(10, digits)
-        n = parseFloat((n * multiplicator).toFixed(11))
-        const test = Math.round(n) / multiplicator
-        return +test.toFixed(digits)
-    }
-    public checkListItemExist() {
-        if (this.state.favorites === []) {
-            this.setState({ dialog: true, noList: true })
-        }
-        this.setState({ dialog: true })
-    }
     public render() {
         if (this.state.redirect) {
             return <Redirect to={`/wallet/detail/${this.state.name}`} />
@@ -206,8 +159,8 @@ export class Transaction extends React.Component<any, any> {
                             <TextField floatingLabelText="Pending Amount" style={{ width: "330px" }} type="text" disabled={true} value={this.state.wallet.pendingAmount} />
                             <TextField name="minerFee" floatingLabelFixed={true} style={{ marginLeft: "30px", width: "330px" }} floatingLabelText="Miner Fee" type="text" value={this.state.minerFee} onChange={this.handleInputChange} />
                             <br />
-                            <TextField name="password" floatingLabelFixed={true} style={{ marginRight: "20px", width: "330px" }} floatingLabelText="Wallet Passphrase" type="password" autoComplete="off" onChange={(data) => { this.handlePassword(data) }} />
-                            {this.state.isHint ? (<span style={{ fontSize: "12px" }}>(Passphrase Hint: {this.state.hint})</span>) : (<Button onClick={(e) => this.showHint(e)}>Hint</Button>)}
+                            <TextField name="password" floatingLabelFixed={true} style={{ marginRight: "20px", width: "330px" }} floatingLabelText="Wallet Password" type="password" autoComplete="off" onChange={(data) => { this.handlePassword(data) }} />
+                            {this.state.isHint ? (<span style={{ fontSize: "12px" }}>(Password Hint: {this.state.hint})</span>) : (<Button onClick={(e) => this.showHint(e)}>Hint</Button>)}
                             <br /><br />
                             <Grid container direction={"row"} justify={"flex-end"} alignItems={"flex-end"}>
                                 <Button variant="raised" onClick={this.handleSubmit} style={{ backgroundColor: "#50aaff", color: "white", float: "right", margin: "0 10px" }}>

@@ -1,6 +1,7 @@
 import { getLogger } from "log4js"
 import { Socket } from "net"
 import { resolve } from "url"
+import { AsyncLock } from "../../common/asyncLock"
 import * as proto from "../../serialization/proto"
 import { Hash } from "../../util/hash"
 import { SocketParser } from "./socketParser"
@@ -16,6 +17,7 @@ export abstract class BasePeer {
     public socketBuffer: SocketParser
     private replyId: number
     private replyMap: Map<number, { resolved: replyResolve, reject: replyReject, timeout: NodeJS.Timer }>
+    private requestSemaphore = new AsyncLock(0, 30000, 5)
 
     constructor(socket: Socket) {
         this.replyId = 1
@@ -41,7 +43,7 @@ export abstract class BasePeer {
         }
     }
 
-    protected onPacket(route: number, packet: Buffer): void {
+    protected async onPacket(route: number, packet: Buffer): Promise<void> {
         try {
             const res = proto.Network.decode(packet)
             switch (res.request) {
@@ -58,7 +60,7 @@ export abstract class BasePeer {
                 case "getTip":
                 case "putHeaders":
                 case "getHash":
-                    this.respond(route, res, packet)
+                    this.requestSemaphore.critical(async () => await this.respond(route, res, packet)).catch((e) => logger.debug(e))
                     break
                 case "statusReturn":
                 case "pingReturn":
@@ -73,7 +75,10 @@ export abstract class BasePeer {
                 case "getTipReturn":
                 case "putHeadersReturn":
                 case "getHashReturn":
-                    this.route(route, res, packet)
+                    if (route === 0) {
+                        logger.debug(`Recieved ${res.request} broadcast`)
+                    }
+                    await this.route(route, res, packet)
                     break
                 default:
                     logger.debug(`Unsupported Protocol=${res.request}`)

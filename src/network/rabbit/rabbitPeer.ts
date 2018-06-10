@@ -23,6 +23,8 @@ const logger = getLogger("NetPeer")
 
 interface IResponse { message: proto.INetwork, relay: boolean }
 export class RabbitPeer extends BasePeer implements IPeer {
+    public listenPort: number
+    public guid: string
     private consensus: IConsensus
     private txPool: ITxPool
     private network: RabbitNetwork
@@ -38,28 +40,37 @@ export class RabbitPeer extends BasePeer implements IPeer {
         this.txPool = txPool
         this.peerDB = peerDB
     }
-    public getSocket(): Socket {
-        return this.socketBuffer.getSocket()
-    }
-    public isSelfConnection(port: number): boolean {
-        return this.socketBuffer.isSelfConnection(port)
-    }
+
     public async detectStatus(): Promise<proto.IStatus> {
-        const status = await this.status()
-        if ((status !== undefined) && (status.version > this.network.version)) {
-            logger.warn(`Peer is using a higher version number`)
-            logger.warn(`Local Version=${this.network.version} Remote Version=${status.version}`)
-        }
-        const remoteNetworkId = status.networkid
-        const myNetworkId = globalOptions.networkid
-        if (myNetworkId === remoteNetworkId) {
-            logger.info(`Successfully Checked NetworkID LocalNetworkID=${myNetworkId} RemoteNetworkID=${remoteNetworkId}`)
-        } else {
-            logger.info(`Different NetworkID LocalNetworkID=${myNetworkId} RemoteNetworkID=${remoteNetworkId}`)
+        try {
+            const status = await this.status()
+            if (status === undefined) {
+                throw new Error("Peer did not respond to status request")
+            }
+            if (status.networkid !== globalOptions.networkid) {
+                throw new Error(`Peer is using different NetworkID(${status.networkid}) to expected value(${globalOptions.networkid})`)
+            }
+            if (status.guid === this.network.guid) {
+                throw new Error(`Connected to self`)
+            }
+            for (const peer of this.network.peers.values()) {
+                if (status.guid === peer.guid) {
+                    throw new Error(`Already connected to peer`)
+                }
+            }
+
+            this.listenPort = status.port
+            this.guid = status.guid
+            if (status.version > this.network.version) {
+                logger.warn(`Peer is using a higher version number(${status.version}) than current version(${this.network.version})`)
+            }
+            return status
+        } catch (e) {
+            logger.debug(`Disconnecting from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}: ${e}`)
             this.disconnect()
-            return undefined
+            throw e
         }
-        return status
+
     }
 
     public async getTip(header = false): Promise<{ hash: Hash, height: number, totalwork: number }> {
@@ -73,8 +84,8 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return { hash: new Hash(reply.getTipReturn.hash), height: Number(reply.getTipReturn.height), totalwork: reply.getTipReturn.totalwork }
     }
 
-    public async putHeaders(header: AnyBlockHeader[]): Promise<IStatusChange[]> {
-        const { reply, packet } = await this.sendRequest({ putHeaders: { headers: [] } })
+    public async putHeaders(headers: AnyBlockHeader[]): Promise<IStatusChange[]> {
+        const { reply, packet } = await this.sendRequest({ putHeaders: { headers } })
         if (reply.putHeadersReturn === undefined) {
             this.protocolError(new Error(`Reply has no 'putHeadersReturn': ${JSON.stringify(reply)}`))
             throw new Error("Invalid response")
@@ -312,24 +323,21 @@ export class RabbitPeer extends BasePeer implements IPeer {
                 this.protocolError(new Error(`Unknown network message '${request.request}': ${JSON.stringify(request)}`))
                 break
         }
-        if (reply) {
-            if (response.message !== undefined) {
-                this.send(id, response.message).catch((e) => logger.debug(`Message response could not be delived: ${e}`))
-            }
-        } else {
-            // broadcast mode
-            if (response.relay) {
-                // only request was successfully processed
-                // we will relay
-                // exclude the peer itself
-                this.network.broadcast(packet, this)
+        // broadcast mode
+        if (id === 0 && response.relay) {
+            setTimeout(() => this.network.broadcast, packet, this)
+        }
+        if (id !== 0 && response.message !== undefined) {
+            try {
+                await this.send(id, response.message)
+            } catch (e) {
+                logger.debug(`Message response could not be delived: ${e}`)
             }
         }
     }
 
     private async respondStatus(reply: boolean, request: proto.IStatus): Promise<IResponse> {
         const receviedStatus = new proto.Status(request)
-        await this.network.guidCheck(this, receviedStatus)
         const message: proto.INetwork = {
             statusReturn: {
                 status: {
@@ -355,7 +363,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private async respondGetPeers(reply: boolean, request: proto.IGetPeers): Promise<IResponse> {
         try {
             const num = request.count
-            const peers = this.network.getConnection()
+            const peers = this.network.getIPeers(this)
             const message: proto.INetwork = { getPeersReturn: { success: true, peers } }
             const relay = false
             return { message, relay }

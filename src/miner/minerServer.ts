@@ -4,6 +4,8 @@ import Long = require("long")
 import { Address } from "../common/address"
 import { Block } from "../common/block"
 import { BlockHeader } from "../common/blockHeader"
+import { ITxPool } from "../common/itxPool"
+import { TxPool } from "../common/txPool"
 import { DBBlock } from "../consensus/database/dbblock"
 import { WorldState } from "../consensus/database/worldState"
 import { DifficultyAdjuster } from "../consensus/difficultyAdjuster"
@@ -27,6 +29,7 @@ export class MinerServer {
         return DifficultyAdjuster.acceptable(await Hash.hashCryptonight(buffer), target)
     }
 
+    private txpool: ITxPool
     private consensus: IConsensus
     private network: INetwork
     private stratumServer: StratumServer
@@ -34,7 +37,8 @@ export class MinerServer {
     private intervalId: NodeJS.Timer
     private worldState: WorldState
 
-    public constructor(worldState: WorldState, consensus: IConsensus, network: INetwork, cpuMiners: number, stratumPort: number) {
+    public constructor(txpool: ITxPool, worldState: WorldState, consensus: IConsensus, network: INetwork, cpuMiners: number, stratumPort: number) {
+        this.txpool = txpool
         this.worldState = worldState
         this.consensus = consensus
         this.network = network
@@ -71,7 +75,6 @@ export class MinerServer {
 
         if (!globalOptions.bootstrap && ((Date.now() - previousDBBlock.header.timeStamp) > 86400000)) {
             logger.info("Last block is more than a day old, waiting for synchronization prior to mining.")
-            logger.info("Use --bootstrap to ignore this check")
             return
         }
 
@@ -87,6 +90,7 @@ export class MinerServer {
         const timeStamp = Math.max(Date.now(), previousDBBlock.header.timeStamp + 50)
 
         const { stateTransition: { currentStateRoot }, validTxs, invalidTxs } = await this.worldState.next(previousDBBlock.header.stateRoot, miner)
+        this.txpool.removeTxs(invalidTxs)
         const block = new Block({
             header: new BlockHeader({
                 difficulty: previousDBBlock.nextDifficulty,

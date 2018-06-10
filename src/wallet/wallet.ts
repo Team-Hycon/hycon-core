@@ -47,7 +47,7 @@ export class Wallet {
         return new Wallet(privateKey)
     }
 
-    public static generate(wallet?: { name?: string, password?: string, mnemonic: string, language?: string, hint?: string }): Wallet {
+    public static generate(wallet?: { name?: string, passphrase?: string, mnemonic: string, language?: string, hint?: string }): Wallet {
         if (wallet && wallet.mnemonic) {
             let language = ""
             if (!wallet.language) {
@@ -55,7 +55,7 @@ export class Wallet {
             } else {
                 language = wallet.language
             }
-            return Wallet.generateKeyWithMnemonic(wallet.mnemonic, language.toLowerCase(), wallet.password)
+            return Wallet.generateKeyWithMnemonic(wallet.mnemonic, language.toLowerCase(), wallet.passphrase)
         } else {
             return Wallet.generateKey()
         }
@@ -232,13 +232,14 @@ export class Wallet {
 
     public static async recoverWallet(
         recoveryParamets: {
-            name: string, password: string, mnemonic: string, language: string, hint: string,
-        }): Promise<string> {
+            name: string, passphrase: string, mnemonic: string, language: string, hint: string,
+        },
+        password: string): Promise<string> {
         if (await fs.pathExists(`./wallet/rootKey/${recoveryParamets.name}`)) {
             throw new Error("Duplicate wallet name...")
         }
         const wallet = Wallet.generate(recoveryParamets)
-        await wallet.save(recoveryParamets.name, recoveryParamets.password, recoveryParamets.hint)
+        await wallet.save(recoveryParamets.name, password, recoveryParamets.hint)
         const addressString = await Wallet.getAddress(recoveryParamets.name)
         return addressString.toString()
     }

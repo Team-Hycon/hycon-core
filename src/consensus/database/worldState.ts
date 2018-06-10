@@ -134,7 +134,7 @@ export class WorldState {
 
     public async next(previousState: Hash, minerAddress: Address, txs?: SignedTx[]): Promise<{ stateTransition: IStateTransition, validTxs: SignedTx[], invalidTxs: SignedTx[] }> {
         // Consensus Critical
-        txs === undefined ? txs = this.txPool.getTxs().slice(0, 4096) : txs = txs
+        txs === undefined ? txs = this.txPool.getTxs(4096).slice(0, 4096) : txs = txs
         const batch: DBState[] = []
         const changes: IChange[] = []
         const mapAccount: Map<string, DBState> = new Map<string, DBState>()
@@ -263,7 +263,7 @@ export class WorldState {
             from.account.nonce++
 
             if (tx.to === undefined) {
-                logger.warn(`🔥 TX ${new Hash(tx).toString()} burned ${hycontoString(tx.amount)} HYC from ${tx.from.toString()} 🔥`)
+                logger.warn(`TX ${new Hash(tx).toString()} burned ${hycontoString(tx.amount)} HYC from ${tx.from.toString()}`)
             } else {
                 const to = await this.getModifiedAccount(tx.to, previousState, mapIndex, changes)
                 to.account.balance = to.account.balance.add(tx.amount)
