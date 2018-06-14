@@ -38,7 +38,7 @@ export class PriorityQueue<T> {
         return this.queue.pop()
     }
 
-    public remove(value: T, equality: (a: T, b: T) => boolean) {
+    public remove(value: T, equality: (a: T, b: T) => boolean = (a, b) => a === b) {
         for (let i = 0; i < this.queue.length; i++) {
             const item = this.peek(i)
             const compare = equality(value, item)
@@ -47,6 +47,9 @@ export class PriorityQueue<T> {
                 return i
             }
         }
+    }
+    public resort() {
+        this.queue.sort(this.comparator)
     }
 
     public peek(index: number) {

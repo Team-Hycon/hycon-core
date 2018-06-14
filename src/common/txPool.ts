@@ -29,19 +29,28 @@ export class TxPool implements ITxPool {
     private minFee: Long
     private maxAddresses: number
     private maxTxsPerAddress: number
-    private accountMap: Map<string, PriorityQueue<SignedTx>>
-    private accountSums: Map<string, Long>
+    private accountMap: Map<string, ITxQueue>
 
     constructor(server: Server, minFee?: Long) {
         this.server = server
         this.maxTxsPerAddress = 4096 // TODO: Figure out proper numbers
         this.maxAddresses = 4096
         this.minFee = minFee === undefined ? Long.fromNumber(1, true) : minFee
-        this.accountMap = new Map<string, PriorityQueue<SignedTx>>()
-        this.accountSums = new Map<string, Long>()
+        this.accountMap = new Map<string, ITxQueue>()
         this.pool = new PriorityQueue<ITxQueue>(this.maxAddresses, (a: ITxQueue, b: ITxQueue) => {
             return a.sum.subtract(b.sum).toNumber()
         })
+        setInterval(() => {
+            const txs: SignedTx[] = []
+            for (let i = 0; i < Math.min(30, this.pool.length()); i++) {
+                const { queue } = this.pool.peek(i)
+                const tx = queue.peek(0)
+                txs.push(tx)
+            }
+            if (txs.length > 0) {
+                this.server.network.broadcastTxs(txs)
+            }
+        }, 30000)
     }
 
     public async putTxs(txs: SignedTx[]) {
@@ -62,42 +71,21 @@ export class TxPool implements ITxPool {
             if (validity === TxValidity.Invalid) {
                 continue
             }
-            const from = tx.from.toString()
-            let accountTxs = this.accountMap.get(from)
-            if (accountTxs === undefined) {
-                accountTxs = new PriorityQueue<SignedTx>(this.maxTxsPerAddress, sortNonce)
-                accountTxs.insert(tx)
-                this.accountMap.set(from, accountTxs)
-                this.accountSums.set(from, tx.fee)
+            const address = tx.from.toString()
+            let itxqueue = this.accountMap.get(address)
+            if (itxqueue === undefined) {
+                const queue = new PriorityQueue<SignedTx>(this.maxTxsPerAddress, sortNonce)
+                itxqueue = { address, queue, sum: tx.fee }
+                this.accountMap.set(address, itxqueue)
+                this.pool.insert(itxqueue)
             } else {
-                accountTxs.insert(tx)
-                const sum = this.accountSums.get(from)
-                this.accountSums.set(from, sum.add(tx.fee))
+                itxqueue.sum = itxqueue.sum.add(tx.fee)
             }
+            itxqueue.queue.insert(tx)
             broadcastTxs.push(tx)
         }
 
-        let foundQueue = false
-        for (const address of this.accountMap.keys()) {
-            const accountTxs = this.accountMap.get(address)
-            const accountSum = this.accountSums.get(address)
-            for (let i = 0; i < this.pool.length(); i++) {
-                const poolITxQueue = this.pool.peek(i)
-                if (poolITxQueue.address === address) {
-                    poolITxQueue.sum = accountSum
-                    poolITxQueue.queue = accountTxs
-                    foundQueue = true
-                    break
-                }
-            }
-            if (!foundQueue) {
-                const itxqueue: ITxQueue = { sum: accountSum, queue: accountTxs, address }
-                this.pool.insert(itxqueue)
-            }
-            if (foundQueue) {
-                break
-            }
-        }
+        this.pool.resort() // 🏖️
 
         return broadcastTxs
     }
@@ -105,21 +93,18 @@ export class TxPool implements ITxPool {
     public removeTxs(txs: SignedTx[]) {
         for (const tx of txs) {
             const address = tx.from.toString()
-            let txqueue: ITxQueue
-            for (let i = 0; i < this.pool.length(); i++) {
-                const itxqueue = this.pool.peek(i)
-                if (itxqueue.address === address) {
-                    txqueue = this.pool.pop(i)
-                    txqueue.queue.remove(tx, compareTxs)
-                    txqueue.sum = txqueue.sum.subtract(tx.fee)
-                    this.accountSums.set(address, txqueue.sum)
-                    break
-                }
+            const txqueue: ITxQueue = this.accountMap.get(address)
+            if (txqueue === undefined) {
+                continue
             }
-            if (txqueue !== undefined) {
-                this.pool.insert(txqueue)
+            txqueue.queue.remove(tx, compareTxs)
+            txqueue.sum = txqueue.sum.subtract(tx.fee)
+            if (txqueue.queue.length() <= 0) {
+                this.accountMap.delete(address)
+                this.pool.remove(txqueue)
             }
         }
+        this.pool.resort() // 🏖️
     }
 
     public getTxs(count: number): SignedTx[] {
@@ -159,7 +144,7 @@ export class TxPool implements ITxPool {
         if (txqueue === undefined) {
             return []
         }
-        return txqueue.toArray()
+        return txqueue.queue.toArray()
     }
 }
 

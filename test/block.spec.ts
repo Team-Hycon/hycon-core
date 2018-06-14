@@ -8,7 +8,7 @@ import { SignedTx } from "../src/common/txSigned"
 import * as proto from "../src/serialization/proto"
 import { Hash } from "../src/util/hash"
 
-describe("Block", () => {
+xdescribe("Block", () => {
     let iBlock: proto.IBlock
     let tx: jasmine.SpyObj<SignedTx>
     let tx2: jasmine.SpyObj<SignedTx>

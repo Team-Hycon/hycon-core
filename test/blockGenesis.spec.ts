@@ -50,7 +50,7 @@ describe("Genesis Block Tests", () => {
         expect(setSpy).toHaveBeenCalled()
     })
 
-    it("decode() should call proto.Block.decode()", () => {
+    xit("decode() should call proto.Block.decode()", () => {
         const decSpy = spyOn(proto.Block, "decode")
         const setSpy = spyOn(GenesisBlock.prototype, "set").and.callFake(() => {
             return
@@ -72,7 +72,7 @@ describe("Genesis Block Tests", () => {
         expect(encoder.finish).toHaveBeenCalled()
     })
 
-    it("fromFile(): Should attempt to read the genesis block from the file system", () => {
+    xit("fromFile(): Should attempt to read the genesis block from the file system", () => {
         const fsSpy = spyOn(fs, "readFileSync").and.returnValue(new Buffer(32))
         const decSpy = spyOn(proto.Block, "decode")
         const setSpy = spyOn(GenesisBlock.prototype, "set").and.callFake(() => {

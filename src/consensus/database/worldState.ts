@@ -99,15 +99,17 @@ export class WorldState {
     }
     public async validateTx(stateRoot: Hash, tx: SignedTx): Promise<TxValidity> {
         const fromAccount = await this.getAccount(stateRoot, tx.from)
-        let validity
-        if (fromAccount.nonce + 1 === tx.nonce) {
-            validity = TxValidity.Valid
-        } else if (fromAccount.nonce + 1 < tx.nonce) {
-            validity = TxValidity.Waiting
-        } else {
-            validity = TxValidity.Invalid
+        if (fromAccount === undefined || fromAccount.nonce >= tx.nonce) {
+            return TxValidity.Invalid
         }
-        return validity
+        if (fromAccount.nonce + 1 === tx.nonce) {
+            return TxValidity.Valid
+        }
+        if (fromAccount.nonce + 1 < tx.nonce) {
+            return TxValidity.Waiting
+        }
+
+        return TxValidity.Invalid
     }
 
     public async first(genesis: GenesisBlock): Promise<IStateTransition> {
@@ -291,7 +293,7 @@ export class WorldState {
         return { account: new Account({ balance: 0, nonce: 0 }), address }
     }
 
-    private async putChange(change: { index?: number, account: Account, address: Address }, mapIndex: Map<string, number>, changes: IChange[]) {
+    private putChange(change: { index?: number, account: Account, address: Address }, mapIndex: Map<string, number>, changes: IChange[]) {
         // Consensus Critical
         if (change.index === undefined) {
             mapIndex.set(change.address.toString(), changes.push(change) - 1)
@@ -397,7 +399,8 @@ export class WorldState {
             } else {
                 object.nodeRefs.push(new NodeRef())
             }
-            object.nodeRefs[i].address = subChanges[0].address.slice(offset, offset + minMatchLength)
+            const addressSlice = new Uint8Array(subChanges[0].address).slice(offset, offset + minMatchLength)
+            object.nodeRefs[i].address = addressSlice
             const prefix2 = concat(prefix, object.nodeRefs[i].address)
 
             object.nodeRefs[i].child = await this.putAccount(batch, mapAccount, subChanges, object.nodeRefs[i].child, offset + minMatchLength, prefix2, objectAddress2)

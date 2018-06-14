@@ -189,9 +189,9 @@ export class TxDatabase implements ITxDatabase {
         const params = { $txhash: key.toString() }
         let tx: DBTx
         return new Promise<{ tx: DBTx, confirmation: number } | undefined>(async (resolved, rejected) => {
-            this.db.each(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime FROM txdb WHERE txhash = $txhash`, params, async (err, row) => {
-                if (row === undefined) { return resolved(undefined) }
-                tx = new DBTx(row.txhash, row.blockhash, row.txto, row.txfrom, row.amount, row.fee, row.blocktime)
+            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime FROM txdb WHERE txhash = $txhash LIMIT 1`, params, async (err, rows) => {
+                if (rows === undefined || rows.length < 1) { return resolved(undefined) }
+                tx = new DBTx(rows[0].txhash, rows[0].blockhash, rows[0].txto, rows[0].txfrom, rows[0].amount, rows[0].fee, rows[0].blocktime)
                 const height = await this.consensus.getBlockHeight(Hash.decode(tx.blockhash))
                 const tip = this.consensus.getBlocksTip()
                 const confirmation = tip.height - height

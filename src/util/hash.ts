@@ -37,13 +37,11 @@ function toUint8Array(ob?: Tx | Block | GenesisBlockHeader | BlockHeader | strin
         }
         throw new Error("Trying to allocate a hash which is not 32 bytes long")
     }
-    return Hash.emptyHash()
+    return Hash.emptyHash
 }
 
 export class Hash extends Uint8Array {
-    public static emptyHash(): Uint8Array {
-        return blake2b(32).digest()
-    }
+    public static readonly emptyHash = blake2b(32).digest()
 
     public static hash(ob: Uint8Array | string): Uint8Array {
         // Consensus Critical
@@ -85,7 +83,7 @@ export class Hash extends Uint8Array {
         return Buffer.from(this as Uint8Array as Buffer)
     }
 
-    public equals(other: Hash): boolean {
+    public equals(other: ArrayLike<number>): boolean {
         // Consensus Critical
         if (this.length !== other.length) { return false }
         for (let i = 0; i < other.length; i++) {

@@ -1,6 +1,6 @@
 import { PriorityQueue } from "../src/common/priorityQueue"
 
-fdescribe("PriorityQueue", () => {
+describe("PriorityQueue", () => {
     const maxLength = 10
 
     it("insert: 1 should insert an item into an empty priority queue", () => {

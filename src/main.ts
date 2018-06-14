@@ -1,4 +1,5 @@
 import { configure, getLogger } from "log4js"
+import { showHelp } from "./help"
 configure({
     appenders: {
 
@@ -40,10 +41,17 @@ const optionDefinitions = [
     { name: "visualize", alias: "V", type: Boolean },
     { name: "wallet", alias: "W", type: Boolean },
     { name: "writing", alias: "w", type: Boolean },
+    { name: "help", alias: "h", type: Boolean },
+    { name: "config", alias: "c", type: String },
 ]
 
 import conf = require("./settings")
 export const globalOptions = commandLineArgs(optionDefinitions)
+
+if (globalOptions.help) {
+    showHelp()
+    process.exit(0)
+}
 
 if (globalOptions.cpuMiners === undefined) {
     globalOptions.cpuMiners = 1
@@ -152,4 +160,5 @@ async function main() {
         throw new Error("Lite node not implemented")
     }
 }
+
 main()

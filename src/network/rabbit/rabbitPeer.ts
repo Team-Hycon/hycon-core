@@ -397,25 +397,32 @@ export class RabbitPeer extends BasePeer implements IPeer {
     }
 
     private async respondPutBlock(reply: boolean, request: proto.IPutBlock): Promise<IResponse> {
-        let relay = false
+        let relay = true
         const statusChanges: IStatusChange[] = []
         try {
             for (const iblock of request.blocks) {
                 const block = new Block(iblock)
-                const result = await this.consensus.putBlock(block)
-                statusChanges.push(result)
-                if ((result.oldStatus === BlockStatus.MainChain) !== (result.status === BlockStatus.MainChain)) {
-                    relay = true
+                try {
+                    const result = await this.consensus.putBlock(block)
+                    statusChanges.push(result)
+                    if (result.oldStatus === result.status || result.status < BlockStatus.MainChain) {
+                        relay = false
+                    }
+                } catch (e) {
+                    statusChanges.push({ oldStatus: BlockStatus.Nothing, status: BlockStatus.Block })
+                    relay = false
                 }
+
+            }
+            if (!relay && this.sync === undefined) {
+                this.forceSync().then(() => { this.sync = undefined }).catch(() => { this.sync = undefined })
             }
         } catch (e) {
             logger.debug(`Failed to put block: ${e}`)
+            relay = false
         }
-        if (!relay && this.sync === undefined) {
-            this.forceSync().then(() => { this.sync = undefined }).catch(() => { this.sync = undefined })
-        }
-        if (relay) {
-            logger.info(`PutBlock Relay=${relay}`)
+        if (relay && request.blocks && request.blocks.length > 0) {
+            logger.debug(`PutBlock Relay=${relay}`)
         }
         return { message: { putBlockReturn: { statusChanges } }, relay }
     }
@@ -502,15 +509,15 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private async respondPutHeaders(reply: boolean, request: proto.IPutHeaders): Promise<IResponse> {
         let relay = false
         const statusChanges: IStatusChange[] = []
-        try {
-            for (const iheader of request.headers) {
+        for (const iheader of request.headers) {
+            try {
                 const header = new BlockHeader(iheader)
                 statusChanges.push(await this.consensus.putHeader(header))
+            } catch (e) {
+                statusChanges.push({ oldStatus: BlockStatus.Nothing, status: BlockStatus.Header })// TODO: Feedback
             }
-            relay = statusChanges.every((change) => (change.status !== undefined && change.status !== BlockStatus.Rejected && change.oldStatus !== change.status))
-        } catch (e) {
-            logger.error(`Failed to put header: ${e}`)
         }
+        relay = statusChanges.every((change) => (change.status !== undefined && change.status !== BlockStatus.Rejected && change.oldStatus !== change.status))
         logger.debug(`PutHeader`)
         return { message: { putHeadersReturn: { statusChanges } }, relay }
     }

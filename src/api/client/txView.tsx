@@ -1,11 +1,13 @@
 import * as React from "react"
 import { Link } from "react-router-dom"
+import { NotFound } from "./notFound"
 import { IRest, ITxProp } from "./rest"
 import { TxLine } from "./txLine"
 interface ITxProps {
     rest: IRest
     hash: string
-    tx: ITxProp
+    tx: ITxProp,
+    notFound: boolean
 }
 
 export class TxView extends React.Component<any, any> {
@@ -14,6 +16,7 @@ export class TxView extends React.Component<any, any> {
         super(props)
         this.state = {
             hash: props.hash,
+            notFound: false,
             rest: props.rest,
         }
     }
@@ -26,13 +29,18 @@ export class TxView extends React.Component<any, any> {
         this.state.rest.getTx(this.state.hash)
             .then((data: ITxProp) => {
                 this.state.rest.setLoading(false)
-                if (this.mounted) {
+                if (data.hash === undefined) {
+                    this.setState({ notFound: true })
+                } else {
                     this.setState({ tx: data })
                 }
             })
     }
     public render() {
-        if (this.state.tx === undefined) {
+        if (this.state.notFound) {
+            return <NotFound />
+        }
+        if (!this.state.notFound && this.state.tx === undefined) {
             return < div ></div >
         }
         const date = new Date(this.state.tx.receiveTime)

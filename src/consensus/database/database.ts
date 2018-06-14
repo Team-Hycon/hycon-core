@@ -84,6 +84,13 @@ export class Database {
         }
     }
 
+    public async getBlockAtHeight(height: number): Promise<Block | GenesisBlock> {
+        const hashData = await this.database.get(height)
+        const hash = new Hash(hashData)
+        const block = await this.getDBBlock(hash)
+        return this.dbBlockToBlock(block)
+    }
+
     public async setBlockStatus(hash: Hash, status: BlockStatus): Promise<void> {
         await this.database.put("s" + hash, status)
     }

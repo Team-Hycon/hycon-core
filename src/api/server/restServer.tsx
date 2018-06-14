@@ -144,11 +144,12 @@ export class RestServer implements IRest {
         }
     }
 
-    public async outgoingSignedTx(tx: { privateKey: string, to: string, amount: string, fee: string, nonce: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
+    public async outgoingSignedTx(tx: { privateKey: string, to: string, amount: string, fee: string, nonce?: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
         try {
             const address = new Address(tx.to)
             const wallet = new Wallet(Buffer.from(tx.privateKey, "hex"))
             const account = await this.consensus.getAccount(new Address(wallet.pubKey.address()))
+            const nonce = tx.nonce === undefined ? account.nonce + 1 : tx.nonce
             const total = hyconfromString(tx.amount).add(hyconfromString(tx.fee))
             logger.debug(`Total HYC: ${hycontoString(total)}`)
             logger.debug(`Account Balance: ${hycontoString(account.balance)}`)
@@ -156,7 +157,7 @@ export class RestServer implements IRest {
             if (account.balance.lessThan(total)) {
                 throw new Error("insufficient wallet balance to send transaction")
             }
-            const signedTx = wallet.send(address, hyconfromString(tx.amount.toString()), tx.nonce, hyconfromString(tx.fee.toString()))
+            const signedTx = wallet.send(address, hyconfromString(tx.amount.toString()), nonce, hyconfromString(tx.fee.toString()))
             if (queueTx) {
                 queueTx(signedTx)
             } else {
@@ -444,6 +445,67 @@ export class RestServer implements IRest {
         }
         return Promise.resolve({ blocks: blockList, length: pageCount })
     }
+
+    public async getTopTipHeight(): Promise<{ height: number }> {
+        let height: number = 0
+        try {
+            const blockTip = await this.consensus.getBlocksTip()
+            height = blockTip.height
+        } catch (e) {
+            logger.error(`Fail to getTopTipHeight : ${e}`)
+        }
+
+        return Promise.resolve({ height })
+    }
+
+    public async getBlockAtHeight(height: number): Promise<IBlock | IResponseError> {
+        try {
+            const blockResult = await this.consensus.getBlockAtHeight(height)
+            if (blockResult === undefined) {
+                return Promise.resolve({
+                    status: 404,
+                    timestamp: Date.now(),
+                    error: "NOT_FOUND",
+                    message: "No block found at that height",
+                })
+            }
+            const txs: ITxProp[] = []
+            for (const hyconTx of blockResult.txs) {
+                if (hyconTx instanceof SignedTx) {
+                    txs.push({
+                        amount: hycontoString(hyconTx.amount),
+                        hash: new Hash(hyconTx).toString(),
+                        fee: hycontoString(hyconTx.fee),
+                        from: hyconTx.from.toString(),
+                        to: hyconTx.to !== undefined ? hyconTx.to.toString() : "🔥Gimme fuel, gimme fire🔥",
+                        estimated: hycontoString(hyconTx.amount.add(hyconTx.fee)),
+                        receiveTime: blockResult.header.timeStamp,
+                    })
+                } else {
+                    txs.push({
+                        amount: hycontoString(hyconTx.amount),
+                        hash: new Hash(hyconTx).toString(),
+                        to: hyconTx.to !== undefined ? hyconTx.to.toString() : "🔥Gimme fuel, gimme fire🔥",
+                        estimated: hycontoString(hyconTx.amount),
+                        receiveTime: blockResult.header.timeStamp,
+                    })
+                }
+            }
+            const hash = new Hash(blockResult.header)
+            const webBlock = {
+                hash: hash.toString(),
+                difficulty: blockResult.header.difficulty.toExponential(),
+                stateRoot: blockResult.header.stateRoot.toString(),
+                merkleRoot: blockResult.header.merkleRoot.toString(),
+                txs,
+                height,
+                timeStamp: Number(blockResult.header.timeStamp),
+            }
+            return Promise.resolve(webBlock)
+        } catch (e) {
+            logger.error(e)
+        }
+    }
     public async getMnemonic(lang: string): Promise<string> {
         await Wallet.walletInit()
         logger.debug(lang)
@@ -452,8 +514,7 @@ export class RestServer implements IRest {
     public async getTx(hash: string): Promise<ITxProp | IResponseError> {
         try {
             const getTxResult = await this.consensus.getTx(Hash.decode(hash))
-            const hyconBlockTx = getTxResult.tx
-            if (hyconBlockTx === undefined) {
+            if (getTxResult === undefined || getTxResult.tx === undefined) {
                 return Promise.resolve({
                     status: 404,
                     timestamp: Date.now(),
@@ -461,6 +522,7 @@ export class RestServer implements IRest {
                     message: "the transaction cannot be found",
                 })
             }
+            const hyconBlockTx = getTxResult.tx
             const tx: ITxProp = {
                 hash: hyconBlockTx.txhash,
                 amount: hyconBlockTx.amount,
@@ -597,7 +659,7 @@ export class RestServer implements IRest {
         }
     }
 
-    public async sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number, nonce: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
+    public async sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number, nonce?: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
         tx.password === undefined ? tx.password = "" : tx.password = tx.password
         let checkPass = false
         let checkAddr = false
@@ -612,6 +674,8 @@ export class RestServer implements IRest {
 
             const account = await this.consensus.getAccount(walletAddress)
             let accountBalance = account.balance
+
+            const nonce = tx.nonce === undefined ? account.nonce + 1 : tx.nonce
 
             const addressTxs = this.txPool.getTxsOfAddress(walletAddress)
             const totalAmount = Long.fromNumber(0, true)
@@ -632,7 +696,7 @@ export class RestServer implements IRest {
                 throw new Error("insufficient wallet balance to send transaction")
             }
 
-            const signedTx = wallet.send(address, hyconfromString(tx.amount.toString()), Number(tx.nonce), hyconfromString(tx.minerFee.toString()))
+            const signedTx = wallet.send(address, hyconfromString(tx.amount.toString()), nonce, hyconfromString(tx.minerFee.toString()))
             if (queueTx) { queueTx(signedTx) } else { return Promise.reject(false) }
             return Promise.resolve({ res: true })
         } catch (e) {
@@ -803,7 +867,7 @@ export class RestServer implements IRest {
     }
 
     public async setMinerCount(count: number): Promise<void> {
-        this.miner.setMinerCount(count)
+        this.miner.setMinerCount(Number(count))
     }
 
     public async getFavoriteList(): Promise<Array<{ alias: string, address: string }>> {
@@ -818,5 +882,14 @@ export class RestServer implements IRest {
     }
     public async deleteFavorite(alias: string): Promise<boolean> {
         return await Wallet.deleteFavorite(alias)
+    }
+
+    public async addWalletFile(name: string, password: string, key: string): Promise<boolean> {
+        if (!await Wallet.checkDupleName(name)) {
+            const result = await Wallet.addWalletFile(name, password, key)
+            return result
+        } else {
+            return false
+        }
     }
 }

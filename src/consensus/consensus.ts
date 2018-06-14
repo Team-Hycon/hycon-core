@@ -26,6 +26,12 @@ import { BlockStatus } from "./sync"
 import { Verify } from "./verify"
 const logger = getLogger("Consensus")
 
+export interface IPutResult {
+    oldStatus: BlockStatus,
+    status?: BlockStatus,
+    dbBlock?: DBBlock,
+}
+
 export class Consensus extends EventEmitter implements IConsensus {
     private txdb?: ITxDatabase
     private minedDatabase: MinedDatabase
@@ -210,102 +216,113 @@ export class Consensus extends EventEmitter implements IConsensus {
         const block = await this.db.getDBBlock(hash)
         return (block !== undefined) ? block.height : undefined
     }
+
+    public async getBlockAtHeight(height: number): Promise<Block | GenesisBlock | undefined> {
+        return this.db.getBlockAtHeight(height)
+    }
     private async put(header: BlockHeader, block?: Block): Promise<IStatusChange> {
         if (header.timeStamp > Date.now()) {
             await this.futureBlockQueue.waitUntil(header.timeStamp)
         }
-        if (header.merkleRoot.equals(new Hash()) && this.blockTip.height === this.headerTip.height) {
+
+        if (header.merkleRoot.equals(Hash.emptyHash)) {
             // Block contains no transactions, create a new empty block
             block = new Block({ header, txs: [] })
         }
+
         return this.lock.critical(async () => {
             const hash = new Hash(header)
-            const { oldStatus, status, dbBlock, dbBlockHasChanged } = await this.process(hash, header, block)
+            const { oldStatus, status, dbBlock } = await this.process(hash, header, block)
             if (status !== undefined && oldStatus !== status) {
                 await this.db.setBlockStatus(hash, status)
             }
-            if (dbBlockHasChanged) {
-                if (dbBlock === undefined) {
-                    logger.warn("dbBlock has become undefined")
-                } else {
-                    await this.db.putDBBlock(hash, dbBlock)
-                }
 
-                if (this.headerTip === undefined || (dbBlock.height - dbBlock.totalWork) > (this.headerTip.height - this.headerTip.totalWork)) {
-                    this.headerTip = dbBlock
-                    await this.db.setHeaderTip(hash)
-                }
-
-                if (block !== undefined && (this.blockTip === undefined || (dbBlock.height - dbBlock.totalWork) > (this.blockTip.height - this.blockTip.totalWork))) {
-                    await this.reorganize(hash, block, dbBlock)
-                    await this.db.setBlockTip(hash)
-                    this.emit("candidate", this.blockTip, hash)
-                }
-
-                logger.info(`Received ${block ? "Block" : "Header"}`
-                    + ` ${hash}(${dbBlock.height}, ${dbBlock.totalWork.toExponential()}),`
-                    + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
-                    + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
+            if (dbBlock === undefined || status < BlockStatus.Header) {
+                return { oldStatus, status }
             }
+
+            await this.db.putDBBlock(hash, dbBlock)
+
+            if (this.headerTip === undefined || (dbBlock.height - dbBlock.totalWork) > (this.headerTip.height - this.headerTip.totalWork)) {
+                this.headerTip = dbBlock
+                await this.db.setHeaderTip(hash)
+            }
+
+            if (status < BlockStatus.Block) {
+                return { oldStatus, status }
+            }
+
+            if (block !== undefined && (this.blockTip === undefined || (dbBlock.height - dbBlock.totalWork) > (this.blockTip.height - this.blockTip.totalWork))) {
+                await this.reorganize(hash, block, dbBlock)
+                await this.db.setBlockTip(hash)
+                this.emit("candidate", this.blockTip, hash)
+            }
+
+            logger.info(`Received ${block ? "Block" : "Header"}`
+                + ` ${hash}(${dbBlock.height}, ${dbBlock.totalWork.toExponential()}),`
+                + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
+                + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
+
             return { oldStatus, status }
         })
+
     }
-    private async process(hash: Hash, header: BlockHeader, block?: Block)
-        : Promise<{
-            oldStatus: BlockStatus,
-            status?: BlockStatus,
-            dbBlock?: DBBlock,
-            dbBlockHasChanged?: boolean,
-        }> {
+    private async process(hash: Hash, header: BlockHeader, block?: Block): Promise<IPutResult> {
         // Consensus Critical
-        const oldStatus = await this.db.getBlockStatus(hash)
-        let status = oldStatus
-        if (oldStatus === BlockStatus.Rejected) {
-            return { oldStatus, status }
+        const result: IPutResult = { oldStatus: await this.db.getBlockStatus(hash) }
+        result.status = result.oldStatus
+
+        if (result.oldStatus === BlockStatus.Rejected) {
+            return result
         }
 
         if (header.previousHash.length <= 0) {
             logger.warn(`Rejecting block(${hash.toString()}): No previousHash`)
-            status = BlockStatus.Rejected
-            return { oldStatus, status }
+            result.status = BlockStatus.Rejected
+            return result
         }
 
-        let dbBlock: DBBlock
-        let dbBlockHasChanged = false
         const previousHash = header.previousHash[0]
+        const previousStatus = await this.db.getBlockStatus(previousHash)
+
+        if (previousStatus <= BlockStatus.Nothing) {
+            return result
+        }
+
         const previousDBBlock = await this.db.getDBBlock(previousHash)
         if (previousDBBlock === undefined) {
-            return { oldStatus, status }
+            return result
         }
-        if (oldStatus === BlockStatus.Nothing) {
-            const headerResult = await Verify.processHeader(previousDBBlock, header, hash)
-            status = headerResult.newStatus
-            dbBlock = headerResult.dbBlock
-            dbBlockHasChanged = true
 
-            if (status === BlockStatus.Rejected) {
-                return { oldStatus, status }
+        if (result.oldStatus === BlockStatus.Nothing) {
+            await Verify.processHeader(previousDBBlock, header, hash, result)
+
+            if (result.status === BlockStatus.Rejected) {
+                return result
             }
         }
 
         if (block === undefined) {
-            return { oldStatus, status, dbBlock, dbBlockHasChanged }
+            return result
         }
 
-        if (oldStatus === BlockStatus.Nothing || oldStatus === BlockStatus.Header) {
-            if (dbBlock === undefined) {
-                dbBlock = await this.db.getDBBlock(hash)
-            }
-            const result = await Verify.processBlock(block, dbBlock, hash, header, previousDBBlock, this.db, this.worldState)
-            if (result.newStatus === BlockStatus.Rejected) {
-                return { oldStatus, status }
-            }
-            if (this.minedDatabase) { await this.minedDatabase.putMinedBlock(hash, block.header.timeStamp, block.txs, block.header.miner) }
-            dbBlockHasChanged = dbBlockHasChanged || result.dbBlockHasChanged
-            status = result.newStatus
+        if (previousStatus < BlockStatus.Block) {
+            return result
         }
 
-        return { oldStatus, status, dbBlock, dbBlockHasChanged }
+        if (result.oldStatus >= BlockStatus.Nothing && result.oldStatus <= BlockStatus.Header) {
+            const dbBlock = (result.dbBlock !== undefined) ? result.dbBlock : await this.db.getDBBlock(hash)
+            await Verify.processBlock(block, dbBlock, hash, header, previousDBBlock, this.db, this.worldState, result)
+            if (result.status === BlockStatus.Rejected) {
+                return result
+            }
+
+            if (this.minedDatabase !== undefined) {
+                await this.minedDatabase.putMinedBlock(hash, block.header.timeStamp, block.txs, block.header.miner)
+            }
+        }
+
+        return result
 
     }
 

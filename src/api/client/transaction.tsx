@@ -14,8 +14,6 @@ import { IBlock, IHyconWallet, IRest } from "./rest"
 import { hyconfromString, hycontoString } from "./stringUtil"
 
 export class Transaction extends React.Component<any, any> {
-
-    public currentMinerFee = "0"
     public mounted = false
 
     constructor(props: any) {
@@ -68,14 +66,13 @@ export class Transaction extends React.Component<any, any> {
         const value = event.target.value
         if (name === "amount") {
             this.setState({ [name]: value })
-            this.currentMinerFee = hycontoString(hyconfromString(this.state.piggyBank).sub(hyconfromString(event.target.value).sub(this.state.wallet.pendingAmount)))
 
         } else if (name === "address") {
             this.setState({
                 [name]: value,
             })
         } else if (name === "minerFee") {
-            this.setState({ minerFee: value })
+            this.setState({ [name]: value })
         }
     }
 
@@ -84,49 +81,52 @@ export class Transaction extends React.Component<any, any> {
 
         if (this.state.amount.match(pattern1) == null) {
             alert("Please enter a number with up to 9 decimal places")
+            return
         }
 
-        if (this.state.minerFee.match(pattern1) == null) {
-            alert("Please enter a number with up to 9 decimal places")
-        }
         if (hyconfromString(event.target.value).add(hyconfromString(this.state.minerFee)).greaterThan(hyconfromString(this.state.piggyBank).sub(hyconfromString(this.state.wallet.pendingAmount)))) {
             alert("You can't spend the money you don't have")
+            return
         }
 
-        if (this.state.address !== "" && this.state.address !== undefined) {
-            if (this.state.amount > 0) {
-                if (hyconfromString(this.state.minerFee).compare(hyconfromString("0")) === 0) {
-                    alert("Enter a valid miner fee")
-                } else {
-                    if (this.state.wallet.address === this.state.address) {
-                        alert("You cannot send HYCON to yourself")
-                    } else {
-                        this.setState({ isLoading: true })
-                        const nonce = await this.state.rest.getAddressInfo(this.state.address).nonce + 1
-                        this.state.rest.sendTx({ name: this.state.name, password: this.state.password, address: this.state.address, amount: this.state.amount.toString(), minerFee: this.state.minerFee.toString(), nonce })
-                            .then((result: { res: boolean, case?: number }) => {
-                                if (result.res === true) {
-                                    alert(`A transaction of ${this.state.amount} HYCON has been submitted to ${this.state.address} with ${this.state.minerFee} HYCON as miner fees.`)
-                                    this.setState({ redirect: true })
-                                } else if (result.case === 1) {
-                                    alert("Invalid password: You can see a hint about password pressing 'HINT'")
-                                    window.location.reload()
-                                } else if (result.case === 2) {
-                                    alert("Invalid address: Please check 'To Address' input")
-                                    window.location.reload()
-                                } else if (result.case === 3) {
-                                    alert("Fail to transfer hycon")
-                                    this.setState({ redirect: true })
-                                }
-                            })
-                    }
-                }
-            } else {
-                alert("Enter a valid transaction amount")
-            }
-        } else {
-            alert("Enter a to address")
+        if (hyconfromString(this.state.minerFee).compare(hyconfromString("0")) === 0) {
+            alert("Enter a valid miner fee")
+            return
         }
+
+        if (this.state.amount <= 0) {
+            alert("Enter a valid transaction amount")
+            return
+        }
+
+        if (this.state.wallet.address === this.state.address) {
+            alert("You cannot send HYCON to yourself")
+            return
+        }
+
+        if (this.state.address === "" || this.state.address === undefined) {
+            alert("Enter a to address")
+            return
+        }
+
+        this.setState({ isLoading: true })
+        this.state.rest.sendTx({ name: this.state.name, password: this.state.password, address: this.state.address, amount: this.state.amount.toString(), minerFee: this.state.minerFee.toString() })
+            .then((result: { res: boolean, case?: number }) => {
+                if (result.res === true) {
+                    alert(`A transaction of ${this.state.amount} HYCON has been submitted to ${this.state.address} with ${this.state.minerFee} HYCON as miner fees.`)
+                    this.setState({ redirect: true })
+                } else if (result.case === 1) {
+                    alert("Invalid password: You can see a hint about password pressing 'HINT'")
+                    window.location.reload()
+                } else if (result.case === 2) {
+                    alert("Invalid address: Please check 'To Address' input")
+                    window.location.reload()
+                } else if (result.case === 3) {
+                    alert("Fail to transfer hycon")
+                    this.setState({ redirect: true })
+                }
+            })
+
         event.preventDefault()
     }
 

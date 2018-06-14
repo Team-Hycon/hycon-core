@@ -1,5 +1,5 @@
 import { Button, CardContent, Checkbox, FormControl, FormControlLabel, FormGroup, Grid, Icon, Input, InputLabel, MenuItem, NativeSelect, Select, Step, StepLabel, Stepper } from "@material-ui/core"
-import { Card, IconMenu, TextField } from "material-ui"
+import { Card, Dialog, IconButton, IconMenu, TextField } from "material-ui"
 import * as QRCode from "qrcode.react"
 import * as React from "react"
 import { Redirect } from "react-router"
@@ -12,7 +12,7 @@ export class AddWallet extends React.Component<any, any> {
     public errMsg1: string = "Please enter required value"
     public errMsg2: string = "Invalid wallet name: the wallet name must be between 2 to 20 characters with no spaces. Use only English or number."
     public errMsg3: string = "Not matched password"
-    public errMsg4: string = "Check your mnemonic words"
+    public errMsg4: string = "Check your mnemonic phrase"
     public errMsg5: string = "Please enter your mnemonic"
     public errMsg6: string = "Duplicate wallet name"
     public errMsg7: string = "Please select Language"
@@ -21,18 +21,20 @@ export class AddWallet extends React.Component<any, any> {
         super(props)
         this.state = {
             activeStep: 0,
+            advanced: false,
             confirmMnemonic: "",
-            confirmPassword: "",
-            errorWithPassword: "",
-            hint: "",
-            isPassphrase: false,
+            dialog: false,
+            errorText1: "",
+            errorText2: "",
             language: "",
             languages: ["English", "Korean", "Chinese - Simplified", "Chinese - Traditional", "Japanese", "French", "Spanish", "Italian"],
             load: false,
             mnemonic: "",
             name: "",
-            passphrase: "",
-            password: "",
+            passphrase1: "",
+            passphrase2: "",
+            password1: "",
+            password2: "",
             redirect: false,
             rest: props.rest,
             selectedOption: "English",
@@ -50,28 +52,40 @@ export class AddWallet extends React.Component<any, any> {
     public handleName(data: any) {
         this.setState({ name: data.target.value })
     }
-
-    public handlePassphrase(data: any) {
-        this.setState({ passphrase: data.target.value })
-    }
     public handlePassword(data: any) {
-        if (this.state.confirmPassword !== "") {
-            if (data.target.value === this.state.confirmPassword) {
-                this.setState({ errorWithPassword: "" })
-            } else { this.setState({ errorWithPassword: "Not matched with password" }) }
+        if (this.state.password2 !== "") {
+            if (data.target.value === this.state.password2) {
+                this.setState({ errorText1: "" })
+            } else { this.setState({ errorText1: "Not matched with password" }) }
         }
-        this.setState({ password: data.target.value })
+        this.setState({ password1: data.target.value })
     }
     public handleConfirmPassword(data: any) {
-        if (this.state.password !== "") {
-            if (data.target.value === this.state.password) {
-                this.setState({ errorWithPassword: "" })
-            } else { this.setState({ errorWithPassword: "Not matched with password" }) }
+        if (this.state.password1 !== "") {
+            if (data.target.value === this.state.password1) {
+                this.setState({ errorText1: "" })
+            } else { this.setState({ errorText1: "Not matched with password" }) }
         }
-        this.setState({ confirmPassword: data.target.value })
+        this.setState({ password2: data.target.value })
     }
-    public handleHint(data: any) {
-        this.setState({ hint: data.target.value })
+    public handleCheckbox(event: any) {
+        this.setState({ advanced: event.target.checked })
+    }
+    public handlePassphrase(data: any) {
+        if (this.state.passphrase2 !== "") {
+            if (data.target.value === this.state.passphrase2) {
+                this.setState({ errorText1: "" })
+            } else { this.setState({ errorText2: "Not matched with passphrase" }) }
+        }
+        this.setState({ passphrase1: data.target.value })
+    }
+    public handleConfirmPassphrase(data: any) {
+        if (this.state.passphrase1 !== "") {
+            if (data.target.value === this.state.passphrase1) {
+                this.setState({ errorText1: "" })
+            } else { this.setState({ errorText2: "Not matched with passphrase" }) }
+        }
+        this.setState({ passphrase2: data.target.value })
     }
     public handleConfirmMnemonic(data: any) {
         this.setState({ confirmMnemonic: data.target.value })
@@ -82,7 +96,6 @@ export class AddWallet extends React.Component<any, any> {
     public handleOptionChange(option: any) {
         this.setState({ selectedOption: option.target.value })
     }
-
     public handleNext() {
         switch (this.state.activeStep) {
             case 0:
@@ -98,18 +111,13 @@ export class AddWallet extends React.Component<any, any> {
                 break
         }
     }
-
-    public handleCheckbox(data: any) {
-        this.setState({ isPassphrase: data.target.checked })
-    }
-
     public receiveMnemonic() {
         if (this.state.name === "") {
             alert(this.errMsg1)
         } else if (this.state.name.search(/\s/) !== -1 || !this.pattern1.test(this.state.name)) {
             alert(this.errMsg2)
         } else {
-            if (this.state.password !== this.state.confirmPassword) {
+            if (this.state.password1 !== this.state.password2 || this.state.passphrase1 !== this.state.passphrase2) {
                 alert(this.errMsg3)
             } else {
                 this.state.rest.setLoading(true)
@@ -155,8 +163,8 @@ export class AddWallet extends React.Component<any, any> {
                     language: this.state.language,
                     mnemonic: this.state.mnemonic,
                     name: this.state.name,
-                    passphrase: this.state.passphrase,
-                    password: this.state.password,
+                    passphrase: this.state.passphrase1,
+                    password: this.state.password1,
                 }).then((data: string) => {
                     this.setState({ walletViewRedirect: true, address: data })
                 })
@@ -179,24 +187,21 @@ export class AddWallet extends React.Component<any, any> {
             return <div></div>
         }
         return (
-            <div id="div1" style={{ textAlign: "center", width: "80%", margin: "auto" }}>
+            <div style={{ textAlign: "center", width: "80%", margin: "auto" }}>
                 <Grid container direction={"row"} justify={"center"} alignItems={"center"} style={{ display: "inline-block" }}>
                     <Stepper style={{ marginBottom: "2%" }} activeStep={this.state.activeStep}>
                         {steps.map((label, index) => (<Step key={index}><StepLabel>{label}</StepLabel></Step>))}
                     </Stepper>
                 </Grid>
-                <Card style={{ height: "27em" }}>
+                <Card>
                     <CardContent>
                         <div style={{ display: `${this.state.activeStep === 0 ? ("block") : ("none")}` }}>
-                            <TextField name="walletName" style={{ marginRight: "3%" }} floatingLabelFixed={true} floatingLabelText="Wallet Name" type="text" value={this.state.walletName}
-                                onChange={(data) => { this.handleName(data) }} autoComplete="off"
-                                onKeyPress={(event) => {
-                                    if (event.key === "Enter") {
-                                        event.preventDefault()
-                                        this.handleNext()
-                                    }
-                                }} />
-                            <FormControl style={{ width: "256px", marginTop: "1.5%", marginRight: "3%" }}>
+                            <TextField style={{ marginRight: "3%" }} floatingLabelText="Wallet Name" floatingLabelFixed={true} autoComplete="off"
+                                value={this.state.walletName}
+                                onChange={(data) => { this.handleName(data) }}
+                                onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
+                            />
+                            <FormControl style={{ width: "256px", marginTop: "1.5%" }}>
                                 <InputLabel htmlFor="language">Mnemonic Language</InputLabel>
                                 <Select value={this.state.selectedOption} onChange={this.handleOptionChange} input={<Input name="language" />}>
                                     {this.state.languages.map((lang: string) => {
@@ -206,41 +211,38 @@ export class AddWallet extends React.Component<any, any> {
                                     })}
                                 </Select>
                             </FormControl><br />
-                            <TextField name="walletPwd" floatingLabelFixed={true} style={{ marginRight: "3%" }} floatingLabelText="Encrypt Password" type="password" value={this.state.password}
-                                onChange={(data) => { this.handlePassword(data) }} autoComplete="off"
-                                onKeyPress={(event) => {
-                                    if (event.key === "Enter") {
-                                        event.preventDefault()
-                                        this.handleNext()
-                                    }
-                                }} />
-                            <TextField name="walletConfirmPwd" style={{ marginRight: "3%" }} errorText={this.state.errorWithPassword} floatingLabelFixed={true} floatingLabelText="Confirm Password" type="password" value={this.state.confirmPassword}
-                                onChange={(data) => { this.handleConfirmPassword(data) }} autoComplete="off"
-                                onKeyPress={(event) => {
-                                    if (event.key === "Enter") {
-                                        event.preventDefault()
-                                        this.handleNext()
-                                    }
-                                }} /><br />
-                            <TextField name="walletPwdHint" style={{ marginRight: "3%" }} floatingLabelFixed={true} floatingLabelText="Password Hint" type="text" value={this.state.hint}
-                                onChange={(data) => { this.handleHint(data) }} autoComplete="off"
-                                onKeyPress={(event) => {
-                                    if (event.key === "Enter") {
-                                        event.preventDefault()
-                                        this.handleNext()
-                                    }
-                                }} />
+                            <TextField style={{ marginRight: "3%" }} floatingLabelText="Encrypt Password" floatingLabelFixed={true} type="password" autoComplete="off" name="pw1"
+                                value={this.state.password1}
+                                onChange={(data) => { this.handlePassword(data) }}
+                                onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
+                            />
+                            <TextField floatingLabelText="Confirm Password" floatingLabelFixed={true} type="password" autoComplete="off" name="pw2"
+                                errorText={this.state.errorText1} errorStyle={{ float: "left" }}
+                                value={this.state.password2}
+                                onChange={(data) => { this.handleConfirmPassword(data) }}
+                                onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
+                            /><br />
                             <br />
                             <br />
-                            <input type="checkbox" checked={this.state.isPassphrase} onChange={(data) => { this.handleCheckbox(data) }} /> Passphrase
-                            <TextField name="passphrase" style={{ margin: "auto", display: `${this.state.isPassphrase === true ? ("block") : ("none")}` }} floatingLabelFixed={true} floatingLabelText="Passphrase" type="text" value={this.state.passphrase}
-                                onChange={(data) => { this.handlePassphrase(data) }} autoComplete="off"
-                                onKeyPress={(event) => {
-                                    if (event.key === "Enter") {
-                                        event.preventDefault()
-                                        this.handleNext()
-                                    }
-                                }} />
+                            <input type="checkbox" checked={this.state.advanced} onChange={(event) => this.handleCheckbox(event)} /> Advanced Options
+                            <IconButton iconStyle={{ color: "grey", fontSize: "15px" }} onClick={() => { this.setState({ dialog: true }) }}><Icon>help_outline</Icon></IconButton>
+                            {(this.state.advanced)
+                                ? (<div>
+                                    <TextField style={{ marginRight: "3%" }} floatingLabelText="BIP39 Passphrase" floatingLabelFixed={true} type="password" autoComplete="off" name="pp1"
+                                        value={this.state.passphrase1}
+                                        onChange={(data) => { this.handlePassphrase(data) }}
+                                        onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
+                                    />
+                                    <TextField floatingLabelText="Confirm BIP39 Passphrase" floatingLabelFixed={true} type="password" autoComplete="off" name="pp2"
+                                        errorText={this.state.errorText2} errorStyle={{ float: "left" }}
+                                        value={this.state.passphrase2}
+                                        onChange={(data) => { this.handleConfirmPassphrase(data) }}
+                                        onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
+                                    /><br />
+                                </div>)
+                                : (<div></div>)
+                            }
+                            <br />
                         </div>
                         <div style={{ display: `${this.state.activeStep === 1 ? ("block") : ("none")}` }}>
                             <h4 style={{ color: "grey", marginBottom: "0%" }}>Below is a mnemonic for your wallet.</h4>
@@ -249,24 +251,16 @@ export class AddWallet extends React.Component<any, any> {
                             <div style={{ fontWeight: "bold" }}>{this.state.mnemonic}</div>
                             <input style={{ border: "none", borderBottom: "0.5px solid", width: "53%" }} type="text" autoComplete="off"
                                 onChange={(data) => { this.handleConfirmMnemonic(data) }} onPaste={(e) => { e.preventDefault() }}
-                                onKeyPress={(event) => {
-                                    if (event.key === "Enter") {
-                                        event.preventDefault()
-                                        this.handleNext()
-                                    }
-                                }} />
+                                onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
+                            />
                         </div>
                         <div style={{ display: `${this.state.activeStep === 2 ? ("block") : ("none")}` }}>
                             <h4 style={{ color: "grey", marginBottom: "0%" }}>Please type one more time to check the mnemonic word.</h4>
                             <br /><br />
                             <input style={{ border: "none", borderBottom: "0.5px solid", width: "53%" }} type="text" autoComplete="off"
                                 onChange={(data) => { this.handleTypeMnemonic(data) }} onPaste={(e) => { e.preventDefault() }}
-                                onKeyPress={(event) => {
-                                    if (event.key === "Enter") {
-                                        event.preventDefault()
-                                        this.handleNext()
-                                    }
-                                }} />
+                                onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
+                            />
                         </div>
                     </CardContent>
                 </Card>
@@ -278,6 +272,19 @@ export class AddWallet extends React.Component<any, any> {
                         {this.state.activeStep === steps.length - 1 ? (<Icon style={{ fontSize: "20px" }}>check</Icon>) : (<Icon style={{ fontSize: "20px" }}>chevron_right</Icon>)}
                     </Button>
                 </Grid>
+
+                {/* HELP - ADVANCED OPTIONS */}
+                <Dialog className="dialog" open={this.state.dialog} contentStyle={{ width: "70%", maxWidth: "none" }}>
+                    <h3 style={{ color: "grey" }}>Who needs this option?</h3>
+                    <div className="mdl-dialog__content dialogContent">
+                        Optionally, you can input a BIP39 Passphrase that will be used in addition to your Mnemonic Phrase to recover your Hycon Wallet.
+                        With these options, you can manage your wallet more securely.<br />
+                        <strong>Don't forget BIP39 Phrase you set. Without this, you will not be able to recover your wallet later.</strong>
+                    </div><br />
+                    <Grid container direction={"row"} justify={"center"} alignItems={"center"}>
+                        <Button variant="raised" onClick={() => { this.setState({ dialog: false }) }} style={{ backgroundColor: "#50aaff", color: "white", float: "right" }}>Got it</Button>
+                    </Grid>
+                </Dialog>
             </div >
         )
     }

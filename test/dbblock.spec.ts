@@ -12,7 +12,7 @@ import * as proto from "../src/serialization/proto"
 import { BlockDB } from "../src/serialization/proto"
 import { Hash } from "../src/util/hash"
 
-describe("DBBlock Test", () => {
+xdescribe("DBBlock Test", () => {
     let dbBlock: DBBlock
     let iBlockHeader: proto.IBlockHeader
     let iDBBlock: proto.IBlockDB
@@ -40,7 +40,7 @@ describe("DBBlock Test", () => {
         dbBlock = new DBBlock(iDBBlock)
     })
 
-    it("constructor : if there is DBBlock parameter, set property.", () => {
+    xit("constructor : if there is DBBlock parameter, set property.", () => {
         const block = new DBBlock(iDBBlock)
 
         expect(block.height).toEqual(0)
@@ -53,7 +53,7 @@ describe("DBBlock Test", () => {
         expect(block.nextDifficulty).toEqual(1)
     })
 
-    it("set(block) : if set method set property", () => {
+    xit("set(block) : if set method set property", () => {
         dbBlock.set(iDBBlock)
 
         expect(dbBlock.height).toBeDefined()
@@ -63,7 +63,7 @@ describe("DBBlock Test", () => {
         expect(dbBlock.length).toBeDefined()
     })
 
-    it("set(block) : if set method set property, if header is not instance of BlockHeader", () => {
+    xit("set(block) : if set method set property, if header is not instance of BlockHeader", () => {
         const setSpy = jasmine.createSpy("setGenesisBlockHeader", setGenesisBlockHeader).and.returnValue({
             difficulty: iBlockHeader.difficulty,
             merkleRoot: new Hash(),
@@ -93,7 +93,7 @@ describe("DBBlock Test", () => {
         expect(setSpy).toHaveBeenCalled()
     })
 
-    it("decode(data) : set data using set method.", () => {
+    xit("decode(data) : set data using set method.", () => {
         spyOn(proto.BlockDB, "decode").and.returnValue({ height: 0, fileNumber: 0, offset: 0, header: new BlockHeader(iBlockHeader), length: 10 })
         const setSpy = spyOn(DBBlock.prototype, "set")
 
@@ -113,7 +113,7 @@ describe("DBBlock Test", () => {
         expect(dbBlock.length).toEqual(10)
     })
 
-    it("encode() : encode method must call proto.BlockDB.encode", () => {
+    xit("encode() : encode method must call proto.BlockDB.encode", () => {
         const encoder = jasmine.createSpyObj("encoder", ["finish"])
         const encodeSpy = spyOn(proto.BlockDB, "encode").and.returnValue(encoder)
         dbBlock.encode()
@@ -126,20 +126,20 @@ describe("Test case, throw error", () => {
     beforeEach(() => {
         dbBlock = new DBBlock({})
     })
-    it("When decode throw error, exception handling", () => {
+    xit("When decode throw error, exception handling", () => {
         spyOn(proto.BlockDB, "decode").and.throwError("Error while decode data")
         function result() {
             DBBlock.decode(randomBytes(32))
         }
         expect(result).toThrowError("Error while decode data")
     })
-    it("When set throw error, exception handling", () => {
+    xit("When set throw error, exception handling", () => {
         function result() {
             dbBlock.set({})
         }
         expect(result).toThrowError("DBBlock height is missing")
     })
-    it("When set throw error, exception handling", () => {
+    xit("When set throw error, exception handling", () => {
         function result() {
             dbBlock.set({ height: 0 })
         }

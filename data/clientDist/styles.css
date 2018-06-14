@@ -11871,6 +11871,17 @@ table {
 
 .checkPassphrase{
   padding: 36px 0;
+}
+
+.dropzone{
+  width: 90%;
+  height: 150px;
+  border : 1px dashed grey;
+  border-radius: 5px;
+  border-width: medium;
+  margin-top: 2%;
+  text-align: center;
+  display: table;
 }.marker {
   /* position: 'absolute';
     width: 40px ;

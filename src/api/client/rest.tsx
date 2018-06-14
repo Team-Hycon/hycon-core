@@ -114,6 +114,7 @@ export interface IRest {
     getAllAccounts(name: string): Promise<{ represent: number, accounts: Array<{ address: string, balance: string }> } | boolean>
     getBlock(hash: string): Promise<IBlock | IResponseError>
     getBlockList(index: number): Promise<{ blocks: IBlock[], length: number }>
+    getTopTipHeight(): Promise<{ height: number }>
     getMnemonic(lang: string): Promise<string>
     // [ipeer.ts not implemented] getPeerDetails(hash: string): Promise<IPeer>
     // [ipeer.ts not implemented] getPeersList(hash: string): Promise<IPeer[]>
@@ -137,4 +138,5 @@ export interface IRest {
     getFavoriteList(): Promise<Array<{ alias: string, address: string }>>
     addFavorite(alias: string, address: string): Promise<boolean>
     deleteFavorite(alias: string): Promise<boolean>
+    addWalletFile(name: string, password: string, key: string): Promise<boolean>
 }

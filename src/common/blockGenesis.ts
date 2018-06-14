@@ -34,7 +34,11 @@ export class GenesisBlock implements proto.IBlock {
 
         this.txs = []
         for (const tx of block.txs) {
-            this.txs.push(new GenesisSignedTx(tx))
+            try {
+                this.txs.push(new GenesisSignedTx(tx))
+            } catch (e) {
+                continue
+            }
         }
         if (this.header === undefined) {
             this.header = setGenesisBlockHeader(block.header)

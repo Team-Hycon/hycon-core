@@ -13,6 +13,9 @@ export class BaseBlockHeader implements proto.IBlockHeader {
 
     public set(header: proto.IBlockHeader): void {
         // Consensus Critical
+        if (!header) {
+            throw new Error("Header is missing")
+        }
         if (header.merkleRoot === undefined) {
             throw new Error("Header missing merkle root")
         }

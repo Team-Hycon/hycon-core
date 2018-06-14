@@ -156,6 +156,17 @@ export class RestClient implements IRest {
                 }),
         )
     }
+
+    public getTopTipHeight(): Promise<{ height: number }> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/topTipHeight`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+
     public getMnemonic(lang: string): Promise<string> {
         // console.log(lang.toLowerCase())
         return Promise.resolve(
@@ -362,5 +373,20 @@ export class RestClient implements IRest {
                     console.log(err)
                 }),
         )
+    }
+
+    public addWalletFile(name: string, password: string, key: string): Promise<boolean> {
+        const headers = new Headers()
+        headers.append("Accept", "application/json")
+        headers.append("Content-Type", "application/json")
+        return Promise.resolve(fetch(`/api/${this.apiVersion}/addWalletFile`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ name, password, key }),
+        })
+            .then((response) => response.json())
+            .catch((err: Error) => {
+                console.log(err)
+            }))
     }
 }

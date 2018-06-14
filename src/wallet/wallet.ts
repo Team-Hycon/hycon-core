@@ -26,6 +26,7 @@ import {
 const logger = getLogger("Wallet")
 
 const coinNumber: number = 1397
+
 export class Wallet {
     public static async walletInit(): Promise<undefined> {
         try {
@@ -349,6 +350,36 @@ export class Wallet {
         }
     }
 
+    public static async addWalletFile(name: string, password: string, key: string): Promise<boolean> {
+        try {
+            const decrypteResult = Wallet.decryptAES(password, new Buffer(key))
+            const wallet = new Wallet(Buffer.from(decrypteResult, "hex"))
+            await fs.writeFile(`./wallet/rootKey/${name}`, key)
+            await Wallet.saveAddress(name, wallet.pubKey.address())
+            return true
+        } catch (e) {
+            return false
+        }
+    }
+
+    private static async saveAddress(name: string, address: Address) {
+        try {
+            await fs.ensureFile("./wallet/public")
+            const originalData = await Wallet.getAllPubliclist()
+            const dataArray: string[] = []
+
+            originalData.push({ name, address: address.toString() })
+            originalData.sort((a, b) => a.name.charCodeAt(0) - b.name.charCodeAt(0))
+            for (const data of originalData) {
+                dataArray.push(`${data.name}:${data.address}`)
+            }
+            await fs.writeFile("./wallet/public", dataArray)
+        } catch (e) {
+            logger.error(`Address file not exsited : ${e}`)
+            throw e
+        }
+    }
+
     public readonly privKey: PrivateKey
     public readonly pubKey: PublicKey
 
@@ -367,22 +398,7 @@ export class Wallet {
                     encPrivWithHint = hint + ":" + encryptedPrivateKey
                 } else { encPrivWithHint = ":" + encryptedPrivateKey }
                 await fs.writeFile(`./wallet/rootKey/${name}`, encPrivWithHint)
-                try {
-                    await fs.ensureFile("./wallet/public")
-                    const originalData = await Wallet.getAllPubliclist()
-                    const dataArray: string[] = []
-
-                    originalData.push({ name, address: this.pubKey.address().toString() })
-                    originalData.sort((a, b) => a.name.charCodeAt(0) - b.name.charCodeAt(0))
-
-                    for (const data of originalData) {
-                        dataArray.push(`${data.name}:${data.address}`)
-                    }
-                    await fs.writeFile("./wallet/public", dataArray)
-                } catch (e) {
-                    logger.error(`Address file not exsited : ${e}`)
-                    throw e
-                }
+                await Wallet.saveAddress(name, this.pubKey.address())
                 return
             } else {
                 throw new Error(`Wallet is already exist : name=${name}`)
@@ -403,4 +419,5 @@ export class Wallet {
         }
         return stx
     }
+
 }

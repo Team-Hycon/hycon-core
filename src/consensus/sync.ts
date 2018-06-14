@@ -106,7 +106,7 @@ export class Sync {
             }
             this.peer = undefined
         } catch (e) {
-            logger.warn(`Syncing failed: ${e}`)
+            logger.warn(`Syncing ${this.peer.getInfo()} failed: ${e}`)
         }
         return
     }
@@ -198,6 +198,9 @@ export class Sync {
 
     private async getHeaders(height: number) {
         let headers: AnyBlockHeader[]
+        if (height < 1) {
+            height = 1
+        }
         try {
             do {
                 headers = await this.peer.getHeadersByRange(height, headerCount)
@@ -218,6 +221,9 @@ export class Sync {
 
     private async putHeaders(height: number) {
         let headers: AnyBlockHeader[]
+        if (height < 1) {
+            height = 1
+        }
         try {
             do {
                 headers = await this.consensus.getHeadersRange(height, headerCount)
@@ -233,6 +239,9 @@ export class Sync {
     }
 
     private async findStartBlock(height: number): Promise<number> {
+        if (height < 1) {
+            height = 1
+        }
         let min = this.commonBlock.height
         while (min + 1 < height) {
             // tslint:disable-next-line:no-bitwise
@@ -256,6 +265,9 @@ export class Sync {
     }
 
     private async getBlocks(height: number) {
+        if (height < 1) {
+            height = 1
+        }
         let blocks: AnyBlock[]
 
         try {
@@ -277,6 +289,9 @@ export class Sync {
     }
 
     private async putBlocks(height: number) {
+        if (height < 1) {
+            height = 1
+        }
         let blocks: AnyBlock[]
         try {
             do {

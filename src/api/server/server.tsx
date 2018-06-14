@@ -163,11 +163,17 @@ export class HttpServer {
         router.get("/getAllAccounts/:name", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getAllAccounts(req.params.name))
         })
+        router.get("/block/height/:height", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getBlockAtHeight(req.params.height))
+        })
         router.get("/block/:hash", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlock(req.params.hash))
         })
         router.get("/blockList/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlockList(req.params.index))
+        })
+        router.get("/toptipHeight/", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getTopTipHeight())
         })
         router.get("/language", async (req: express.Request, res: express.Response) => {
             res.json("error TS2339: Property 'getLanguage' does not exist on type 'RestServer'.")
@@ -211,6 +217,9 @@ export class HttpServer {
                     this.hyconServer.broadcastTxs(newTxs)
                 }),
             )
+        })
+        router.post("/addWalletFile", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.addWalletFile(req.body.name, req.body.password, req.body.key))
         })
         router.get("/txList/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getPendingTxs(req.params.index))

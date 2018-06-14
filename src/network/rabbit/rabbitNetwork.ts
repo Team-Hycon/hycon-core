@@ -158,7 +158,7 @@ export class RabbitNetwork implements INetwork {
 
         if (useNat) {
             this.natUpnp = new NatUpnp(this.port, this)
-            await this.natUpnp.run()
+            this.natUpnp.run()
             if (!isNaN(this.natUpnp.publicPort)) {
                 this.publicPort = this.natUpnp.publicPort
             }
