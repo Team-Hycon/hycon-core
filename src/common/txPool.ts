@@ -5,6 +5,7 @@ import { TxValidity } from "../consensus/database/worldState"
 import { BlockStatus } from "../consensus/sync"
 import { NewTx } from "../serialization/proto"
 import { Server } from "../server"
+import conf = require("../settings")
 import { Hash } from "../util/hash"
 import { Address } from "./address"
 import { AsyncLock } from "./asyncLock"
@@ -33,8 +34,8 @@ export class TxPool implements ITxPool {
 
     constructor(server: Server, minFee?: Long) {
         this.server = server
-        this.maxTxsPerAddress = 4096 // TODO: Figure out proper numbers
-        this.maxAddresses = 4096
+        this.maxTxsPerAddress = Number(conf.txPoolMaxTxsPerAddress)
+        this.maxAddresses = Number(conf.txPoolMaxAddresses)
         this.minFee = minFee === undefined ? Long.fromNumber(1, true) : minFee
         this.accountMap = new Map<string, ITxQueue>()
         this.pool = new PriorityQueue<ITxQueue>(this.maxAddresses, (a: ITxQueue, b: ITxQueue) => {
@@ -50,7 +51,7 @@ export class TxPool implements ITxPool {
             if (txs.length > 0) {
                 this.server.network.broadcastTxs(txs)
             }
-        }, 30000)
+        }, 60000)
     }
 
     public async putTxs(txs: SignedTx[]) {
@@ -59,7 +60,7 @@ export class TxPool implements ITxPool {
             if (nonceDiff !== 0) {
                 return nonceDiff
             }
-            return a.fee.compare(b.fee)
+            return b.fee.compare(a.fee)
         }
 
         const broadcastTxs: SignedTx[] = []
@@ -73,19 +74,35 @@ export class TxPool implements ITxPool {
             }
             const address = tx.from.toString()
             let itxqueue = this.accountMap.get(address)
+
             if (itxqueue === undefined) {
                 const queue = new PriorityQueue<SignedTx>(this.maxTxsPerAddress, sortNonce)
                 itxqueue = { address, queue, sum: tx.fee }
                 this.accountMap.set(address, itxqueue)
                 this.pool.insert(itxqueue)
             } else {
+                // Check if tx is already inserted
+                const newTxHash = new Hash(tx)
+                let duplicate = false
+                for (const accountTx of itxqueue.queue.toArray()) {
+                    const txHash = new Hash(accountTx)
+                    if (txHash.equals(newTxHash)) {
+                        // tx is already in the txpool
+                        duplicate = true
+                        break
+                    }
+                }
+                if (duplicate) {
+                    continue
+                }
                 itxqueue.sum = itxqueue.sum.add(tx.fee)
             }
+
             itxqueue.queue.insert(tx)
             broadcastTxs.push(tx)
         }
 
-        this.pool.resort() // 🏖️
+        this.pool.resort()
 
         return broadcastTxs
     }
@@ -104,25 +121,19 @@ export class TxPool implements ITxPool {
                 this.pool.remove(txqueue)
             }
         }
-        this.pool.resort() // 🏖️
+        this.pool.resort()
     }
 
     public getTxs(count: number): SignedTx[] {
         const txs: SignedTx[] = []
-        let j = 0
-        for (let i = 0; i < count; i++) {
-            const txqueue = this.pool.peek(j)
-            if (txqueue === undefined) {
-                return txs
+        for (const address of this.accountMap.keys()) {
+            const txqueue = this.accountMap.get(address)
+            for (let i = 0; i < txqueue.queue.length(); i++) {
+                const tx = txqueue.queue.peek(i)
+                if (txs.length < count) {
+                    txs.push(tx)
+                }
             }
-            const tx = txqueue.queue.peek(i)
-            if (tx === undefined) {
-                j++
-                count -= i
-                i = 0
-                continue
-            }
-            txs.push(tx)
         }
         return txs
     }

@@ -19,11 +19,7 @@ export class DelayQueue {
                 this.queue.pop()
                 resolve()
             }, timeStamp - Date.now())
-            const result = this.queue.insert({ resolve, reject, timer, timeStamp })
-            if (result.overflow !== undefined) {
-                result.overflow.reject("Discarding block from the future")
-                clearTimeout(timer)
-            }
+            this.queue.insert({ resolve, reject, timer, timeStamp })
         })
     }
 }

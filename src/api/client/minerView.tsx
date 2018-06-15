@@ -201,11 +201,9 @@ export class MinerView extends React.Component<IMinerViewProps, IMinerView> {
         if (this.state.tmpCpuCount === this.state.cpuMinerCount) {
             this.setState({ adjustCpuMiner: false })
         } else {
-            if (confirm(`Do you want to change the minor number to ${this.state.tmpCpuCount}?`)) {
-                this.state.rest.setMinerCount(this.state.tmpCpuCount).then(() => {
-                    this.setState({ cpuMinerCount: this.state.tmpCpuCount, adjustCpuMiner: false })
-                })
-            }
+            this.state.rest.setMinerCount(this.state.tmpCpuCount).then(() => {
+                this.setState({ cpuMinerCount: this.state.tmpCpuCount, adjustCpuMiner: false })
+            })
         }
     }
     private startGPUMiner() {

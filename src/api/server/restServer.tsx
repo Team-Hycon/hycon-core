@@ -675,9 +675,15 @@ export class RestServer implements IRest {
             const account = await this.consensus.getAccount(walletAddress)
             let accountBalance = account.balance
 
-            const nonce = tx.nonce === undefined ? account.nonce + 1 : tx.nonce
-
             const addressTxs = this.txPool.getTxsOfAddress(walletAddress)
+            let nonce: number
+            if (addressTxs.length > 0 && tx.nonce === undefined) {
+                nonce = addressTxs[addressTxs.length - 1].nonce + 1
+            } else if (tx.nonce !== undefined) {
+                nonce = Number(tx.nonce)
+            } else {
+                nonce = account.nonce + 1
+            }
             const totalAmount = Long.fromNumber(0, true)
             for (const addrTx of addressTxs) {
                 totalAmount.add(addrTx.amount).add(addrTx.fee)

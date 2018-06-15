@@ -63,19 +63,6 @@ describe("PriorityQueue", () => {
         expect(queue.insert.bind(value, comparator)).toThrowError()
     })
 
-    it("insert: 6 should pop the highest priority item when it fills", () => {
-        const comparator = (a: number, b: number) => a - b
-        const queue = new PriorityQueue(maxLength, comparator)
-
-        for (let i = 0; i < maxLength; i++) {
-            queue.insert(i)
-        }
-
-        const max = queue.insert(11)
-
-        expect(max.overflow).toEqual(11)
-    })
-
     it("pop: should get the correct max priority item", () => {
         const comparator = (a: number, b: number) => a - b
         const queue = new PriorityQueue(maxLength, comparator)

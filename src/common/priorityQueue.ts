@@ -9,26 +9,24 @@ export class PriorityQueue<T> {
         this.comparator = comparator
     }
 
-    public insert(value: T): { index: number, overflow?: T, item?: T } {
+    public insert(value: T) {
         // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < this.queue.length; i++) {
             const item = this.peek(i)
             const compare = this.comparator(value, item)
             if (compare < 0 || compare === 0) {
                 // insert the value before the retrieved item
-                const upperQueue = this.queue.slice(i)
+                const upperQueue = this.queue.slice(i, this.maxLength - 1)
                 const lowerQueue = this.queue.slice(0, i)
                 lowerQueue.push(value)
                 this.queue = lowerQueue.concat(upperQueue)
-                return { index: i }
+                return
             }
         }
 
-        this.queue.push(value)
-        if (this.queue.length > this.maxLength) {
-            return { index: this.queue.length, overflow: this.queue.pop() }
+        if (this.queue.length < this.maxLength) {
+            this.queue.push(value)
         }
-        return { index: this.queue.length, item: value }
     }
 
     public pop(index?: number): T {

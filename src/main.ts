@@ -138,6 +138,16 @@ async function main() {
         }
     }
 
+    if (conf.txPoolMaxAddresses === undefined) {
+        conf.txPoolMaxAddresses = 36000
+        await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
+    }
+
+    if (conf.txPoolMaxTxsPerAddress === undefined) {
+        conf.txPoolMaxTxsPerAddress = 64
+        await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
+    }
+
     if (globalOptions.cpuMiners > 0) {
         if (globalOptions.minerAddress === undefined || globalOptions.minerAddress === "") {
             try {
