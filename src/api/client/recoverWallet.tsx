@@ -72,8 +72,8 @@ export class RecoverWallet extends React.Component<any, any> {
         this.setState({ password2: data.target.value })
     }
     public handlePassphrase(data: any) {
-        if (this.state.passphrase1 !== "") {
-            if (data.target.value === this.state.passphrase1) {
+        if (this.state.passphrase2 !== "") {
+            if (data.target.value === this.state.passphrase2) {
                 this.setState({ errText2: "" })
             } else { this.setState({ errText2: "Not matched with passphrase" }) }
         }

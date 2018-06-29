@@ -107,7 +107,8 @@
         "secp256k1": "^3.5.0",
         "sha256": "^0.2.0",
         "sqlite3": "^4.0.0",
-        "stratum": "^0.2.4",
+        "sqlite3-transactions": "0.0.5",
+        "stratum": "git://github.com/dev-jbam/node-stratum.git",
         "wallet.ts": "^0.2.5"
     }
 }

@@ -4,174 +4,115 @@ import Long = require("long")
 import { Address } from "../src/common/address"
 import { Block } from "../src/common/block"
 import { GenesisBlock } from "../src/common/blockGenesis"
+import { BlockHeader } from "../src/common/blockHeader"
 import { SignedTx } from "../src/common/txSigned"
 import * as proto from "../src/serialization/proto"
 import { Hash } from "../src/util/hash"
 
-xdescribe("Block", () => {
-    let iBlock: proto.IBlock
-    let tx: jasmine.SpyObj<SignedTx>
-    let tx2: jasmine.SpyObj<SignedTx>
-    let header: proto.IBlockHeader
-    let block: Block
+describe("Block", () => {
+    const addr1 = "H3zNqBpmhGREvYQsk4VDmYuoFLP6XHnsc"
+    const addr2 = "H4TSHquAPibvNk77YFXRs6V7rwSxJD6th"
+    const rb1 = randomBytes(32)
+    const rb2 = randomBytes(32)
+    const rb3 = randomBytes(32)
+    const rb4 = randomBytes(32)
+
+    let protoTx: proto.ITx
+    let tx: SignedTx
+
+    let blk: Block
+    let protoBlkHdr: proto.IBlockHeader
+    let protoBlk: proto.IBlock
 
     beforeEach(() => {
-        const nonce = Long.fromNumber(1234, true)
-        header = {
-            difficulty: 5,
-            merkleRoot: randomBytes(32),
-            nonce: Long.fromNumber(1234, true),
-            previousHash: [randomBytes(32)],
-            stateRoot: randomBytes(32),
+        protoTx = {
+            amount: 4444,
+            fee: 333,
+            from: new Address(addr1),
+            nonce: 22,
+            recovery: 1,
+            signature: rb1,
+            to: new Address(addr2),
+        }
+        tx = new SignedTx(protoTx)
+
+        protoBlkHdr = {
+            difficulty: 1,
+            merkleRoot: rb1,
+            miner: new Address(addr1),
+            nonce: Long.fromNumber(22, true),
+            previousHash: [rb3],
+            stateRoot: rb4,
             timeStamp: Date.now(),
         }
-
-        block = new Block({ header, txs: [] })
-        tx = jasmine.createSpyObj("Tx", ["verify"])
-        tx2 = jasmine.createSpyObj("Tx", ["verify"])
+        protoBlk = { header: new BlockHeader(protoBlkHdr), txs: [tx] }
     })
 
-    it("Generate method should generate Block instance like block(parameter)", () => {
-        expect(header.difficulty).toEqual(block.header.difficulty)
-        expect(header.nonce).toEqual(block.header.nonce)
-        expect(header.timeStamp).toEqual(block.header.timeStamp)
-        expect(block.header.previousHash).toBeDefined()
-        expect(block.header.merkleRoot).toBeDefined()
-        expect(block.txs).toBeDefined()
+    it("decode(data) : should decode Uint8Array data and return new (Block | GenesisBlock) object", () => {
+        const setSpy1 = spyOn(Block.prototype, "set")
+        const setSpy2 = spyOn(GenesisBlock.prototype, "set")
+
+        // Return new Block
+        const decodeSpy = spyOn(proto.Block, "decode").and.returnValue(protoBlk)
+        Block.decode(rb1)
+        expect(decodeSpy).toHaveBeenCalledBefore(setSpy1)
+
+        // Return new GenesisBlock
+        protoBlk.header.previousHash = undefined
+        Block.decode(rb2)
+        expect(setSpy2).toHaveBeenCalled()
     })
 
-    it("UpdateMerkleRoot() should call the calculateMerkleRoot method and update the merkleRoot", () => {
-        const merkle = new Hash(randomBytes(32))
-        const merkleSpy = spyOn(Block, "calculateMerkleRoot").and.returnValue(merkle)
-        block.recalculateMerkleRoot()
-        expect(merkleSpy).toHaveBeenCalled()
-        expect(block.header.merkleRoot).toEqual(merkle)
-    })
-
-    it("calculateMarkleRoot() should generate a merkle root based on transactions", () => {
-        const merkle = block.header.merkleRoot
-        const newMerkle = Block.calculateMerkleRoot(block.txs)
+    it("calculateMarkleRoot() : should generate a merkle root based on transactions", () => {
+        blk = new Block(protoBlk)
+        const merkle = blk.header.merkleRoot
+        const newMerkle = Block.calculateMerkleRoot(blk.txs)
         expect(merkle === newMerkle).toBeFalsy()
     })
 
-    it("calculateMerkleRoot() should return a different root with different transactions", () => {
-        const stx = new SignedTx({
-            amount: 10000, fee: 100,
-            from: new Address(randomBytes(20)),
-            nonce: 1234, recovery: 10, signature: randomBytes(32),
-            to: new Address(randomBytes(20)),
-        })
-        const merkle1 = Block.calculateMerkleRoot(block.txs)
-        block.txs.push(stx)
-        const merkle2 = Block.calculateMerkleRoot(block.txs)
+    it("calculateMerkleRoot() : should return a different root with different transactions", () => {
+        blk = new Block(protoBlk)
+        const merkle1 = Block.calculateMerkleRoot(blk.txs)
+        blk.txs.push(tx)
+        const merkle2 = Block.calculateMerkleRoot(blk.txs)
         expect(merkle1 === merkle2).toBeFalsy()
     })
 
-    it("Set method should reuse BlockHeader if it is available ", () => {
-        const headerSetSpy = spyOn(block.header, "set")
-        iBlock = {
-            header: {
-                difficulty: 6,
-                merkleRoot: randomBytes(32),
-                nonce: 12345,
-                previousHash: [randomBytes(32)],
-                timeStamp: 1,
-            },
-            txs: [],
-        }
-        expect(block.header).toBeDefined()
-        block.set(iBlock)
-        expect(headerSetSpy).toHaveBeenCalled()
-    })
-
-    it("Set method should throw if Header is missing ", () => {
-        function result() {
-            return block.set({ txs: [] })
-        }
-
-        expect(result).toThrowError("Block Header is missing in Block")
-    })
-
-    it("Set method should throw if Txs are missing ", () => {
-        function result() {
-            return block.set({ header: {} })
-        }
-
-        expect(result).toThrowError("Block Txs are missing")
-    })
-
-    it("Set method should throw is Miner is missing", () => {
-        function result() {
-            return block.set({ header: {}, txs: [] })
-        }
-        expect(result).toThrowError("Miner is missing")
-    })
-
-    it("Set method should push Signed Txs to txs property", () => {
-        const stx = {
-            amount: 10000, fee: 100,
-            from: new Address(randomBytes(20)),
-            nonce: 1234, recovery: 10, signature: randomBytes(32),
-            to: new Address(randomBytes(20)),
-        }
-        block.set({ header, txs: [stx, stx] })
-
-        expect(block.txs.length).toEqual(2)
-    })
-
-    it("decode should throw error if txs are missing", () => {
-        const decodeSpy = spyOn(proto.Block, "decode").and.returnValue({ header: {} })
-        const setSpy = spyOn(Block.prototype, "set").and.callThrough()
-
-        function result() {
-            return Block.decode(new Buffer(32))
-        }
-
-        expect(result).toThrowError("Block Txs are missing")
-        expect(decodeSpy).toHaveBeenCalledBefore(setSpy)
+    it("constructor(block) : ", () => {
+        const setSpy = spyOn(Block.prototype, "set")
+        blk = new Block(protoBlk)
         expect(setSpy).toHaveBeenCalled()
     })
 
-    it("decodeAny(data) should call the proto.Block.decode method", () => {
-        const decodeSpy = spyOn(proto.Block, "decode").and.returnValue({
-            header: {
-                difficulty: 5,
-                merkleRoot: randomBytes(32),
-                nonce: Long.fromNumber(1234, true),
-                previousHash: [randomBytes(32)],
-                stateRoot: randomBytes(32),
-                timeStamp: Date.now(),
-            }, miner: new Address(randomBytes(20)), txs: [],
-        })
-        Block.decode(new Buffer(32))
-        expect(decodeSpy).toHaveBeenCalled()
+    it("set(block) : method should set property using parameter", () => {
+        const setSpy = spyOn(BlockHeader.prototype, "set")
+        blk = new Block(protoBlk)
+        blk.set(protoBlk)
+        expect(setSpy).toHaveBeenCalled()
     })
 
-    it("decode(data) should call the genesis block set method if prev hash is undefined", () => {
-        const decodeSpy = spyOn(proto.Block, "decode").and.returnValue({
-            header: {
-                difficulty: 0,
-                merkleRoot: randomBytes(32),
-                nonce: Long.fromNumber(1234, true),
-                stateRoot: randomBytes(32),
-                timeStamp: Date.now(),
-            }, miner: new Address(randomBytes(20)), txs: [],
-        })
-        const gSpy = spyOn(GenesisBlock.prototype, "set")
-        Block.decode(new Buffer(32))
-        expect(gSpy).toHaveBeenCalled()
+    it("set(block) : Exception - when parameter is undefined", () => {
+        blk = new Block(protoBlk)
+        function undefHdr() { return blk.set(new Block({ header: protoBlkHdr })) }
+        function undefTxs() { return blk.set(new Block({ txs: [] })) }
+        expect(undefHdr).toThrowError()
+        expect(undefTxs).toThrowError()
     })
 
-    it("encode method should return encoded block data using proto.Block.encode function", () => {
-        const expected = new Buffer(32)
-        const encoder = jasmine.createSpyObj<protobuf.Writer>("encoder", ["finish"])
-        encoder.finish.and.returnValue(expected)
-        const encode = spyOn(proto.Block, "encode").and.returnValue(encoder)
+    it("recalculateMerkleRoot(): should call calculateMerkleRoot method", () => {
+        blk = new Block(protoBlk)
+        const merkle = new Hash(rb1)
+        const merkleSpy = spyOn(Block, "calculateMerkleRoot").and.returnValue(merkle)
+        blk.recalculateMerkleRoot()
+        expect(merkleSpy).toHaveBeenCalled()
+        expect(blk.header.merkleRoot).toEqual(merkle)
+    })
 
-        const encoded = block.encode()
-
-        expect(encoded).toBe(expected)
-        expect(proto.Block.encode).toHaveBeenCalled()
-        expect(encoder.finish).toHaveBeenCalled()
+    it("encode(): should return encoded data", () => {
+        const encoder = jasmine.createSpyObj("encoder", ["finish"])
+        const encodeSpy = spyOn(proto.Block, "encode").and.returnValue(encoder)
+        blk = new Block(protoBlk)
+        blk.encode()
+        expect(encodeSpy).toHaveBeenCalled()
     })
 })

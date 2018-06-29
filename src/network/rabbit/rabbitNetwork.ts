@@ -9,7 +9,8 @@ import { Hash } from "../../util/hash"
 import { INetwork } from "../inetwork"
 import { IPeer } from "../ipeer"
 import { NatUpnp } from "../nat"
-import { PeerDb } from "../peerDb"
+import { PeerDatabase } from "../peerDatabase"
+
 import { UpnpClient, UpnpServer } from "../upnp"
 import { RabbitPeer } from "./rabbitPeer"
 
@@ -39,7 +40,8 @@ export class RabbitNetwork implements INetwork {
     private txPool: ITxPool
     private consensus: IConsensus
     private server: net.Server
-    private peerDB: PeerDb
+
+    private peerDatabase: PeerDatabase
     private targetConnectedPeers: number
     private pendingConnections: Map<number, Promise<RabbitPeer>>
     private upnpServer: UpnpServer
@@ -57,7 +59,7 @@ export class RabbitNetwork implements INetwork {
         this.targetConnectedPeers = 50
         this.peers = new Map<number, RabbitPeer>()
         this.pendingConnections = new Map<number, Promise<RabbitPeer>>()
-        this.peerDB = new PeerDb(peerDbPath)
+        this.peerDatabase = new PeerDatabase(peerDbPath)
         this.guid = new Hash(randomBytes(32)).toString()
         this.consensus.on("txs", (txs) => { this.broadcastTxs(txs) })
         logger.info(`TcpNetwork Port=${port} Session Guid=${this.guid}`)
@@ -66,16 +68,22 @@ export class RabbitNetwork implements INetwork {
     public async getPeerDb(): Promise<proto.IPeer[]> {
         const peerList: proto.IPeer[] = []
         let isActive: boolean = false
-        for (const key of this.peerDB.keys) {
-            if (this.peers.has(key)) {
-                isActive = true
+        const keys: number[] = await this.peerDatabase.getKeys()
+        for (const key of keys) {
+            isActive = this.peers.has(key)
+            const value = await this.peerDatabase.get(key)
+            if (value) {
+                value.active = isActive
+                peerList.push(value)
             }
-            const value = await this.peerDB.get(key)
-            value.active = isActive
-            peerList.push(value)
-            isActive = false
         }
         return peerList
+    }
+
+    public async addPeer(ip: string, port: number): Promise<void> {
+        // add or update to the database
+        await this.peerDatabase.put({ host: ip, port })
+        await this.connect(ip, port)
     }
 
     public getConnection(): proto.IPeer[] {
@@ -126,6 +134,10 @@ export class RabbitNetwork implements INetwork {
     }
     public async start(): Promise<boolean> {
         logger.debug(`Tcp Network Started`)
+
+        if (this.peerDatabase !== undefined) {
+            await this.peerDatabase.init()
+        }
         // initial peerDB
 
         this.server = net.createServer((socket) => this.accept(socket).catch(() => undefined))
@@ -164,14 +176,13 @@ export class RabbitNetwork implements INetwork {
             }
         }
 
-        await this.connectSeeds()
+        this.connectSeeds()
 
         this.connectLoop()
 
         setInterval(() => {
-            logger.info(`Peers Count=${this.peers.size}  PeerDB Size= ${this.peerDB.peerCount()}`)
             this.showInfo()
-            this.peerDB.printDB()
+            logger.info(`Peers Count=${this.peers.size}`)
         }, 10 * 1000)
         setInterval(() => {
             this.connectSeeds()
@@ -211,7 +222,7 @@ export class RabbitNetwork implements INetwork {
 
     public async connect(host: string, port: number, save: boolean = true): Promise<RabbitPeer> {
         const ipeer = { host, port }
-        const key = PeerDb.ipeer2key(ipeer)
+        const key = PeerDatabase.ipeer2key(ipeer)
 
         if (this.pendingConnections.has(key)) {
             return this.pendingConnections.get(key)
@@ -238,8 +249,9 @@ export class RabbitNetwork implements INetwork {
             const peer = await peerPromise // Await here to delay the finally block
             return peer
         } catch (e) {
-            if (save) {
-                await this.peerDB.fail(ipeer, RabbitNetwork.failLimit)
+            // and we don't have connection
+            if (save && !this.peers.has(key)) {
+                await this.peerDatabase.fail(ipeer, RabbitNetwork.failLimit)
             }
         } finally {
             this.pendingConnections.delete(key)
@@ -259,11 +271,11 @@ export class RabbitNetwork implements INetwork {
 
     private async newConnection(socket: net.Socket, save: boolean = true): Promise<RabbitPeer> {
 
-        const peer = new RabbitPeer(socket, this, this.consensus, this.txPool, this.peerDB)
+        const peer = new RabbitPeer(socket, this, this.consensus, this.txPool, this.peerDatabase)
         const peerStatus = await peer.detectStatus()
         const port = peerStatus.publicPort > 0 ? peerStatus.publicPort : peerStatus.port
         const ipeer = { host: socket.remoteAddress, port }
-        const key = PeerDb.ipeer2key(ipeer)
+        const key = PeerDatabase.ipeer2key(ipeer)
 
         socket.on("error", async () => {
             socket.end()
@@ -289,18 +301,21 @@ export class RabbitNetwork implements INetwork {
         this.peers.set(key, peer)
 
         if (save) {
-            await this.peerDB.seen({ port, host: socket.remoteAddress })
+            await this.peerDatabase.seen({ port, host: socket.remoteAddress })
+            // only receive connected peers
+            // so failCount is 0
+            const newIPeers = await peer.getPeers()
+            for (const peer of newIPeers) {
+                await this.peerDatabase.put({ host: peer.host, port: peer.port, failCount: 0 })
+            }
         }
-        const newIPeers = await peer.getPeers()
-        for (const newIPeer of newIPeers) {
-            await this.peerDB.put(newIPeer)
-        }
+
         logger.info(`Connected to ${peer.socketBuffer.getInfo()} GUID: ${peerStatus.guid}, Listening Port: ${port}`)
         return peer
     }
 
-    private async connectLoop() {
-        await this.connectToPeer()
+    private connectLoop() {
+        this.connectToPeer()
         setTimeout(() => this.connectLoop(), 1000)
     }
     private async connectToPeer(): Promise<void> {
@@ -310,7 +325,7 @@ export class RabbitNetwork implements INetwork {
 
         try {
             const exempt = this.getIPeers()
-            const ipeer = await this.peerDB.getRandomPeer(exempt)
+            const ipeer = await this.peerDatabase.getRandomPeer(exempt)
             if (ipeer === undefined) {
                 return
             }
@@ -326,8 +341,10 @@ export class RabbitNetwork implements INetwork {
                 const rabbitPeer = await this.connect(seed.host, seed.port, false)
                 const peers = await rabbitPeer.getPeers()
                 rabbitPeer.disconnect()
+                // these list can be very huge
+                // accept host, port only
                 for (const peer of peers) {
-                    await this.peerDB.put({ host: peer.host, port: peer.port })
+                    await this.peerDatabase.put({ host: peer.host, port: peer.port })
                 }
             }
         } catch (e) {

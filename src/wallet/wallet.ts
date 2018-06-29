@@ -264,15 +264,26 @@ export class Wallet {
         }
     }
 
-    public static async walletList(): Promise<Array<{ name: string, address: string }>> {
+    public static async walletList(idx?: number): Promise<{ walletList: Array<{ name: string, address: string }>, length: number }> {
         try {
             const rootKeyList = await fs.readdir("./wallet/rootKey")
             const walletList: Array<{ name: string, address: string }> = []
-            for (const rootKey of rootKeyList) {
-                const address = await Wallet.getAddress(rootKey)
-                walletList.push({ name: rootKey, address: address.toString() })
+
+            if (idx === undefined) {
+                for (const rootKey of rootKeyList) {
+                    const address = await Wallet.getAddress(rootKey)
+                    walletList.push({ name: rootKey, address: address.toString() })
+                }
+            } else {
+                let length = (idx * 20) + 20
+                length = length > rootKeyList.length ? rootKeyList.length : length
+                for (let i = (idx * 20); i < length; ++i) {
+                    const address = await Wallet.getAddress(rootKeyList[i])
+                    walletList.push({ name: rootKeyList[i], address: address.toString() })
+                }
             }
-            return Promise.resolve(walletList)
+
+            return Promise.resolve({ walletList, length: rootKeyList.length })
         } catch (e) {
             logger.error(`Fail to walletList : ${e}`)
             return Promise.reject(e)

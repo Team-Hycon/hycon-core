@@ -24,18 +24,15 @@ export class HttpServer {
     public rest: RestServer
     public hyconServer: RestManager
 
-    constructor(hyconServer: RestManager, port: number = 8080, options: any) {
+    constructor(hyconServer: RestManager, port: number = 2442, options: any) {
         this.app = express()
         this.config()
         this.app.all("/*", (req: express.Request, res: express.Response, next: express.NextFunction) => {
-            if (options.nonLocal) {
-                res.header("Access-Control-Allow-Origin", "*")
-
-            } else {
-                res.header("Access-Control-Allow-Origin", "localhost")
-            }
+            // res.header("Access-Control-Allow-Origin", "localhost")
+            res.header("Access-Control-Allow-Origin", "https://wallet.hycon.io")
             res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE")
-            res.header("Access-Control-Allow-Headers", "Content-type, Accept, X-Access-Token, X-Key")
+            res.header("Access-Control-Allow-Headers", "Content-type, Accept, X-Access-Token, X-Key, Set-Cookie")
+            res.header("Access-Control-Allow-Credentials", "true")
             res.header("X-FRAME-OPTIONS", "DENY")
             if (req.method === "OPTIONS") {
                 res.status(200).end()
@@ -92,6 +89,7 @@ export class HttpServer {
             res.json(await this.rest.createNewWallet({
                 mnemonic: req.body.mnemonic,
                 language: req.body.language,
+                passphrase: req.body.passphrase,
             }))
         })
         router.get("/wallet/:address/balance", async (req: express.Request, res: express.Response) => {
@@ -188,8 +186,11 @@ export class HttpServer {
         router.get("/wallet/detail/:name", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getWalletDetail(req.params.name))
         })
-        router.get("/wallet", async (req: express.Request, res: express.Response) => {
+        router.get("/wallet/", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getWalletList())
+        })
+        router.get("/wallet/:idx", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getWalletList(req.params.idx))
         })
         router.post("/recoverWallet", async (req: express.Request, res: express.Response) => {
             res.json(

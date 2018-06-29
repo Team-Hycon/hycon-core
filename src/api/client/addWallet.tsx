@@ -74,7 +74,7 @@ export class AddWallet extends React.Component<any, any> {
     public handlePassphrase(data: any) {
         if (this.state.passphrase2 !== "") {
             if (data.target.value === this.state.passphrase2) {
-                this.setState({ errorText1: "" })
+                this.setState({ errorText2: "" })
             } else { this.setState({ errorText2: "Not matched with passphrase" }) }
         }
         this.setState({ passphrase1: data.target.value })
@@ -82,7 +82,7 @@ export class AddWallet extends React.Component<any, any> {
     public handleConfirmPassphrase(data: any) {
         if (this.state.passphrase1 !== "") {
             if (data.target.value === this.state.passphrase1) {
-                this.setState({ errorText1: "" })
+                this.setState({ errorText2: "" })
             } else { this.setState({ errorText2: "Not matched with passphrase" }) }
         }
         this.setState({ passphrase2: data.target.value })

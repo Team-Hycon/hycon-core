@@ -7,7 +7,6 @@ import { PrivateKey } from "../src/common/privateKey"
 import { PublicKey } from "../src/common/publicKey"
 import { SignedTx } from "../src/common/txSigned"
 import { Hash } from "../src/util/hash"
-import { Wallet } from "../src/wallet/wallet"
 
 import * as blake2b from "blake2b"
 import secp256k1 = require("secp256k1")
@@ -15,21 +14,20 @@ import secp256k1 = require("secp256k1")
 describe("PublicKey", () => {
     let pubKey: PublicKey
     let pubKey2: PublicKey
-    let privKey: PrivateKey
     let tx: SignedTx
-    let wallet: Wallet
-    let txCreate: any
-    let wFunc: any
 
     beforeEach(() => {
-        const x = new Address(randomBytes(32))
+        const x = new Address(randomBytes(20))
         tx = new SignedTx({
-            from: x, to: x,
-            amount: 10000, fee: 100, nonce: 1234,
-            signature: randomBytes(32), recovery: 10,
+            amount: 10000,
+            fee: 100,
+            from: x,
+            nonce: 1234,
+            recovery: 10,
+            signature: randomBytes(32),
+            to: x,
         })
         pubKey = new PublicKey(randomBytes(32))
-        spyOn(tx, "unsignedHash").and.returnValue(new Hash(randomBytes(32)))
         spyOn(Hash.prototype, "toBuffer").and.returnValue(new Buffer(32))
         spyOn(secp256k1, "verify").and.returnValue(true)
     })

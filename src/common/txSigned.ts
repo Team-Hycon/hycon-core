@@ -1,11 +1,9 @@
 import { getLogger } from "log4js"
 import * as Long from "long"
-import { deprecate } from "util"
 import { Address } from "../common/address"
 import { PublicKey } from "../common/publicKey"
 import * as proto from "../serialization/proto"
-import { Hash } from "../util/hash"
-import { Tx } from "./tx"
+
 const logger = getLogger("TxSigned")
 export class SignedTx implements proto.ITx {
     public static decode(data: Uint8Array): SignedTx {
@@ -36,13 +34,6 @@ export class SignedTx implements proto.ITx {
         }
     }
 
-    /**
-     * @deprecated Use new Hash(tx)
-     */
-    public unsignedHash(): Hash {
-        return new Hash(this)
-    }
-
     public set(stx: proto.ITx): void {
         if (stx.from === undefined) { throw (new Error("from address not defined in input")) }
         if (stx.amount === undefined) { throw (new Error("amount not defined in input")) }
@@ -64,8 +55,8 @@ export class SignedTx implements proto.ITx {
             throw new Error("Transaction fee can not be negative")
         }
         if (!this.amount.unsigned || !this.fee.unsigned) {
-            logger.fatal(`Protobuf problem with SignedTx amount|fee `)
-            throw new Error("Protobuf decoding error")
+            logger.fatal(`Protobuf problem with SignedTx (amount | fee) `)
+            throw new Error("Protobuf problem with SignedTx (amount | fee) ")
         }
         this.nonce = stx.nonce
         this.signature = Buffer.from(stx.signature as Buffer)

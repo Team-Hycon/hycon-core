@@ -3,7 +3,6 @@ import { Address } from "../common/address"
 import { AnyBlock, Block } from "../common/block"
 import { GenesisBlock } from "../common/blockGenesis"
 import { AnyBlockHeader, BlockHeader } from "../common/blockHeader"
-import { GenesisBlockHeader } from "../common/genesisHeader"
 import { GenesisSignedTx } from "../common/txGenesisSigned"
 import { SignedTx } from "../common/txSigned"
 import { Account } from "../consensus/database/account"
@@ -13,7 +12,7 @@ import { DBMined } from "./database/dbMined"
 import { DBTx } from "./database/dbtx"
 import { TxValidity } from "./database/worldState"
 
-export interface IStatusChange { oldStatus?: BlockStatus, status?: BlockStatus }
+export interface IStatusChange { oldStatus?: BlockStatus, status?: BlockStatus, htip?: boolean }
 
 export type AnySignedTx = (GenesisSignedTx | SignedTx)
 

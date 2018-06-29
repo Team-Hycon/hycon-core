@@ -2,10 +2,9 @@
 import { getLogger } from "log4js"
 import Long = require("long")
 import * as proto from "../serialization/proto"
-import { Hash } from "../util/hash"
 import { Address } from "./address"
 import { PublicKey } from "./publicKey"
-import { GenesisTx } from "./txGenesis"
+
 const logger = getLogger("TxGenesisSigned")
 
 export class GenesisSignedTx implements proto.ITx {
@@ -34,13 +33,6 @@ export class GenesisSignedTx implements proto.ITx {
         }
     }
 
-    /**
-     * @deprecated Use new Hash(tx)
-     */
-    public unsignedHash(): Hash {
-        return new Hash(this)
-    }
-
     public set(stx: proto.ITx): void {
         if (stx.to === undefined) { throw (new Error("to address not defined in input")) }
         if (stx.amount === undefined) { throw (new Error("amount not defined in input")) }
@@ -49,7 +41,10 @@ export class GenesisSignedTx implements proto.ITx {
 
         this.to = new Address(stx.to)
         this.amount = stx.amount instanceof Long ? stx.amount : Long.fromNumber(stx.amount, true)
-        if (!this.amount.unsigned) { logger.fatal(`Protobuf problem with GenesisSignedTx amount`) }
+        if (!this.amount.unsigned) {
+            logger.fatal(`Protobuf problem with GenesisSignedTx amount`)
+            throw new Error("Protobuf problem with GenesisSignedTx amount")
+        }
         this.signature = Buffer.from(stx.signature as Buffer)
         this.recovery = stx.recovery
     }

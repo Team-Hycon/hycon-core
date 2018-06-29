@@ -9,6 +9,7 @@ import * as proto from "../src/serialization/proto"
 
 import { } from "jasmine"
 import * as Long from "long"
+import { Address } from "../src/common/address"
 
 describe("BlockHeader", () => {
     let iBlock: proto.BlockHeader
@@ -32,6 +33,7 @@ describe("BlockHeader", () => {
         iBlock.nonce = 0
         iBlock.timeStamp = Date.now()
         iBlock.stateRoot = new Hash(randomBytes(32))
+        iBlock.miner = new Uint8Array(20)
 
         blockHeader = new BlockHeader(iBlock)
     })
@@ -118,6 +120,7 @@ describe("BlockHeader", () => {
         iBlockTest.nonce = 0
         iBlockTest.timeStamp = Date.now()
         iBlockTest.stateRoot = rdByte3
+        iBlockTest.miner = new Uint8Array(20).fill(3)
 
         blockHeader.set(iBlockTest)
 
@@ -128,6 +131,7 @@ describe("BlockHeader", () => {
         expect(blockHeader.difficulty).toEqual(10)
         expect(blockHeader.nonce).toEqual(Long.fromNumber(0, true))
         expect(blockHeader.timeStamp).not.toBeUndefined()
+        expect(blockHeader.miner.equals(new Address(iBlockTest.miner))).toBeTruthy()
     })
 
     xit("blockheader.prehash: Should return the prehash excluding the nonce", () => {

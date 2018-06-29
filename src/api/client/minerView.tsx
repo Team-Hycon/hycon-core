@@ -155,9 +155,9 @@ export class MinerView extends React.Component<IMinerViewProps, IMinerView> {
     }
     private setMinerAddress() {
         this.state.rest.setLoading(true)
-        this.state.rest.getWalletList().then((data: IHyconWallet[]) => {
+        this.state.rest.getWalletList().then((data: { walletList: IHyconWallet[], length: number }) => {
             if (this.mounted) {
-                this.setState({ wallets: data, dialogOpen: true })
+                this.setState({ wallets: data.walletList, dialogOpen: true })
             }
             this.state.rest.setLoading(false)
         })

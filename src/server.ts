@@ -44,7 +44,7 @@ export class Server {
         await this.consensus.init()
         logger.info("Starting server...")
         logger.debug(`API flag is ${globalOptions.api}`)
-        if (globalOptions.api) {
+        if (globalOptions.api !== false) {
             logger.info("Test API")
             logger.info(`API Port ${globalOptions.api_port}`)
             this.httpServer = new HttpServer(this.rest, globalOptions.api_port, globalOptions)
@@ -55,7 +55,8 @@ export class Server {
             for (const peer of globalOptions.peer) {
                 const [ip, port] = peer.split(":")
                 logger.info(`Connecting to ${ip}:${port}`)
-                this.network.connect(ip, port).catch((e) => logger.error(`Failed to connect to client: ${e}`))
+                // add peer and record the database
+                this.network.addPeer(ip, port).catch((e) => logger.error(`Failed to connect to client: ${e}`))
             }
         }
         await this.runSync()

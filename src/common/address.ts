@@ -27,7 +27,7 @@ function toUint8Array(address: (string | Uint8Array | Buffer)): Uint8Array {
         }
         const expectedChecksum = checkSum(out)
         if (expectedChecksum !== check) {
-            throw new Error(`Address hash invalid checksum '${check}' epected '${expectedChecksum}'`)
+            throw new Error(`Address hash invalid checksum '${check}' expected '${expectedChecksum}'`)
         }
         return out
     }

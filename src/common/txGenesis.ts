@@ -22,12 +22,15 @@ export class GenesisTx implements proto.ITx {
 
         this.to = new Address(tx.to)
         this.amount = tx.amount instanceof Long ? tx.amount : Long.fromNumber(tx.amount, true)
-        if (!this.amount.unsigned) { logger.fatal(`Protobuf problem with TxGenesis amount`) }
+        if (!this.amount.unsigned) {
+            logger.fatal(`Protobuf problem with TxGenesis amount`)
+            throw new Error("Protobuf problem with TxGenesis amount")
+        }
     }
 
     public equals(tx: GenesisTx): boolean {
         if (!this.to.equals(tx.to)) { return false }
-        if (this.amount !== tx.amount) { return false }
+        if (!this.amount.equals(tx.amount)) { return false }
         return true
     }
     public encode(): Uint8Array {

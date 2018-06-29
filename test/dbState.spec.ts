@@ -39,15 +39,23 @@ describe("DBState test", () => {
     })
 
     it("set() : method should set property using parameter.", () => {
-        dbState = new DBState({})
-        dbState.set({ account: protoAccount, refCount: 1 })
+        dbState = new DBState({ refCount: 1 })
+        dbState.set({ account: protoAccount, refCount: 2 })
         expect(dbState.account).not.toBeUndefined()
         expect(dbState.node).toBeUndefined()
-        expect(dbState.refCount).toBe(1)
+        expect(dbState.refCount).toBe(2)
+    })
+
+    it("set() : method should set property using parameter.", () => {
+        dbState = new DBState({ refCount: 1 })
+        dbState.set({ node: protoStateNode, refCount: 2 })
+        expect(dbState.node).not.toBeUndefined()
+        expect(dbState.account).toBeUndefined()
+        expect(dbState.refCount).toBe(2)
     })
 
     it("set() : method should throw error when refCount is undefined", () => {
-        dbState = new DBState({})
+        dbState = new DBState({ refCount: 1 })
         function result() {
             return dbState.set({})
         }
@@ -58,8 +66,19 @@ describe("DBState test", () => {
         const encoder = jasmine.createSpyObj("encoder", ["finish"])
         const encodeSpy = spyOn(proto.Account, "encode").and.returnValue(encoder)
         const hashSpy = spyOn(Hash, "hash")
-        dbState = new DBState({})
+        dbState = new DBState({ refCount: 1 })
         dbState.account = new Account(protoAccount)
+        dbState.hash()
+        expect(hashSpy).toHaveBeenCalled()
+        expect(encodeSpy).toHaveBeenCalled()
+    })
+
+    it("hash() : return hash of account or stateNode", () => {
+        const encoder = jasmine.createSpyObj("encoder", ["finish"])
+        const encodeSpy = spyOn(proto.StateNode, "encode").and.returnValue(encoder)
+        const hashSpy = spyOn(Hash, "hash")
+        dbState = new DBState({ refCount: 1 })
+        dbState.node = new StateNode(protoStateNode)
         dbState.hash()
         expect(hashSpy).toHaveBeenCalled()
         expect(encodeSpy).toHaveBeenCalled()
@@ -75,7 +94,7 @@ describe("DBState test", () => {
     it("encode(): should return encoded data", () => {
         const encoder = jasmine.createSpyObj("encoder", ["finish"])
         const encodeSpy = spyOn(proto.DBState, "encode").and.returnValue(encoder)
-        dbState = new DBState({})
+        dbState = new DBState({ refCount: 1 })
         dbState.encode()
         expect(encodeSpy).toHaveBeenCalled()
     })

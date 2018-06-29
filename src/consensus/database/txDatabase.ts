@@ -11,14 +11,16 @@ import { AnySignedTx, IConsensus } from "../iconsensus"
 import { BlockStatus } from "../sync"
 import { DBTx } from "./dbtx"
 import { ITxDatabase } from "./itxDatabase"
+// tslint:disable-next-line:no-var-requires
+const TransactionDatabase = require("sqlite3-transactions").TransactionDatabase
 const sqlite = sqlite3.verbose()
 const logger = getLogger("TxDB")
 
 export class TxDatabase implements ITxDatabase {
-    private db: sqlite3.Database
+    public db: any
     private consensus: IConsensus
     constructor(path: string) {
-        this.db = new sqlite.Database(path + `sql`)
+        this.db = new TransactionDatabase(new sqlite.Database(path + `sql`))
     }
     public async init(consensus: IConsensus, tipHeight?: number) {
         this.consensus = consensus
@@ -69,7 +71,7 @@ export class TxDatabase implements ITxDatabase {
         try {
             let hashData: string = ""
             return new Promise<Hash>(async (resolved, rejected) => {
-                this.db.each(`SELECT blockhash FROM txdb ORDER BY timestamp DESC LIMIT 1`, (err, row) => {
+                this.db.each(`SELECT blockhash FROM txdb ORDER BY timestamp DESC LIMIT 1`, (err: Error, row: any) => {
                     if (row === undefined) {
                         return resolved(undefined)
                     }
@@ -84,50 +86,40 @@ export class TxDatabase implements ITxDatabase {
     }
 
     public async putTxs(blockHash: Hash, timestamp: number, txs: AnySignedTx[]): Promise<void> {
-        const stmtUpdate = this.db.prepare(`UPDATE txdb SET blockhash=$blockhash, timestamp=DATETIME('now') WHERE txhash=$txhash AND blockhash=$preblockhash`)
-        const stmtInsert = this.db.prepare(`INSERT INTO txdb (txhash, blockhash, txto, txfrom, amount, fee, blocktime) VALUES ($txhash, $blockhash, $txto, $txfrom, $amount, $fee, $blocktime)`)
-        for (const tx of txs) {
-            const txHash = new Hash(tx)
-            const preBlockHash = await this.getBlockHash(txHash.toString())
-            if (preBlockHash !== "") {
-                logger.error(`TxList info is already exsited, so change blockHash of txList : ${preBlockHash} -> ${blockHash} / ${txHash}`)
-                if (!Hash.decode(preBlockHash).equals(blockHash)) {
-                    const params = {
-                        $blockhash: blockHash,
-                        $preblockhash: preBlockHash,
-                        $txhash: txHash.toString(),
-                    }
 
-                    stmtUpdate.run(params, (err) => {
-                        if (err) { throw Error(err.message) }
-                    })
-                }
-            } else {
-                let params = {}
-                if (tx instanceof SignedTx) {
-                    params = {
-                        $amount: hycontoString(tx.amount),
-                        $blockhash: blockHash.toString(),
-                        $blocktime: timestamp,
-                        $fee: hycontoString(tx.fee),
-                        $txfrom: tx.from.toString(),
-                        $txhash: txHash.toString(),
-                        $txto: tx.to === undefined ? "🔥" : tx.to.toString(),
-                    }
-                } else {
-                    params = {
-                        $amount: hycontoString(tx.amount),
-                        $blockhash: blockHash.toString(),
-                        $blocktime: timestamp,
-                        $txhash: txHash.toString(),
-                        $txto: tx.to === undefined ? "🔥" : tx.to.toString(),
-                    }
-                }
-                stmtInsert.run(params)
+        const insertArray: any[] = []
+        const updateArray: any[] = []
+        for (const tx of txs) {
+            const txHash = (new Hash(tx)).toString()
+            const preBlockHash = await this.getBlockHash(txHash)
+            if (preBlockHash !== undefined) {
+                updateArray.push({ $blockhash: blockHash.toString(), $preblockhash: preBlockHash, $txhash: txHash })
+                continue
             }
+            const param = {
+                $amount: hycontoString(tx.amount),
+                $blockhash: blockHash.toString(),
+                $blocktime: timestamp,
+                $txhash: txHash,
+                $txto: tx.to === undefined ? "🔥" : tx.to.toString(),
+            }
+            if (tx instanceof SignedTx) {
+                Object.assign(param, { $fee: hycontoString(tx.fee), $txfrom: tx.from.toString() })
+            }
+            insertArray.push(param)
         }
-        stmtUpdate.finalize()
-        stmtInsert.finalize()
+
+        const insertsql = `INSERT INTO txdb (txhash, blockhash, txto, txfrom, amount, fee, blocktime) VALUES ($txhash, $blockhash, $txto, $txfrom, $amount, $fee, $blocktime)`
+        const updatesql = `UPDATE txdb SET blockhash=$blockhash, timestamp=DATETIME('now') WHERE txhash=$txhash AND blockhash=$preblockhash`
+        this.db.beginTransaction((err: Error, transaction: any) => {
+            for (const param of insertArray) {
+                transaction.run(insertsql, param, (error: Error) => { })
+            }
+            for (const param of updateArray) {
+                transaction.run(updatesql, param, (error: Error) => { })
+            }
+            transaction.commit(((error: Error) => { }))
+        })
     }
 
     public async getLastTxs(address: Address, result: DBTx[] = [], idx: number = 0, count?: number): Promise<DBTx[]> {
@@ -137,7 +129,7 @@ export class TxDatabase implements ITxDatabase {
             $startIndex: idx * count,
         }
         return new Promise<DBTx[]>(async (resolved, rejected) => {
-            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime, timestamp FROM txdb WHERE txto = $address OR txfrom = $address ORDER BY blocktime DESC LIMIT $startIndex, $count`, params, async (err, rows) => {
+            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime, timestamp FROM txdb WHERE txto = $address OR txfrom = $address ORDER BY blocktime DESC LIMIT $startIndex, $count`, params, async (err: Error, rows: any) => {
                 for (const row of rows) {
                     const status = await this.consensus.getBlockStatus(row.blockhash)
                     if (status === BlockStatus.MainChain) {
@@ -164,7 +156,7 @@ export class TxDatabase implements ITxDatabase {
             $txhash: txHash.toString(),
         }
         return new Promise<DBTx[]>(async (resolved, rejected) => {
-            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime FROM txdb WHERE (blocktime <= (SELECT blocktime FROM txdb WHERE txhash = $txhash)) AND (txto = $address OR txfrom = $address) ORDER BY blocktime DESC LIMIT $startIndex, $count`, params, async (err, rows) => {
+            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime FROM txdb WHERE (blocktime <= (SELECT blocktime FROM txdb WHERE txhash = $txhash)) AND (txto = $address OR txfrom = $address) ORDER BY blocktime DESC LIMIT $startIndex, $count`, params, async (err: Error, rows: any) => {
                 for (const row of rows) {
                     const status = await this.consensus.getBlockStatus(row.blockhash)
                     if (status === BlockStatus.MainChain) {
@@ -189,7 +181,7 @@ export class TxDatabase implements ITxDatabase {
         const params = { $txhash: key.toString() }
         let tx: DBTx
         return new Promise<{ tx: DBTx, confirmation: number } | undefined>(async (resolved, rejected) => {
-            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime FROM txdb WHERE txhash = $txhash LIMIT 1`, params, async (err, rows) => {
+            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime FROM txdb WHERE txhash = $txhash LIMIT 1`, params, async (err: Error, rows: any) => {
                 if (rows === undefined || rows.length < 1) { return resolved(undefined) }
                 tx = new DBTx(rows[0].txhash, rows[0].blockhash, rows[0].txto, rows[0].txfrom, rows[0].amount, rows[0].fee, rows[0].blocktime)
                 const height = await this.consensus.getBlockHeight(Hash.decode(tx.blockhash))
@@ -199,15 +191,13 @@ export class TxDatabase implements ITxDatabase {
             })
         })
     }
-    private async getBlockHash(txhash: string): Promise<string> {
-        try {
-            let blockhash = ""
-            this.db.each(`SELECT blockhash FROM txdb WHERE txhash=$txhash`, (err, row) => {
-                blockhash = row.blockhash
+    private async getBlockHash(txhash: string): Promise<string | undefined> {
+        const blockhash = ""
+        return new Promise<string | undefined>(async (resolved, rejected) => {
+            this.db.all(`SELECT blockhash FROM txdb WHERE txhash=$txhash LIMIT 1`, { $txhash: txhash }, (err: Error, rows: any) => {
+                if (rows === undefined || rows.length < 1) { return resolved(undefined) }
+                return resolved(rows[0].blockhash)
             })
-            return Promise.resolve(blockhash)
-        } catch (e) {
-            if (e.notFound) { return Promise.resolve("") }
-        }
+        })
     }
 }

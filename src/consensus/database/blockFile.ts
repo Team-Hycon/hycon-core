@@ -1,11 +1,10 @@
 
+import { O_CREAT, O_RDONLY, O_RDWR } from "constants"
 import * as fs from "fs-extra"
 import { getLogger } from "log4js"
 import { zeroPad } from "../../api/client/stringUtil"
 import { AsyncLock } from "../../common/asyncLock"
 import { AnyBlock, Block } from "../../common/block"
-import * as proto from "../../serialization/proto"
-import { FileUtil } from "../../util/fileUtil"
 
 const logger = getLogger("BlockFile")
 
@@ -33,13 +32,16 @@ export class BlockFile {
     public async get(n: number, offset: number, length: number): Promise<AnyBlock> {
         if (this.n === n) {
             const data: Buffer = Buffer.alloc(length)
-            await fs.read(this.fd, data, 0, length, offset)
+            const { bytesRead, buffer } = await fs.read(this.fd, data, 0, length, offset)
+            if (bytesRead !== length) {
+                throw new Error("Failed to read entire block from file")
+            }
             return Block.decode(data)
 
         } else {
             const fd = await this.open(n, false)
             const data: Buffer = Buffer.alloc(length)
-            await fs.read(this.fd, data, 0, length, offset)
+            await fs.read(fd, data, 0, length, offset)
             await fs.close(fd)
             return Block.decode(data)
         }
@@ -76,19 +78,14 @@ export class BlockFile {
     private async open(n: number, write: boolean) {
         const fileName = this.path + "/blk" + zeroPad(n.toString(), 5) + ".dat"
         if (write) {
-            if (!(await fs.pathExists(fileName))) {
-                // Read/Write do not truncate, throws exception the file does not exist
-                this.fd = await fs.open(fileName, "w+")
-            } else {
-                // Read/Write and create/truncate
-                this.fd = await fs.open(fileName, "r+")
-            }
+            // tslint:disable-next-line:no-bitwise
+            this.fd = await fs.open(fileName, O_RDWR | O_CREAT)
             this.n = n
             this.filePosition = 0
             this.fileSize = (await fs.stat(fileName)).size
         } else {
             // Read do not truncate
-            return fs.open(fileName, "r")
+            return fs.open(fileName, O_RDONLY)
         }
     }
 
@@ -106,7 +103,11 @@ export class BlockFile {
             await this.nextFile()
         } else {
             const zeroArray = new Uint8Array(16777216) // 16MB
-            await fs.appendFile(this.fd, zeroArray, { encoding: "buffer" })
+
+            // path is ignored if file descriptor is supplied: https://nodejs.org/api/fs.html#fs_fs_createwritestream_path_options
+            const stream = fs.createWriteStream("", { flags: "r+", fd: this.fd, autoClose: true, start: this.filePosition })
+            await stream.write(zeroArray)
+
             this.fileSize += zeroArray.length
         }
     }
