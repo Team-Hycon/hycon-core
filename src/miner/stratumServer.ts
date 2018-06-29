@@ -43,8 +43,8 @@ export class StratumServer {
     }
 
     public getMinerCount() {
-        return this.socketsId.length
-
+        logger.fatal(`getMinerCount : ${this.mapSocket.keys.length}`)
+        return this.mapSocket.keys.length
     }
     public stop() {
         for (const [jobId, job] of this.mapCandidateBlock) {
@@ -54,13 +54,17 @@ export class StratumServer {
     }
 
     public putWork(block: Block, prehash: Uint8Array, minerOffset: number) {
-        const job = this.newJob(block, prehash)
-
-        for (let index = 0; index < this.socketsId.length; index++) {
-            const socket = this.mapSocket.get(this.socketsId[index])
-            if (socket !== undefined) {
-                this.notifyJob(socket, index, minerOffset, job)
-            }
+        try {
+            const job = this.newJob(block, prehash)
+            let index = 0
+            this.mapSocket.forEach((socket, key, map) => {
+                if (socket !== undefined) {
+                    this.notifyJob(socket, index, minerOffset, job)
+                    index++
+                }
+            })
+        } catch (e) {
+            logger.error(`putWork ${e}`)
         }
     }
 
@@ -92,9 +96,9 @@ export class StratumServer {
 
     private initialize() {
         this.net.on("mining", async (req: any, deferred: any, socket: any) => {
-            if (this.socketsId.indexOf(socket.id) === -1) {
+            if (!this.mapSocket.has(socket.id)) {
                 logger.info(`New miner socket(${socket.id}) connected`)
-                this.socketsId.push(socket.id)
+                // this.socketsId.push(socket.id)
                 this.mapSocket.set(socket.id, socket)
             }
             logger.debug(req)
@@ -110,7 +114,6 @@ export class StratumServer {
                 case "authorize":
                     logger.info(`Authorizing worker id : ${req.params[0]} /  pw : ${req.params[1]}`)
                     deferred.resolve([true])
-                    deferred.promise.then(() => { })
                     const candidate = this.mapCandidateBlock.get(this.jobId)
                     if (candidate !== undefined) {
                         const randPrefix = Math.floor(Math.random() * (0xFFFF - 10)) + 10
@@ -141,7 +144,7 @@ export class StratumServer {
         this.net.on("close", (socketId: any) => {
             logger.info(`Miner socket(${socketId}) closed `)
             this.mapSocket.delete(socketId)
-            this.socketsId.splice(this.socketsId.indexOf(socketId), 1)
+            // this.socketsId.splice(this.socketsId.indexOf(socketId), 1)
         })
     }
     private async completeWork(jobId: number, nonceStr: string): Promise<boolean> {

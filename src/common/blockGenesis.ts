@@ -15,6 +15,7 @@ export class GenesisBlock implements proto.IBlock {
             return GenesisBlock.decode(file)
         } catch (e) {
             logger.error("Genesis constructor fail : " + e)
+            throw new Error("Genesis constructor fail : " + e)
         }
     }
     public static decode(data: Uint8Array): GenesisBlock {

@@ -1,4 +1,5 @@
-import { Dialog } from "material-ui"
+import { Button, Grid, Icon } from "@material-ui/core"
+import { Dialog, TextField } from "material-ui"
 import Avatar from "material-ui/Avatar"
 import { Tab, Tabs } from "material-ui/Tabs"
 import * as QRCode from "qrcode.react"
@@ -8,6 +9,7 @@ import * as CopyToClipboard from "react-copy-to-clipboard"
 import * as ReactPaginate from "react-paginate"
 import { Redirect } from "react-router"
 import { Link } from "react-router-dom"
+import { Login } from "./login"
 import { MinedBlockLine } from "./minedBlockLine"
 import { NotFound } from "./notFound"
 import { IHyconWallet, IMinedInfo, IResponseError, IRest, ITxProp } from "./rest"
@@ -34,6 +36,7 @@ export class WalletDetail extends React.Component<any, any> {
             hasMore: true,
             hasMoreMinedInfo: true,
             index: 1,
+            login: false,
             minedBlocks: [],
             minerIndex: 1,
             name: props.name,
@@ -95,7 +98,7 @@ export class WalletDetail extends React.Component<any, any> {
         })
     }
     public cancelDialog() {
-        this.setState({ visible: false })
+        this.setState({ login: false })
     }
     public searchAllAccounts() {
         this.state.rest.getAllAccounts(this.state.name).then((result: { represent: number, accounts: Array<{ address: string, balance: number }> } | boolean) => {
@@ -107,6 +110,10 @@ export class WalletDetail extends React.Component<any, any> {
 
     public transfer() {
         this.setState({ isTransfer: true })
+    }
+
+    public login() {
+        this.setState({ login: true })
     }
     public render() {
         let accountIndex = 0
@@ -129,6 +136,8 @@ export class WalletDetail extends React.Component<any, any> {
                     <thead>
                         <tr>
                             <td colSpan={2} className="walletDetailFunctionTd">
+                                <button onClick={() => { this.login() }} className="mdl-button">
+                                    <i className="material-icons">assignment_ind</i>CLAIM</button>
                                 <button onClick={() => { this.transfer() }} className="mdl-button">
                                     <i className="material-icons">send</i>TRANSFER</button>
                                 <button onClick={() => { this.deleteWallet() }} className="mdl-button">
@@ -234,38 +243,10 @@ export class WalletDetail extends React.Component<any, any> {
                             (<div></div>)}
                     </Tab>
                 </Tabs>
-                {/* <Dialog className="dialog" open={this.state.visible}>
-                    <h4 className="contentTitle">Select account to use.</h4>
-                    <div className="mdl-dialog__content accountDialogContent">
-                        <p>List of currently available accounts. To add a new account, please click the 'New Account' button below.</p>
-                    </div>
-                    <div className="accountList">
-                        <form className="leftAlignForm">
-                            {this.state.accounts.map((account: { address: string, balance: number }) => {
-                                const key = accountIndex + 1
-                                return (
-                                    <div key={key}>
-                                        <label className="displayBlock">
-                                            <input type="radio" name="account" value={key}
-                                                checked={this.state.represent === key ? true : false}
-                                                onChange={(option) => { this.handleSelectAccount(option) }} />
-                                            <span> {account.address}</span> <span className="balanceOfAccount">{account.balance} HYC</span>
-                                        </label>
-                                    </div>
-                                )
-                            })}
-                        </form>
-                    </div>
-                    <div className="mdl-dialog__actions">
-                        <button onClick={() => { this.cancelDialog() }} className="mdl-button mdl-js-button mdl-button--raised mdl-button--accent addAccountBtn" >
-                            Cancel</button>
-                        <button onClick={() => { this.accountSelected() }} className="mdl-button mdl-js-button mdl-button--raised mdl-button--colored addAccountBtn" >
-                            Select</button>
-                        <button className="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" >
-                            <Link to="/wallet/addWallet">
-                                New Account</Link></button>
-                    </div>
-                </Dialog> */}
+                <Dialog className="dialog" open={this.state.login}>
+                    <Login address={this.state.wallet.address} rest={this.props.rest} cancelDialog={this.cancelDialog.bind(this)} />
+                    <Button color="primary" id="modal_cancel" onClick={this.cancelDialog.bind(this)} >Close</Button>
+                </Dialog>
             </div >
         )
     }

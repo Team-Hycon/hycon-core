@@ -2,13 +2,10 @@ import { getLogger } from "log4js"
 import Long = require("long")
 import { hyconfromString, hycontoString } from "../api/client/stringUtil"
 import { TxValidity } from "../consensus/database/worldState"
-import { BlockStatus } from "../consensus/sync"
-import { NewTx } from "../serialization/proto"
 import { Server } from "../server"
 import conf = require("../settings")
 import { Hash } from "../util/hash"
 import { Address } from "./address"
-import { AsyncLock } from "./asyncLock"
 import { ITxPool } from "./itxPool"
 import { PriorityQueue } from "./priorityQueue"
 import { SignedTx } from "./txSigned"
@@ -22,6 +19,7 @@ interface ITxQueue {
     address: string
 }
 
+const TX_BROADCAST_NUMBER: number = 30
 export class TxPool implements ITxPool {
     private server: Server
 
@@ -42,12 +40,7 @@ export class TxPool implements ITxPool {
             return a.sum.subtract(b.sum).toNumber()
         })
         setInterval(() => {
-            const txs: SignedTx[] = []
-            for (let i = 0; i < Math.min(30, this.pool.length()); i++) {
-                const { queue } = this.pool.peek(i)
-                const tx = queue.peek(0)
-                txs.push(tx)
-            }
+            const txs: SignedTx[] = this.prepareForBroadcast()
             if (txs.length > 0) {
                 this.server.network.broadcastTxs(txs)
             }
@@ -97,9 +90,19 @@ export class TxPool implements ITxPool {
                 }
                 itxqueue.sum = itxqueue.sum.add(tx.fee)
             }
-
-            itxqueue.queue.insert(tx)
-            broadcastTxs.push(tx)
+            if (itxqueue.queue.length() === 0 && validity === TxValidity.Waiting) {
+                continue
+            }
+            if (itxqueue.queue.length() === 0) {
+                itxqueue.queue.insert(tx)
+                broadcastTxs.push(tx)
+            } else {
+                const lastNonce: number = itxqueue.queue.peek(itxqueue.queue.length() - 1).nonce
+                if (tx.nonce - lastNonce <= 1) {
+                    itxqueue.queue.insert(tx)
+                    broadcastTxs.push(tx)
+                }
+            }
         }
 
         this.pool.resort()
@@ -157,6 +160,36 @@ export class TxPool implements ITxPool {
         }
         return txqueue.queue.toArray()
     }
+
+    private prepareForBroadcast(): SignedTx[] {
+        const broadcast: SignedTx[] = []
+        // Initial case: Return empty if TxPool is empty
+        if (this.pool.length() === 0) {
+            return broadcast
+        }
+        // Iterate over Tx pool in 2 dimensions to try to fill the desired number of transactions
+        // Transactions are returned either when limit is reached or at the end of the pool
+        const pendQueue: Array<{ queue: PriorityQueue<SignedTx> }> = []
+        let maxLength: number = 0
+        for (let i = 0; i < Math.min(TX_BROADCAST_NUMBER, this.pool.length()); i++) {
+            const { queue } = this.pool.peek(i)
+            queue.length() > maxLength ? maxLength = queue.length() : maxLength = maxLength
+            pendQueue.push({ queue })
+        }
+        for (let i = 0; i < maxLength; i++) {
+            for (const queue of pendQueue) {
+                if (i >= queue.queue.length()) { continue }
+                const tx = queue.queue.peek(i)
+                broadcast.push(tx)
+                if (broadcast.length === TX_BROADCAST_NUMBER) {
+                    return broadcast
+                }
+            }
+        }
+
+        return broadcast
+    }
+
 }
 
 function compareTxs(a: SignedTx, b: SignedTx) {

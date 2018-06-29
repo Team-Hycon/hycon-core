@@ -231,6 +231,7 @@ export class Consensus extends EventEmitter implements IConsensus {
         }
 
         return this.lock.critical(async () => {
+            const startHtip = this.headerTip.height
             const hash = new Hash(header)
             const { oldStatus, status, dbBlock } = await this.process(hash, header, block)
             if (status !== undefined && oldStatus !== status) {
@@ -238,7 +239,7 @@ export class Consensus extends EventEmitter implements IConsensus {
             }
 
             if (dbBlock === undefined || status < BlockStatus.Header) {
-                return { oldStatus, status }
+                return { oldStatus, status, htip: this.headerTip.height > startHtip }
             }
 
             await this.db.putDBBlock(hash, dbBlock)
@@ -253,7 +254,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                     + ` ${hash}(${dbBlock.height}, ${dbBlock.totalWork.toExponential()}),`
                     + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
                     + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
-                return { oldStatus, status }
+                return { oldStatus, status, htip: this.headerTip.height > startHtip }
             }
 
             if (block !== undefined && (this.blockTip === undefined || (dbBlock.height - dbBlock.totalWork) > (this.blockTip.height - this.blockTip.totalWork))) {
@@ -267,7 +268,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                 + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
                 + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
 
-            return { oldStatus, status }
+            return { oldStatus, status, htip: this.headerTip.height > startHtip }
         })
 
     }

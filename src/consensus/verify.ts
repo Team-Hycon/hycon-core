@@ -52,7 +52,6 @@ export class Verify {
         const merkleRoot = Block.calculateMerkleRoot(block.txs)
         if (!merkleRoot.equals(header.merkleRoot)) {
             logger.warn(`Rejecting block(${hash.toString()}): Merkle root(${header.merkleRoot.toString()}) does not match calculated value(${merkleRoot.toString()})`)
-            result.status = BlockStatus.Rejected
             return
         }
 

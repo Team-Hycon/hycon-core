@@ -11,4 +11,5 @@ export interface INetwork {
     getIPeers(exempt: RabbitPeer): proto.IPeer[]
     broadcastBlocks(block: proto.IBlock[]): void
     broadcastTxs(tx: proto.ITx[]): void
+    addPeer(ip: string, port: number): Promise<void>
 }

@@ -120,7 +120,7 @@ export interface IRest {
     // [ipeer.ts not implemented] getPeersList(hash: string): Promise<IPeer[]>
     getTx(hash: string): Promise<ITxProp | IResponseError>
     getWalletDetail(name: string): Promise<IHyconWallet | IResponseError>
-    getWalletList(): Promise<IHyconWallet[]>
+    getWalletList(idx?: number): Promise<{ walletList: IHyconWallet[], length: number }>
     recoverWallet(Hwallet: IHyconWallet): Promise<string | boolean>
     // [Depreciated: Use above] recoverWalletForce(Hwallet: IHyconWallet): Promise<string | boolean>
     sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number, nonce: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }>

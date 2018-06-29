@@ -195,9 +195,9 @@ export class RestClient implements IRest {
                 }),
         )
     }
-    public getWalletList(): Promise<IHyconWallet[]> {
+    public getWalletList(idx?: number): Promise<{ walletList: IHyconWallet[], length: number }> {
         return Promise.resolve(
-            fetch(`/api/${this.apiVersion}/wallet`)
+            fetch(`/api/${this.apiVersion}/wallet/${idx}`)
                 .then((response) => response.json())
                 .catch((err: Error) => {
                     console.log(err)

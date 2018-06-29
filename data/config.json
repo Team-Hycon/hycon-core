@@ -3,5 +3,7 @@
     "dataRaw": "./data/raw",
     "dataRoot": "./data",
     "dataWallet": "./wallet",
-    "minerAddress": ""
+    "minerAddress": "",
+    "txPoolMaxAddresses": 36000,
+    "txPoolMaxTxsPerAddress": 64
 }

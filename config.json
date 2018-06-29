@@ -11,12 +11,8 @@
     "threads": [
         {
             "index": 0,
-            "threads": 8,
-	    "intensity": 400,
-	    "worksize" : 8,
-            "blocks": 12,
-            "bfactor": 0,
-            "bsleep": 0,
+            "intensity": 400,
+            "worksize": 8,
             "affine_to_cpu": false
         }
     ],

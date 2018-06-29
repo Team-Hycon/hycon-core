@@ -139,12 +139,12 @@ export class App extends React.Component<{ rest: IRest }, any> {
             return <Redirect to={`/block/${this.state.blockHash}`} />
         }
         return (
-            <div className="mdl-layout mdl-js-layout">
+            <div className="mdl-layout mdl-js-layout mdl-layout--fixed-header">
                 <header className="mdl-layout__header" >
                     <div className="mdl-layout__header-row">
                         <span className="mdl-layout-title">Hycon Blockexplorer</span>
                         <div className="mdl-layout-spacer" />
-                        <nav className="mdl-navigation mdl-layout--large-screen-only">
+                        <nav className="mdl-navigation">
                             <div className="mdl-textfield mdl-js-textfield mdl-textfield--expandable">
                                 <label className="mdl-button mdl-js-button mdl-button--icon">
                                     <i className="material-icons">search</i>

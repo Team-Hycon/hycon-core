@@ -53,7 +53,7 @@ export class RestServer implements IRest {
             if (meta.mnemonic === undefined) {
                 meta.mnemonic = Wallet.getRandomMnemonic(meta.language)
             }
-            wallet = Wallet.generateKeyWithMnemonic(meta.mnemonic, meta.language)
+            wallet = Wallet.generateKeyWithMnemonic(meta.mnemonic, meta.language, meta.passphrase)
 
             return Promise.resolve({
                 mnemonic: meta.mnemonic,
@@ -178,17 +178,18 @@ export class RestServer implements IRest {
 
     public async outgoingTx(tx: { signature: string, from: string, to: string, amount: string, fee: string, nonce: number, recovery: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
         try {
-            const address = new Tx({
+            const address = {
                 from: new Address(tx.from),
                 to: new Address(tx.to),
                 amount: hyconfromString(tx.amount),
                 fee: hyconfromString(tx.fee),
                 nonce: tx.nonce,
-            })
-
-            let signedTx = new SignedTx(address, Buffer.from(tx.signature), 0)
+            }
+            let signedTx = new SignedTx(address, Buffer.from(tx.signature, "hex"), tx.recovery | 0)
             if (!signedTx.verify()) {
-                signedTx = new SignedTx(address, Buffer.from(tx.signature), 1)
+                tx.recovery = undefined
+                tx.signature = undefined
+                signedTx = new SignedTx(address, Buffer.from(tx.signature, "hex"), tx.recovery ^ 1)
                 if (!signedTx.verify()) {
                     throw new Error("transaction information or signature is incorrect")
                 }
@@ -612,12 +613,12 @@ export class RestServer implements IRest {
         }
     }
 
-    public async getWalletList(): Promise<IHyconWallet[]> {
+    public async getWalletList(idx?: number): Promise<{ walletList: IHyconWallet[], length: number }> {
         try {
             await Wallet.walletInit()
             const walletList = new Array<IHyconWallet>()
-            const walletArray = await Wallet.walletList()
-            for (const wallet of walletArray) {
+            const walletListResult = await Wallet.walletList(idx)
+            for (const wallet of walletListResult.walletList) {
                 const address = new Address(wallet.address)
                 const name = wallet.name
                 const account = await this.consensus.getAccount(address)
@@ -628,7 +629,7 @@ export class RestServer implements IRest {
                 }
                 walletList.push(tmpHwallet)
             }
-            return Promise.resolve(walletList)
+            return Promise.resolve({ walletList, length: walletListResult.length })
         } catch (e) {
             return Promise.reject("Error get wallet list : " + e)
         }
@@ -838,7 +839,10 @@ export class RestServer implements IRest {
     public async getMiner(): Promise<IMiner> {
         const minerInfo = this.miner.getMinerInfo()
         const currentDiff = this.consensus.getCurrentDiff()
-        const networkHashRate = 1 / (currentDiff * 30 * Math.LN2)
+        let networkHashRate = 0
+        if (currentDiff !== 0) {
+            networkHashRate = 1 / (currentDiff * 30 * Math.LN2)
+        }
         return { cpuHashRate: minerInfo.hashRate, networkHashRate: Math.round(networkHashRate), currentMinerAddress: minerInfo.address, cpuCount: minerInfo.cpuCount }
     }
 
