@@ -32,11 +32,12 @@ export class Server {
     public httpServer: HttpServer
     public sync: Sync
     constructor() {
+        const prefix = globalOptions.data
         const postfix = globalOptions.postfix
         this.txPool = new TxPool(this)
-        this.worldState = new WorldState("worldstate" + postfix, this.txPool)
-        this.consensus = new Consensus(this.txPool, this.worldState, "blockdb" + postfix, "rawblock" + postfix, "txDB" + postfix, "minedDB" + postfix)
-        this.network = new RabbitNetwork(this.txPool, this.consensus, globalOptions.port, "peerdb" + postfix, globalOptions.networkid)
+        this.worldState = new WorldState(prefix + "worldstate" + postfix, this.txPool)
+        this.consensus = new Consensus(this.txPool, this.worldState, prefix + "blockdb" + postfix, prefix + "rawblock" + postfix, prefix + "txDB" + postfix, prefix + "minedDB" + postfix)
+        this.network = new RabbitNetwork(this.txPool, this.consensus, globalOptions.port, prefix + "peerdb" + postfix, globalOptions.networkid)
         this.miner = new MinerServer(this.txPool, this.worldState, this.consensus, this.network, globalOptions.cpuMiners, globalOptions.str_port)
         this.rest = new RestManager(this)
     }

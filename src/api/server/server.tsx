@@ -28,7 +28,6 @@ export class HttpServer {
         this.app = express()
         this.config()
         this.app.all("/*", (req: express.Request, res: express.Response, next: express.NextFunction) => {
-            // res.header("Access-Control-Allow-Origin", "localhost")
             res.header("Access-Control-Allow-Origin", "https://wallet.hycon.io")
             res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE")
             res.header("Access-Control-Allow-Headers", "Content-type, Accept, X-Access-Token, X-Key, Set-Cookie")
@@ -55,7 +54,15 @@ export class HttpServer {
                 message: "resource not found",
             })
         })
-        this.app.listen(port, "localhost", () => { opn(`http://localhost:${port}`) })
+        try {
+            if (options.nonLocal) {
+                this.app.listen(port, () => { opn(`http://localhost:${port}`) })
+            } else {
+                this.app.listen(port, "localhost", () => { opn(`http://localhost:${port}`) })
+            }
+        } catch (error) {
+            logger.error(error)
+        }
         this.hyconServer = hyconServer
         logger.info(">>>>>>> Started RESTful API")
     }
@@ -87,6 +94,7 @@ export class HttpServer {
 
         router.post("/wallet", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.createNewWallet({
+                privateKey: req.body.privateKey,
                 mnemonic: req.body.mnemonic,
                 language: req.body.language,
                 passphrase: req.body.passphrase,

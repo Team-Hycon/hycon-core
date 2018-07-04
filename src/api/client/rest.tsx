@@ -66,6 +66,13 @@ export interface ILocationDetails {
     count: number
 }
 
+export interface ICreateWallet {
+    passphrase?: string
+    mnemonic?: string
+    language?: string
+    privateKey?: string
+}
+
 export interface IHyconWallet {
     name?: string
     passphrase?: string

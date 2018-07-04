@@ -43,6 +43,7 @@ const optionDefinitions = [
     { name: "writing", alias: "w", type: Boolean },
     { name: "help", alias: "h", type: Boolean },
     { name: "config", alias: "c", type: String },
+    { name: "data", alias: "d", type: String },
 ]
 
 import conf = require("./settings")
@@ -74,6 +75,20 @@ if (globalOptions.port === 0) {
 if (globalOptions.postfix === undefined) {
     globalOptions.postfix = ""
 }
+
+if (globalOptions.data === undefined) {
+    globalOptions.data = ""
+} else {
+    const target: string = globalOptions.data
+    if (target.length > 0) {
+        const lastone: string = target.slice(target.length - 1, target.length)
+        if (lastone === "/" || lastone === "\\") {
+        } else {
+            globalOptions.data += "/"
+        }
+    }
+}
+
 if (globalOptions.str_port === 0) {
     globalOptions.str_port = 20000 + Math.floor(40000 * Math.random())
 }

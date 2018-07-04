@@ -4,17 +4,18 @@ import opn = require("opn")
 import { Address } from "../../common/address"
 import { BlockHeader } from "../../common/blockHeader"
 import { ITxPool } from "../../common/itxPool"
+import { PrivateKey } from "../../common/privateKey"
 import { Tx } from "../../common/tx"
 import { SignedTx } from "../../common/txSigned"
 import { IConsensus } from "../../consensus/iconsensus"
-import { globalOptions } from "../../main"
 import { setMiner } from "../../main"
+import { globalOptions } from "../../main"
 import { MinerServer } from "../../miner/minerServer"
 import { INetwork } from "../../network/inetwork"
 import * as proto from "../../serialization/proto"
 import { Hash } from "../../util/hash"
 import { Wallet } from "../../wallet/wallet"
-import { IBlock, IHyconWallet, IMinedInfo, IMiner, IPeer, IResponseError, IRest, ITxProp, IUser, IWalletAddress } from "../client/rest"
+import { IBlock, ICreateWallet, IHyconWallet, IMinedInfo, IMiner, IPeer, IResponseError, IRest, ITxProp, IUser, IWalletAddress } from "../client/rest"
 import { hyconfromString, hycontoString, zeroPad } from "../client/stringUtil"
 const logger = getLogger("RestServer")
 
@@ -46,20 +47,26 @@ export class RestServer implements IRest {
     }
     public setLoading(loading: boolean): void { }
 
-    public async createNewWallet(meta: IHyconWallet): Promise<IHyconWallet | IResponseError> {
+    public createNewWallet(meta: ICreateWallet): Promise<IHyconWallet | IResponseError> {
         try {
-            let wallet: Wallet
-            await Wallet.walletInit()
-            if (meta.mnemonic === undefined) {
-                meta.mnemonic = Wallet.getRandomMnemonic(meta.language)
-            }
-            wallet = Wallet.generateKeyWithMnemonic(meta.mnemonic, meta.language, meta.passphrase)
+            if (meta.privateKey === undefined) {
+                if (meta.mnemonic === undefined) {
+                    meta.mnemonic = Wallet.getRandomMnemonic(meta.language)
+                }
+                const wallet = Wallet.generateKeyWithMnemonic(meta.mnemonic, meta.language, meta.passphrase)
 
-            return Promise.resolve({
-                mnemonic: meta.mnemonic,
-                privateKey: wallet.privKey.toHexString(),
-                address: wallet.pubKey.address().toString(),
-            })
+                return Promise.resolve({
+                    mnemonic: meta.mnemonic,
+                    privateKey: wallet.privKey.toHexString(),
+                    address: wallet.pubKey.address().toString(),
+                })
+            } else {
+                const privateKey = new PrivateKey(Buffer.from(meta.privateKey, "hex"))
+                return Promise.resolve({
+                    privateKey: privateKey.toHexString(),
+                    address: privateKey.publicKey().address().toString(),
+                })
+            }
         } catch (e) {
             return Promise.resolve({
                 status: 400,
