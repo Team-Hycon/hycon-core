@@ -1,15 +1,10 @@
-import { createCipher } from "crypto"
 import levelup = require("levelup")
 import { getLogger } from "log4js"
 import rocksdb = require("rocksdb")
 import { AsyncLock } from "../../common/asyncLock"
 import { AnyBlock, Block } from "../../common/block"
 import { GenesisBlock } from "../../common/blockGenesis"
-import { AnyBlockHeader, BlockHeader } from "../../common/blockHeader"
-import { GenesisSignedTx } from "../../common/txGenesisSigned"
-import { SignedTx } from "../../common/txSigned"
 import { Hash } from "../../util/hash"
-import { DifficultyAdjuster } from "../difficultyAdjuster"
 import { BlockStatus } from "../sync"
 import { BlockFile } from "./blockFile"
 import { DBBlock } from "./dbblock"

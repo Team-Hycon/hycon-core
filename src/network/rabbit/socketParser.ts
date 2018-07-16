@@ -5,7 +5,7 @@ import { globalOptions } from "../../main"
 import { Hash } from "../../util/hash"
 
 const logger = getLogger("SocketBuffer")
-const defaultMaxPacketSize = 10 * 1024 * 1024
+export const MAX_PACKET_SIZE = 10 * 1024 * 1024
 enum ParseState {
     HeaderPrefix,
     HeaderRoute,
@@ -46,7 +46,7 @@ export class SocketParser {
     }
 
     public async send(route: number, buffer: Uint8Array): Promise<void> {
-        if (buffer.length > defaultMaxPacketSize) {
+        if (buffer.length > MAX_PACKET_SIZE) {
             throw new Error("Buffer too large")
         }
 
@@ -196,7 +196,7 @@ export class SocketParser {
     private parseHeaderBodyLength(newData: Buffer, newDataIndex: number): number {
         const result = this.parseUInt32LE(newData, newDataIndex)
         if (result.uint32 !== undefined) {
-            if (result.uint32 > defaultMaxPacketSize) {
+            if (result.uint32 > MAX_PACKET_SIZE) {
                 logger.debug(`Disconnecting client ${this.socket.remoteAddress}:${this.socket.remotePort}, packet too large`)
                 this.destroy(new Error(`Packet size(${result.uint32}) too large`))
                 return

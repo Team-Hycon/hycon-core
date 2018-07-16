@@ -1,6 +1,5 @@
 import { getLogger } from "log4js"
 import * as sqlite3 from "sqlite3"
-import { resolve } from "url"
 import { hyconfromString, hycontoString } from "../../api/client/stringUtil"
 import { Address } from "../../common/address"
 import { Block } from "../../common/block"

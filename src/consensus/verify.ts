@@ -1,16 +1,12 @@
 import { getLogger } from "log4js"
 import { Block } from "../common/block"
-import { AnyBlockHeader, BlockHeader } from "../common/blockHeader"
-import { PublicKey } from "../common/publicKey"
-import { GenesisSignedTx } from "../common/txGenesisSigned"
-import { SignedTx } from "../common/txSigned"
-import { globalOptions } from "../main"
+import { BlockHeader } from "../common/blockHeader"
 import { MinerServer } from "../miner/minerServer"
 import { Hash } from "../util/hash"
 import { IPutResult } from "./consensus"
 import { Database } from "./database/database"
 import { DBBlock } from "./database/dbblock"
-import { IStateTransition, WorldState } from "./database/worldState"
+import { WorldState } from "./database/worldState"
 import { DifficultyAdjuster } from "./difficultyAdjuster"
 import { BlockStatus } from "./sync"
 
@@ -41,7 +37,7 @@ export class Verify {
         }
 
         const height = previousDBBlock.height + 1
-        const totalWork = previousDBBlock.totalWork + previousDBBlock.nextDifficulty
+        const totalWork = previousDBBlock.totalWork + (1 / previousDBBlock.nextDifficulty)
         result.dbBlock = new DBBlock({ header, height, tEMA, pEMA, nextDifficulty, totalWork })
         result.status = BlockStatus.Header
         return

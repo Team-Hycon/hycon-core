@@ -1,6 +1,6 @@
 import { Address } from "./address"
 import { SignedTx } from "./txSigned"
-type TopTxCallback = (txs: SignedTx[]) => void
+
 export interface ITxPool {
     putTxs(txs: SignedTx[]): Promise<SignedTx[]>
     getTxs(count: number): SignedTx[]

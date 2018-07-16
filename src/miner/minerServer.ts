@@ -1,11 +1,9 @@
-import { wordlists } from "bip39"
 import { getLogger } from "log4js"
 import Long = require("long")
 import { Address } from "../common/address"
 import { Block } from "../common/block"
 import { BlockHeader } from "../common/blockHeader"
 import { ITxPool } from "../common/itxPool"
-import { TxPool } from "../common/txPool"
 import { DBBlock } from "../consensus/database/dbblock"
 import { WorldState } from "../consensus/database/worldState"
 import { DifficultyAdjuster } from "../consensus/difficultyAdjuster"

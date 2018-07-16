@@ -1,31 +1,45 @@
-import Long = require("long")
 import { Tab, Tabs } from "material-ui/Tabs"
 import * as QRCode from "qrcode.react"
 import * as React from "react"
 import update = require("react-addons-update")
+import { Redirect } from "react-router"
 import { MinedBlockLine } from "./minedBlockLine"
 import { IMinedInfo, IRest, ITxProp, IWalletAddress } from "./rest"
 import { TxLine } from "./txLine"
 interface IAddressProps {
     rest: IRest
     hash: string
+    selectedLedger?: number
 }
 interface IAddressView {
     rest: IRest
+    redirectTxView: boolean
     hash: string
-    txs: ITxProp[],
-    hasMore: boolean,
-    hasMoreMinedInfo: boolean,
-    index: number,
-    minedBlocks: IMinedInfo[],
-    minerIndex: number,
+    txs: ITxProp[]
+    hasMore: boolean
+    hasMoreMinedInfo: boolean
+    index: number
+    minedBlocks: IMinedInfo[]
+    minerIndex: number
     address?: IWalletAddress
+    ledgerIndex?: number
 }
 export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
     public mounted: boolean = false
     constructor(props: IAddressProps) {
         super(props)
-        this.state = { hash: props.hash, rest: props.rest, txs: [], hasMore: true, index: 1, minedBlocks: [], minerIndex: 1, hasMoreMinedInfo: true }
+        this.state = {
+            hasMore: true,
+            hasMoreMinedInfo: true,
+            hash: props.hash,
+            index: 1,
+            ledgerIndex: props.selectedLedger,
+            minedBlocks: [],
+            minerIndex: 1,
+            redirectTxView: false,
+            rest: props.rest,
+            txs: [],
+        }
     }
     public componentWillUnmount() {
         this.mounted = false
@@ -44,25 +58,28 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
             this.state.rest.setLoading(false)
         })
     }
+    public makeTransaction() {
+        this.setState({ redirectTxView: true })
+    }
     public render() {
         if (this.state.address === undefined) {
             return < div ></div >
+        }
+        if (this.state.redirectTxView) {
+            return <Redirect to={`/maketransaction/true/${this.state.ledgerIndex}`} />
         }
         let count = 0
         let minedIndex = 0
         return (
             <div>
-                <div className="contentTitle">Hycon Address</div>
+                <button onClick={() => { this.makeTransaction() }} className="mdl-button" style={{ display: `${this.state.ledgerIndex === undefined ? ("none") : ("block")}`, float: "right" }}>
+                    <i className="material-icons">send</i>TRANSFER</button>
+                {(this.state.ledgerIndex === undefined) ? (<div className="contentTitle">Hycon Address</div>) : (<div className="contentTitle">Ledger Wallet</div>)}
                 <div className="sumTablesDiv">
                     <table className="tablesInRow twoTablesInRow">
                         <thead>
                             <tr>
-                                <th
-                                    colSpan={2}
-                                    className="tableBorder_Header tableHeader_floatLeft"
-                                >
-                                    Summary
-                </th>
+                                <th colSpan={2} className="tableBorder_Header tableHeader_floatLeft">Summary</th>
                             </tr>
                         </thead>
                         <tbody>

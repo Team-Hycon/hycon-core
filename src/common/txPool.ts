@@ -1,6 +1,6 @@
 import { getLogger } from "log4js"
 import Long = require("long")
-import { hyconfromString, hycontoString } from "../api/client/stringUtil"
+import { hyconfromString } from "../api/client/stringUtil"
 import { TxValidity } from "../consensus/database/worldState"
 import { Server } from "../server"
 import conf = require("../settings")

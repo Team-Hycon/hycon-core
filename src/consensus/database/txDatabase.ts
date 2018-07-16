@@ -1,6 +1,5 @@
 import { getLogger } from "log4js"
 import * as sqlite3 from "sqlite3"
-import { resolve } from "url"
 import { hycontoString } from "../../api/client/stringUtil"
 import { Address } from "../../common/address"
 import { Block } from "../../common/block"
@@ -17,7 +16,7 @@ const sqlite = sqlite3.verbose()
 const logger = getLogger("TxDB")
 
 export class TxDatabase implements ITxDatabase {
-    public db: any
+    public db: sqlite3.Database
     private consensus: IConsensus
     constructor(path: string) {
         this.db = new TransactionDatabase(new sqlite.Database(path + `sql`))
@@ -25,15 +24,18 @@ export class TxDatabase implements ITxDatabase {
     public async init(consensus: IConsensus, tipHeight?: number) {
         this.consensus = consensus
         this.db.serialize(() => {
-            this.db.run(`CREATE TABLE IF NOT EXISTS txdb(idx INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                        txhash TEXT,
+            this.db.run(`PRAGMA synchronous = OFF;`)
+            this.db.run(`PRAGMA journal_mode = MEMORY;`)
+            this.db.run(`CREATE TABLE IF NOT EXISTS txdb(txhash TEXT PRIMARY KEY,
                                                         blockhash TEXT,
                                                         txto TEXT,
                                                         txfrom TEXT,
                                                         amount TEXT,
                                                         fee TEXT,
-                                                        blocktime INTEGER,
-                                                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`)
+                                                        blocktime INTEGER) WITHOUT ROWID;`)
+            this.db.run(`CREATE INDEX IF NOT EXISTS blocktime ON txdb(blocktime);`)
+            this.db.run(`CREATE INDEX IF NOT EXISTS txto ON txdb(txto);`)
+            this.db.run(`CREATE INDEX IF NOT EXISTS txfrom ON txdb(txfrom);`)
         })
 
         if (tipHeight !== undefined) {
@@ -70,13 +72,16 @@ export class TxDatabase implements ITxDatabase {
     public async getLastBlock(): Promise<Hash | undefined> {
         try {
             let hashData: string = ""
-            return new Promise<Hash>(async (resolved, rejected) => {
-                this.db.each(`SELECT blockhash FROM txdb ORDER BY timestamp DESC LIMIT 1`, (err: Error, row: any) => {
+            return new Promise<Hash>(async (resolve, reject) => {
+                this.db.get(`SELECT DISTINCT blockhash FROM txdb ORDER BY blocktime DESC`, (err: Error, row: any) => {
+                    if (err) {
+                        return reject(err)
+                    }
                     if (row === undefined) {
-                        return resolved(undefined)
+                        return reject(undefined)
                     }
                     hashData = row.blockhash
-                    return resolved(Hash.decode(hashData))
+                    return resolve(Hash.decode(hashData))
                 })
             })
         } catch (e) {
@@ -85,17 +90,11 @@ export class TxDatabase implements ITxDatabase {
         }
     }
 
-    public async putTxs(blockHash: Hash, timestamp: number, txs: AnySignedTx[]): Promise<void> {
-
+    public async putTxs(blockHash: Hash, timestamp: number, txs: AnySignedTx[]) {
         const insertArray: any[] = []
-        const updateArray: any[] = []
         for (const tx of txs) {
             const txHash = (new Hash(tx)).toString()
-            const preBlockHash = await this.getBlockHash(txHash)
-            if (preBlockHash !== undefined) {
-                updateArray.push({ $blockhash: blockHash.toString(), $preblockhash: preBlockHash, $txhash: txHash })
-                continue
-            }
+
             const param = {
                 $amount: hycontoString(tx.amount),
                 $blockhash: blockHash.toString(),
@@ -109,27 +108,37 @@ export class TxDatabase implements ITxDatabase {
             insertArray.push(param)
         }
 
-        const insertsql = `INSERT INTO txdb (txhash, blockhash, txto, txfrom, amount, fee, blocktime) VALUES ($txhash, $blockhash, $txto, $txfrom, $amount, $fee, $blocktime)`
-        const updatesql = `UPDATE txdb SET blockhash=$blockhash, timestamp=DATETIME('now') WHERE txhash=$txhash AND blockhash=$preblockhash`
-        this.db.beginTransaction((err: Error, transaction: any) => {
-            for (const param of insertArray) {
-                transaction.run(insertsql, param, (error: Error) => { })
-            }
-            for (const param of updateArray) {
-                transaction.run(updatesql, param, (error: Error) => { })
-            }
-            transaction.commit(((error: Error) => { }))
+        const insertsql = `INSERT OR REPLACE INTO txdb (txhash, blockhash, txto, txfrom, amount, fee, blocktime) VALUES ($txhash, $blockhash, $txto, $txfrom, $amount, $fee, $blocktime)`
+        return new Promise<void>((resolve, reject) => {
+            const insert = this.db.prepare(insertsql, (err) => {
+                if (err) {
+                    reject(err)
+                    return
+                }
+                this.db.parallelize(() => {
+                    for (const param of insertArray) {
+                        insert.run(param)
+                    }
+                })
+                insert.finalize((error) => {
+                    if (error) {
+                        reject(error)
+                    } else {
+                        resolve()
+                    }
+                })
+            })
         })
     }
 
-    public async getLastTxs(address: Address, result: DBTx[] = [], idx: number = 0, count?: number): Promise<DBTx[]> {
+    public async getLastTxs(address: Address, result: DBTx[] = [], pageNumber: number = 0, count?: number): Promise<DBTx[]> {
         const params = {
             $address: address.toString(),
             $count: count - result.length,
-            $startIndex: idx * count,
+            $startIndex: pageNumber * count,
         }
         return new Promise<DBTx[]>(async (resolved, rejected) => {
-            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime, timestamp FROM txdb WHERE txto = $address OR txfrom = $address ORDER BY blocktime DESC LIMIT $startIndex, $count`, params, async (err: Error, rows: any) => {
+            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime FROM txdb WHERE txto = $address OR txfrom = $address ORDER BY blocktime DESC LIMIT $startIndex, $count`, params, async (err: Error, rows: any) => {
                 for (const row of rows) {
                     const status = await this.consensus.getBlockStatus(row.blockhash)
                     if (status === BlockStatus.MainChain) {
@@ -141,18 +150,18 @@ export class TxDatabase implements ITxDatabase {
                     return resolved(result)
                 }
                 if (result.length < count) {
-                    result = await this.getLastTxs(address, result, ++idx, count)
+                    result = await this.getLastTxs(address, result, ++pageNumber, count)
                 }
                 return resolved(result)
             })
         })
     }
 
-    public async getNextTxs(address: Address, txHash: Hash, result: DBTx[] = [], idx: number = 1, count?: number): Promise<DBTx[]> {
+    public async getNextTxs(address: Address, txHash: Hash, result: DBTx[] = [], pageNumber: number = 1, count?: number): Promise<DBTx[]> {
         const params = {
             $address: address.toString(),
             $count: count - result.length,
-            $startIndex: idx * count,
+            $startIndex: pageNumber * count,
             $txhash: txHash.toString(),
         }
         return new Promise<DBTx[]>(async (resolved, rejected) => {
@@ -169,7 +178,7 @@ export class TxDatabase implements ITxDatabase {
                     return resolved(result)
                 }
                 if (result.length < count) {
-                    result = await this.getNextTxs(address, txHash, result, ++idx, count)
+                    result = await this.getNextTxs(address, txHash, result, ++pageNumber, count)
                 }
                 return resolved(result)
             })

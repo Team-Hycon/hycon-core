@@ -129,14 +129,19 @@ export class RestClient implements IRest {
                 }),
         )
     }
-    public getAllAccounts(name: string): Promise<{ represent: number, accounts: Array<{ address: string, balance: string }> } | boolean> {
-        return Promise.resolve(
-            fetch(`/api/${this.apiVersion}/getAllAccounts/${name}`)
-                .then((response) => response.json())
-                .catch((err: Error) => {
-                    console.log(err)
-                }),
-        )
+    public getAllAccounts(name: string, password: string, startIndex: number): Promise<Array<{ address: string, balance: string }> | boolean> {
+        const headers = new Headers()
+        headers.append("Accept", "application/json")
+        headers.append("Content-Type", "application/json")
+        return Promise.resolve(fetch(`/api/${this.apiVersion}/getAllAccounts`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ name, password, startIndex }),
+        })
+            .then((response) => response.json())
+            .catch((err: Error) => {
+                console.log(err)
+            }))
     }
     public getBlock(hash: string): Promise<IBlock | IResponseError> {
         return Promise.resolve(
@@ -196,13 +201,23 @@ export class RestClient implements IRest {
         )
     }
     public getWalletList(idx?: number): Promise<{ walletList: IHyconWallet[], length: number }> {
-        return Promise.resolve(
-            fetch(`/api/${this.apiVersion}/wallet/${idx}`)
-                .then((response) => response.json())
-                .catch((err: Error) => {
-                    console.log(err)
-                }),
-        )
+        if (idx === undefined) {
+            return Promise.resolve(
+                fetch(`/api/${this.apiVersion}/wallet`)
+                    .then((response) => response.json())
+                    .catch((err: Error) => {
+                        console.log(err)
+                    }),
+            )
+        } else {
+            return Promise.resolve(
+                fetch(`/api/${this.apiVersion}/wallet/${idx}`)
+                    .then((response) => response.json())
+                    .catch((err: Error) => {
+                        console.log(err)
+                    }),
+            )
+        }
     }
 
     public recoverWallet(Hwallet: IHyconWallet): Promise<string | boolean> {
@@ -220,7 +235,7 @@ export class RestClient implements IRest {
                 console.log(err)
             }))
     }
-    public sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number, nonce: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
+    public sendTx(tx: { name: string, password: string, address: string, amount: string, minerFee: string, nonce: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
         console.log(tx.name)
         const headers = new Headers()
         headers.append("Accept", "application/json")
@@ -388,5 +403,37 @@ export class RestClient implements IRest {
             .catch((err: Error) => {
                 console.log(err)
             }))
+    }
+
+    public getLedgerWallet(startIndex: number, count: number): Promise<IHyconWallet[] | number> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/getLedgerWallet/${startIndex}/${count}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+
+    public sendTxWithLedger(index: number, from: string, to: string, amount: string, fee: string, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/sendTxWithLedger/${index}/${from}/${to}/${amount}/${fee}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(`Error when sendTxWithLedger`)
+                    console.log(err)
+                }),
+        )
+    }
+
+    public possibilityLedger(): Promise<boolean> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/possibilityLedger`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(`Error when sendTxWithLedger`)
+                    console.log(err)
+                }),
+        )
     }
 }

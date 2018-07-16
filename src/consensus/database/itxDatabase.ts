@@ -1,4 +1,3 @@
-import { EventEmitter } from "events"
 import { Address } from "../../common/address"
 import { Hash } from "../../util/hash"
 import { AnySignedTx, IConsensus } from "../iconsensus"

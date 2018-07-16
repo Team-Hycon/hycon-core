@@ -3,7 +3,6 @@ import * as Long from "long"
 import { Address } from "../common/address"
 import { PublicKey } from "../common/publicKey"
 import * as proto from "../serialization/proto"
-
 const logger = getLogger("TxSigned")
 export class SignedTx implements proto.ITx {
     public static decode(data: Uint8Array): SignedTx {

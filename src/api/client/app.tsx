@@ -6,7 +6,7 @@ import { Link, Route, Switch } from "react-router-dom"
 import { AddressInfo } from "./addressInfo"
 import { BlockView } from "./blockView"
 import { Home } from "./home"
-import { PeerDetailsView } from "./peerDetails"
+import { MakeTransaction } from "./makeTransaction"
 // import { PeersList } from "./peersList"
 import { PeersView } from "./peersView"
 import { IRest } from "./rest"
@@ -15,11 +15,10 @@ import { TxPoolList } from "./txPoolList"
 import { TxView } from "./txView"
 
 import { AddWallet } from "./addWallet"
+import { LedgerView } from "./ledgerView"
 import { MinerView } from "./minerView"
 import { RecoverWallet } from "./recoverWallet"
 import { WalletDetail } from "./walletDetail"
-import { WalletList } from "./walletList"
-import { WalletSummary } from "./walletSummary"
 import { WalletView } from "./walletView"
 
 import { NotFound } from "./notFound"
@@ -35,8 +34,12 @@ export const routes: RouteConfig[] = [
     { exact: true, path: "/wallet/recoverWallet" },
     { exact: true, path: "/wallet/detail/:name" },
     { exact: true, path: "/transaction/:name" },
+    { exact: true, path: "/maketransaction/:isLedger" },
+    { exact: true, path: "/maketransaction/:isLedger/:selectedLedger" },
     { exact: true, path: "/peersView" },
     { exact: true, path: "/minerView" },
+    { exact: true, path: "/ledgerView" },
+    { exact: true, path: "/address/:hash/:selectedLedger" },
     // { exact: true, path: "/peer/:hash" },
 ]
 
@@ -53,6 +56,8 @@ export class App extends React.Component<{ rest: IRest }, any> {
     public txPool: ({ match }: RouteComponentProps<{}>) => JSX.Element
 
     public transaction: ({ match }: RouteComponentProps<{ name: string }>) => JSX.Element
+    public maketransaction: ({ match }: RouteComponentProps<{ isLedger: boolean }>) => JSX.Element
+    public maketransactionWithIndex: ({ match }: RouteComponentProps<{ isLedger: boolean, selectedLedger: number }>) => JSX.Element
     public peersView: ({ match }: RouteComponentProps<{}>) => JSX.Element
     // public peerDetails: (
     //     { match }: RouteComponentProps<{ hash: string }>,
@@ -63,6 +68,8 @@ export class App extends React.Component<{ rest: IRest }, any> {
     public recoverWallet: ({ match }: RouteComponentProps<{}>) => JSX.Element
     public walletDetail: ({ match }: RouteComponentProps<{ name: string }>) => JSX.Element
     public minerView: ({ match }: RouteComponentProps<{ name: string }>) => JSX.Element
+    public ledgerView: ({ match }: RouteComponentProps<{}>) => JSX.Element
+    public ledgerAddressView: ({ match }: RouteComponentProps<{ hash: string, selectedLedger: number }>) => JSX.Element
     public notFound: boolean
 
     constructor(props: any) {
@@ -98,6 +105,12 @@ export class App extends React.Component<{ rest: IRest }, any> {
         this.transaction = ({ match }: RouteComponentProps<{ name: string }>) => (
             <Transaction name={match.params.name} rest={this.rest} />
         )
+        this.maketransaction = ({ match }: RouteComponentProps<{ isLedger: boolean }>) => (
+            <MakeTransaction isLedger={match.params.isLedger} rest={this.rest} />
+        )
+        this.maketransactionWithIndex = ({ match }: RouteComponentProps<{ isLedger: boolean, selectedLedger: number }>) => (
+            <MakeTransaction isLedger={match.params.isLedger} rest={this.rest} selectedLedger={match.params.selectedLedger} />
+        )
         this.peersView = ({ match }: RouteComponentProps<{}>) => (
             <PeersView rest={props.rest} />
         )
@@ -119,6 +132,13 @@ export class App extends React.Component<{ rest: IRest }, any> {
 
         this.minerView = ({ match }: RouteComponentProps<{}>) => (
             <MinerView rest={this.rest} />
+        )
+
+        this.ledgerView = ({ match }: RouteComponentProps<{}>) => (
+            <LedgerView rest={this.rest} />
+        )
+        this.ledgerAddressView = ({ match }: RouteComponentProps<{ hash: string, selectedLedger: number }>) => (
+            <AddressInfo hash={match.params.hash} rest={this.rest} selectedLedger={match.params.selectedLedger} />
         )
     }
     public handleBlockHash(data: any) {
@@ -179,12 +199,16 @@ export class App extends React.Component<{ rest: IRest }, any> {
                             <Route exact path="/txPool" component={this.txPool} />
                             <Route exact path="/address/:hash" component={this.addressInfo} />
                             <Route exact path="/transaction/:name" component={this.transaction} />
+                            <Route exact path="/maketransaction/:isLedger" component={this.maketransaction} />
+                            <Route exact path="/maketransaction/:isLedger/:selectedLedger" component={this.maketransactionWithIndex} />
                             <Route exact path="/wallet/addWallet" component={this.addWallet} />
                             <Route exact path="/wallet" component={this.wallet} />
                             <Route exact path="/wallet/recoverWallet" component={this.recoverWallet} />
                             <Route exact path="/wallet/detail/:name" component={this.walletDetail} />
                             <Route exact path="/peersView" component={this.peersView} />
                             <Route exact path="/minerView" component={this.minerView} />
+                            <Route exact path="/ledgerView" component={this.ledgerView} />
+                            <Route exact path="/address/:hash/:selectedLedger" component={this.ledgerAddressView} />
                         </Switch>
                     </div>
                 </main>

@@ -16,7 +16,7 @@ export class AddWallet extends React.Component<any, any> {
     public errMsg5: string = "Please enter your mnemonic"
     public errMsg6: string = "Duplicate wallet name"
     public errMsg7: string = "Please select Language"
-    public pattern1 = /^[a-zA-Z0-9]{2,20}$/
+    public pattern1 = /^[a-zA-Z0-9\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]{2,20}$/
     constructor(props: any) {
         super(props)
         this.state = {
@@ -69,6 +69,7 @@ export class AddWallet extends React.Component<any, any> {
         this.setState({ password2: data.target.value })
     }
     public handleCheckbox(event: any) {
+        if (event.target.checked === false) { this.setState({ passphrase: "" }) }
         this.setState({ advanced: event.target.checked })
     }
     public handlePassphrase(data: any) {
@@ -228,12 +229,12 @@ export class AddWallet extends React.Component<any, any> {
                             <IconButton iconStyle={{ color: "grey", fontSize: "15px" }} onClick={() => { this.setState({ dialog: true }) }}><Icon>help_outline</Icon></IconButton>
                             {(this.state.advanced)
                                 ? (<div>
-                                    <TextField style={{ marginRight: "3%" }} floatingLabelText="BIP39 Passphrase" floatingLabelFixed={true} type="password" autoComplete="off" name="pp1"
+                                    <TextField style={{ marginRight: "3%" }} floatingLabelText="BIP39 Passphrase" floatingLabelFixed={true} autoComplete="off" name="pp1"
                                         value={this.state.passphrase1}
                                         onChange={(data) => { this.handlePassphrase(data) }}
                                         onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
                                     />
-                                    <TextField floatingLabelText="Confirm BIP39 Passphrase" floatingLabelFixed={true} type="password" autoComplete="off" name="pp2"
+                                    <TextField floatingLabelText="Confirm BIP39 Passphrase" floatingLabelFixed={true} autoComplete="off" name="pp2"
                                         errorText={this.state.errorText2} errorStyle={{ float: "left" }}
                                         value={this.state.passphrase2}
                                         onChange={(data) => { this.handleConfirmPassphrase(data) }}

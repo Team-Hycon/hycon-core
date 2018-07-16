@@ -1,7 +1,6 @@
 import * as ip from "ip"
 import { getLogger } from "log4js"
 import { globalOptions } from "../main"
-import { Server } from "../server"
 import { INetwork } from "./inetwork"
 const logger = getLogger("Upnp")
 

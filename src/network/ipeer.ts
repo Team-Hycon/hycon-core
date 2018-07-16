@@ -7,6 +7,7 @@ import * as proto from "../serialization/proto"
 import { IStatus } from "../serialization/proto"
 import { IPeer } from "../serialization/proto"
 import { Hash } from "../util/hash"
+import { IBlockTxs } from "./rabbit/rabbitPeer"
 
 export interface IPeer {
     status(): Promise<IStatus>
@@ -15,8 +16,8 @@ export interface IPeer {
     getTxs(minFee?: number): Promise<SignedTx[]>
     putBlocks(blocks: AnyBlock[]): Promise<IStatusChange[]>
     putHeaders(header: AnyBlockHeader[]): Promise<IStatusChange[]>
-    putBlockTxs(hash: Hash, txs: SignedTx[]): Promise<IStatusChange>
-    getBlockTxs(hash: Hash): Promise<SignedTx[]>
+    putBlockTxs(txBlocks: proto.IBlockTxs[]): Promise<proto.IPutBlockTxsReturn>
+    getBlockTxs(hashes: Hash[]): Promise<IBlockTxs[]>
     getHash(height: number): Promise<Hash | undefined>
     getBlocksByHashes(hashes: Hash[]): Promise<Block[]>
     getHeadersByHashes(hashes: Hash[]): Promise<AnyBlockHeader[]>

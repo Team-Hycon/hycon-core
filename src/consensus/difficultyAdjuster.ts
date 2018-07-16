@@ -1,6 +1,4 @@
 import { getLogger } from "log4js"
-import { AnyBlockHeader } from "../common/blockHeader"
-import { BaseBlockHeader } from "../common/genesisHeader"
 import { Hash } from "../util/hash"
 import { DBBlock } from "./database/dbblock"
 

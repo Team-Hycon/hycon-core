@@ -1,6 +1,5 @@
 import * as Base58 from "base-58"
 import { getLogger } from "log4js"
-import * as proto from "../serialization/proto"
 import { Hash } from "../util/hash"
 
 const logger = getLogger("Address")

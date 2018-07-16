@@ -1,4 +1,4 @@
-import { Button, Card, CardContent, FormControl, FormControlLabel, Grid, Icon, Input, InputLabel, Select } from "@material-ui/core"
+import { Button, Card, CardContent, FormControl, Grid, Icon, Input, InputLabel, Select } from "@material-ui/core"
 import { Checkbox, Dialog, IconButton, MenuItem, TextField } from "material-ui"
 import * as React from "react"
 import { Redirect } from "react-router"
@@ -9,10 +9,10 @@ export class RecoverWallet extends React.Component<any, any> {
     public mounted: boolean = false
     public errMsg1: string = "Please enter required value"
     public errMsg2: string = "Invalid wallet name: the wallet name must be between 2 to 20 characters with no spaces. Use only English or number."
-    public errMsg3: string = "Not matched password or passphrase"
+    public errMsg3: string = "Not matched password"
     public errMsg4: string = "Check your mnemonic words"
     public errMsg5: string = "Fail to recover wallet"
-    public pattern1 = /^[a-zA-Z0-9]{2,20}$/
+    public pattern1 = /^[a-zA-Z0-9\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]{2,20}$/
     constructor(props: any) {
         super(props)
         this.state = {
@@ -25,8 +25,7 @@ export class RecoverWallet extends React.Component<any, any> {
             load: false,
             mnemonic: "",
             name: "",
-            passphrase1: "",
-            passphrase2: "",
+            passphrase: "",
             password1: "",
             password2: "",
             redirect: false,
@@ -72,49 +71,41 @@ export class RecoverWallet extends React.Component<any, any> {
         this.setState({ password2: data.target.value })
     }
     public handlePassphrase(data: any) {
-        if (this.state.passphrase2 !== "") {
-            if (data.target.value === this.state.passphrase2) {
-                this.setState({ errText2: "" })
-            } else { this.setState({ errText2: "Not matched with passphrase" }) }
-        }
-        this.setState({ passphrase1: data.target.value })
-    }
-    public handleConfirmPassphrase(data: any) {
-        if (this.state.passphrase1 !== "") {
-            if (data.target.value === this.state.passphrase1) {
-                this.setState({ errText2: "" })
-            } else { this.setState({ errText2: "Not matched with passphrase" }) }
-        }
-        this.setState({ passphrase2: data.target.value })
+        this.setState({ passphrase: data.target.value })
     }
     public handleCheckbox(event: any) {
+        if (event.target.checked === false) { this.setState({ passphrase: "" }) }
         this.setState({ advanced: event.target.checked })
     }
     public recoverWallet() {
         if (this.state.name === "") {
             alert(this.errMsg1)
-        } else if (this.state.name.search(/\s/) !== -1 || !this.pattern1.test(this.state.name)) {
-            alert(this.errMsg2)
-        } else {
-            if (this.state.password1 !== this.state.password2 || this.state.passphrase1 !== this.state.passphrase2) {
-                alert(this.errMsg3)
-            } else {
-                const mnemonic = encodingMnemonic(this.state.mnemonic)
-                this.state.rest.recoverWallet({
-                    language: this.state.language,
-                    mnemonic,
-                    name: this.state.name,
-                    passphrase: this.state.passphrase1,
-                    password: this.state.password1,
-                }).then((data: string | boolean) => {
-                    if (typeof data !== "string") {
-                        alert(this.errMsg4)
-                    } else {
-                        this.setState({ redirect: true })
-                    }
-                })
-            }
+            return
         }
+        if (this.state.name.search(/\s/) !== -1 || !this.pattern1.test(this.state.name)) {
+            alert(this.errMsg2)
+            return
+        }
+        if (this.state.password1 !== this.state.password2) {
+            alert(this.errMsg3)
+            return
+        }
+
+        const mnemonic = encodingMnemonic(this.state.mnemonic)
+        this.state.rest.recoverWallet({
+            language: this.state.language,
+            mnemonic,
+            name: this.state.name,
+            passphrase: this.state.passphrase,
+            password: this.state.password1,
+        }).then((data: string | boolean) => {
+            if (typeof data !== "string") {
+                alert(this.errMsg4)
+            } else {
+                this.setState({ redirect: true })
+            }
+        })
+
     }
     public cancelWallet() {
         this.setState({ redirect: true })
@@ -164,15 +155,9 @@ export class RecoverWallet extends React.Component<any, any> {
                     <IconButton iconStyle={{ color: "grey", fontSize: "15px" }} onClick={() => { this.setState({ dialog: true }) }}><Icon>help_outline</Icon></IconButton>
                     {(this.state.advanced)
                         ? (<div>
-                            <TextField style={{ marginRight: "3%" }} type="password" floatingLabelText="BIP39 Passphrase" floatingLabelFixed={true} autoComplete="off" name="pp1"
-                                value={this.state.passphrase1}
+                            <TextField floatingLabelText="BIP39 Passphrase" floatingLabelFixed={true} autoComplete="off" name="pp"
+                                value={this.state.passphrase}
                                 onChange={(data) => { this.handlePassphrase(data) }}
-                                onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.recoverWallet() } }}
-                            />
-                            <TextField type="password" floatingLabelText="Confirm BIP39 Passphrase" floatingLabelFixed={true} autoComplete="off" name="pp2"
-                                errorText={this.state.errText2} errorStyle={{ float: "left" }}
-                                value={this.state.passphrase2}
-                                onChange={(data) => { this.handleConfirmPassphrase(data) }}
                                 onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.recoverWallet() } }}
                             />
                         </div>)
@@ -190,7 +175,7 @@ export class RecoverWallet extends React.Component<any, any> {
                 </CardContent></Card>
 
                 {/* HELP - ADVANCED OPTIONS */}
-                <Dialog className="dialog" open={this.state.dialog}>
+                <Dialog className="dialog" open={this.state.dialog} contentStyle={{ width: "70%", maxWidth: "none" }}>
                     <h3 style={{ color: "grey" }}>Who needs this option?</h3>
                     <div className="mdl-dialog__content dialogContent">
                         When you created a wallet, those who set up a passphrase must enter passphrase you set in Advanced Options.

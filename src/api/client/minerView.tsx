@@ -85,34 +85,21 @@ export class MinerView extends React.Component<IMinerViewProps, IMinerView> {
                                 <div>
                                     <Icon style={{ marginRight: "10px", color: "grey", fontSize: "40px", paddingTop: "1%" }}>account_balance_wallet</Icon>
                                     <span style={{ float: "right", color: "grey", fontSize: "20px", paddingTop: "2%" }}>
-                                        <span style={{ float: "right", color: "grey" }}>{this.state.minerAddress}</span><br />
+                                        <span style={{ float: "right", color: "grey", fontSize: "0.8em" }}>{this.state.minerAddress}</span><br />
                                         <span style={{ float: "right", color: "grey", fontSize: "12px" }}>Miner Address</span>
                                     </span>
                                 </div>
                             </CardContent>
                         </button>
                     </Card >
-                    <Card style={{ width: "23.3%", margin: "1% 1% 0% 0%", backgroundColor: "rgb(226, 226, 226)" }}>
-                        <button style={{ border: "0", outline: "0", backgroundColor: "rgb(226, 226, 226)", width: "100%", textAlign: "left" }} onClick={this.adjustCpuMiner}>
+                    <Card style={{ width: "48%", margin: "1% 1% 0% 0%", backgroundColor: "rgb(239, 239, 239)" }}>
+                        <button style={{ border: "0", outline: "0", backgroundColor: "rgb(239, 239, 239)", width: "100%", textAlign: "left" }} onClick={this.adjustCpuMiner}>
                             <CardContent>
-                                <div style={{ paddingTop: "5%" }}>
-                                    <Icon style={{ marginRight: "10px", color: "grey", fontSize: "30px", paddingTop: "1%" }}>toys</Icon>
-                                    <span style={{ float: "right", paddingTop: "1%" }}>
-                                        <span style={{ float: "right", color: "grey", fontSize: "20px" }}>{this.state.cpuMinerCount} CPU</span><br />
+                                <div>
+                                    <Icon style={{ marginRight: "10px", color: "grey", fontSize: "40px" }}>toys</Icon>
+                                    <span style={{ float: "right", color: "grey", fontSize: "20px", paddingTop: "2%" }}>
+                                        <span style={{ float: "right", color: "grey" }}>{this.state.cpuMinerCount} CPU</span><br />
                                         <span style={{ float: "right", color: "grey", fontSize: "12px" }}>Click to adjust</span>
-                                    </span>
-                                </div>
-                            </CardContent>
-                        </button>
-                    </Card >
-                    <Card style={{ width: "23.3%", margin: "1% 1% 0% 0%", backgroundColor: "rgb(226, 226, 226)" }}>
-                        <button style={{ border: "0", outline: "0", backgroundColor: "rgb(226, 226, 226)", width: "100%", textAlign: "left" }} onClick={this.startGPUMiner}>
-                            <CardContent>
-                                <div style={{ paddingTop: "5%" }}>
-                                    <Icon style={{ marginRight: "10px", color: "grey", fontSize: "30px", paddingTop: "1%" }}>toys</Icon>
-                                    <span style={{ float: "right", paddingTop: "1%" }}>
-                                        <span style={{ float: "right", color: "grey", fontSize: "20px" }}>GPU Miner</span><br />
-                                        <span style={{ float: "right", color: "grey", fontSize: "12px" }}>Start Button</span>
                                     </span>
                                 </div>
                             </CardContent>

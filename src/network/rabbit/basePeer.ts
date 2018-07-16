@@ -1,9 +1,7 @@
 import { getLogger } from "log4js"
 import { Socket } from "net"
-import { resolve } from "url"
 import { AsyncLock } from "../../common/asyncLock"
 import * as proto from "../../serialization/proto"
-import { Hash } from "../../util/hash"
 import { SocketParser } from "./socketParser"
 
 const logger = getLogger("Network")
@@ -60,6 +58,8 @@ export abstract class BasePeer {
                 case "getTip":
                 case "putHeaders":
                 case "getHash":
+                case "getBlockTxs":
+                case "putBlockTxs":
                     this.requestSemaphore.critical(async () => await this.respond(route, res, packet)).catch((e) => logger.debug(e))
                     break
                 case "statusReturn":
@@ -75,6 +75,8 @@ export abstract class BasePeer {
                 case "getTipReturn":
                 case "putHeadersReturn":
                 case "getHashReturn":
+                case "getBlockTxsReturn":
+                case "putBlockTxsReturn":
                     if (route === 0) {
                         logger.debug(`Recieved ${res.request} broadcast`)
                     }

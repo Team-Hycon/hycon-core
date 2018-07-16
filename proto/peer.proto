@@ -9,4 +9,5 @@ message Peer {
   uint64 lastAttempt = 5;
   bool active = 6;
   int32 currentQueue = 7;
+  int32 successCount = 8;
 }

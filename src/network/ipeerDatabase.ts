@@ -2,21 +2,18 @@ import * as proto from "../serialization/proto"
 
 export interface IPeerDatabase {
 
-    getKeys(): Promise<number[]>
+    put(peer: proto.IPeer): Promise<proto.IPeer>
+    putPeers(peers: proto.IPeer[]): Promise<boolean>
     seen(peer: proto.IPeer): Promise<proto.IPeer>
 
-    fail(peer: proto.IPeer, limit: number): Promise<proto.IPeer | undefined>
+    fail(peer: proto.IPeer, limit: number): Promise<proto.IPeer>
 
-    put(peer: proto.IPeer): Promise<proto.IPeer | undefined>
+    get(key: number, db?: any): Promise<proto.IPeer>
+    getRandomPeer(exemptions: proto.IPeer[]): Promise<proto.IPeer>
 
-    get(key: number): Promise<proto.IPeer | undefined>
+    remove(peer: proto.IPeer, db?: any): Promise<boolean>
 
-    remove(peer: proto.IPeer): Promise<any>
-
-    peerCount(): Promise<number | undefined>
-
-    getRandomPeer(exemptions: proto.IPeer[]): Promise<proto.IPeer | undefined>
-
-    printDB(): Promise<void>
+    peerCount(): Promise<number>
+    getKeys(): Promise<number[]>
 
 }

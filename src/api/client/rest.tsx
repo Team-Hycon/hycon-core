@@ -57,6 +57,7 @@ export interface IPeer {
     location?: string
     latitude?: number
     longitude?: number
+    successCount?: number
 }
 
 export interface ILocationDetails {
@@ -85,6 +86,7 @@ export interface IHyconWallet {
     language?: string
     pendingAmount?: string
     minedBlocks?: IMinedInfo[]
+    index?: number
 }
 
 export interface IMinedInfo {
@@ -118,7 +120,7 @@ export interface IRest {
     deleteWallet(name: string): Promise<boolean>
     generateWallet(Hwallet: IHyconWallet): Promise<string>
     getAddressInfo(address: string): Promise<IWalletAddress>
-    getAllAccounts(name: string): Promise<{ represent: number, accounts: Array<{ address: string, balance: string }> } | boolean>
+    getAllAccounts(name: string, password: string, startIndex: number): Promise<Array<{ address: string, balance: string }> | boolean>
     getBlock(hash: string): Promise<IBlock | IResponseError>
     getBlockList(index: number): Promise<{ blocks: IBlock[], length: number }>
     getTopTipHeight(): Promise<{ height: number }>
@@ -130,7 +132,7 @@ export interface IRest {
     getWalletList(idx?: number): Promise<{ walletList: IHyconWallet[], length: number }>
     recoverWallet(Hwallet: IHyconWallet): Promise<string | boolean>
     // [Depreciated: Use above] recoverWalletForce(Hwallet: IHyconWallet): Promise<string | boolean>
-    sendTx(tx: { name: string, password: string, address: string, amount: number, minerFee: number, nonce: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }>
+    sendTx(tx: { name: string, password: string, address: string, amount: string, minerFee: string, nonce: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }>
     getPeerList(): Promise<IPeer[]>
     getPeerConnected(index: number): Promise<{ peersInPage: IPeer[], pages: number }>
     getPendingTxs(index: number): Promise<{ txs: ITxProp[], length: number, totalCount: number, totalAmount: string, totalFee: string }>
@@ -146,4 +148,7 @@ export interface IRest {
     addFavorite(alias: string, address: string): Promise<boolean>
     deleteFavorite(alias: string): Promise<boolean>
     addWalletFile(name: string, password: string, key: string): Promise<boolean>
+    getLedgerWallet(startIndex: number, count: number): Promise<IHyconWallet[] | number>
+    sendTxWithLedger(index: number, from: string, to: string, amount: string, fee: string, queueTx?: Function): Promise<{ res: boolean, case?: number }>
+    possibilityLedger(): Promise<boolean>
 }

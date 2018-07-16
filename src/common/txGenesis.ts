@@ -1,7 +1,6 @@
 import { getLogger } from "log4js"
 import * as Long from "long"
 import { Address } from "../common/address"
-import { PublicKey } from "../common/publicKey"
 import * as proto from "../serialization/proto"
 const logger = getLogger("TxGenesis")
 export class GenesisTx implements proto.ITx {

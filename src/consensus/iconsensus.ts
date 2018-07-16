@@ -21,6 +21,8 @@ export interface IConsensus extends EventEmitter {
     init(): Promise<void>
     putBlock(block: Block): Promise<IStatusChange>
     putHeader(header: BlockHeader): Promise<IStatusChange>
+    putTxBlocks(txBlocks: Array<{ hash: Hash, txs: SignedTx[] }>): Promise<IStatusChange[]>
+    getBlockTxs(hash: Hash): Promise<{ hash: Hash, txs: SignedTx[] }>
     getBlockByHash(hash: Hash): Promise<AnyBlock>
     getHeaderByHash(hash: Hash): Promise<AnyBlockHeader>
     getBlocksRange(fromHeight: number, count?: number): Promise<AnyBlock[]>

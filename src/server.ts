@@ -65,7 +65,7 @@ export class Server {
 
     public async runSync(): Promise<void> {
         logger.debug(`begin sync`)
-        const sync = new Sync(this.network.getRandomPeer(), this.consensus)
+        const sync = new Sync(this.network.getRandomPeer(), this.consensus, this.network.version)
         await sync.sync()
         setTimeout(async () => {
             await this.runSync()

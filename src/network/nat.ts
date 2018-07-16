@@ -1,6 +1,5 @@
 import { getLogger } from "log4js"
 import * as natUpnp from "nat-upnp"
-import * as proto from "../serialization/proto"
 import { INetwork } from "./inetwork"
 const client = natUpnp.createClient()
 const logger = getLogger("Nat")

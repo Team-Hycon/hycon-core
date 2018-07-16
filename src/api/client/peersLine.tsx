@@ -37,6 +37,9 @@ export class PeersLine extends React.Component<any, any> {
                     )
                 }
                 <td className="mdl-data-table__cell--non-numeric">
+                    <span>{this.state.peer.successCount}</span>
+                </td>
+                <td className="mdl-data-table__cell--non-numeric">
                     <span>{this.state.peer.failCount}</span>
                 </td>
                 <td className="mdl-data-table__cell--non-numeric">

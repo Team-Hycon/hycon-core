@@ -1,6 +1,6 @@
 {
     "name": "hycon",
-    "version": "0.0.5",
+    "version": "0.0.7",
     "description": "HYCON Full-node",
     "main": "index.js",
     "bin": "build/src/main.js",
@@ -12,7 +12,7 @@
         "hycon": "./node_modules/.bin/ts-node src/main.ts --port=8148 --str_port=9081 --api --api_port=2442 --cpuMiners=1",
         "seed": "./node_modules/.bin/ts-node src/main.ts --port=8148 --str_port=9081 --api --api_port=2442 --cpuMiners=0",
         "protogen": "pbjs -t static-module -w commonjs -o src/serialization/proto.js proto/main.proto &&  pbts -o src/serialization/proto.d.ts src/serialization/proto.js && ./src/serialization/trim_null.sh",
-        "debug": "./node_modules/.bin/ts-node --inspect=9231 --inspect-brk src/main.ts  --port=8148 --str_port=9081 --cpuMiners=3 --api --api_port=2442 --networkid=`git rev-parse HEAD`",
+        "debug": "./node_modules/.bin/ts-node --inspect=9231 --inspect-brk src/main.ts  --port=8148 --str_port=9081 --cpuMiners=3 --api --api_port=2442 --networkid=`git rev-parse HEAD` --bootstrap",
         "debugTests": "./node_modules/.bin/ts-node  --inspect=9230 --inspect-brk  test/runner.ts",
         "test": "rm -rf build && tsc && istanbul cover node_modules/jasmine/bin/jasmine.js -x **/proto.*  -- --config=jasmine.json && remap-istanbul -i ./coverage/coverage.json -o ./coverage/remap-report -t html",
         "clear": "rm -rf blockdb* worldstate* rawblock* txDB* peerdb* minedDB*",
@@ -75,8 +75,9 @@
         "webpack-cli": "^2.1.5"
     },
     "dependencies": {
+        "@glosfer/hw-app-hycon": "0.0.8",
+        "@ledgerhq/hw-transport-node-hid": "^4.13.0",
         "@material-ui/core": "^1.2.0",
-        "@types/react-dropzone": "^4.2.0",
         "base-58": "0.0.1",
         "bip39": "^2.5.0",
         "blake2b": "^2.1.2",
@@ -99,7 +100,6 @@
         "print-message": "^2.1.0",
         "react": "^16.4.0",
         "react-dom": "^16.4.0",
-        "react-dropzone": "^4.2.11",
         "react-router": "^4.2.0",
         "react-router-config": "^1.0.0-beta.4",
         "react-router-dom": "^4.2.2",

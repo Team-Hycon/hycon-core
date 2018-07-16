@@ -3,15 +3,12 @@ import Button from "@material-ui/core/Button"
 import CardContent from "@material-ui/core/CardContent"
 import Grid from "@material-ui/core/Grid"
 import Icon from "@material-ui/core/Icon"
-import GoogleMapReact from "google-map-react"
-import Long = require("long")
 import { Card, CircularProgress, List, ListItem, TextField } from "material-ui"
 import Dialog from "material-ui/Dialog"
 import * as React from "react"
 import { Redirect } from "react-router"
-import { Link } from "react-router-dom"
-import { IBlock, IHyconWallet, IRest } from "./rest"
-import { hyconfromString, hycontoString } from "./stringUtil"
+import { IHyconWallet } from "./rest"
+import { hyconfromString } from "./stringUtil"
 
 export class Transaction extends React.Component<any, any> {
     public mounted = false

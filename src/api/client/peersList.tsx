@@ -34,6 +34,9 @@ export class PeersList extends React.Component<any, any> {
                                     <span>isActive</span>
                                 </th>
                                 <th className="mdl-data-table__cell--non-numeric">
+                                    <span>SuccessCount</span>
+                                </th>
+                                <th className="mdl-data-table__cell--non-numeric">
                                     <span>FailCount</span>
                                 </th>
                                 <th className="mdl-data-table__cell--non-numeric">

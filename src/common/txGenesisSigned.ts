@@ -4,7 +4,6 @@ import Long = require("long")
 import * as proto from "../serialization/proto"
 import { Address } from "./address"
 import { PublicKey } from "./publicKey"
-
 const logger = getLogger("TxGenesisSigned")
 
 export class GenesisSignedTx implements proto.ITx {

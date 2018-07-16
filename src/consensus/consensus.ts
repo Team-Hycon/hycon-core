@@ -1,5 +1,4 @@
 import { EventEmitter } from "events"
-import fs = require("fs")
 import { getLogger } from "log4js"
 import { Address } from "../common/address"
 import { AsyncLock } from "../common/asyncLock"
@@ -22,9 +21,11 @@ import { TxDatabase } from "./database/txDatabase"
 import { TxValidity, WorldState } from "./database/worldState"
 import { DifficultyAdjuster } from "./difficultyAdjuster"
 import { IConsensus, IStatusChange } from "./iconsensus"
-import { BlockStatus } from "./sync"
+import { BlockStatus, MAX_HEADER_SIZE } from "./sync"
 import { Verify } from "./verify"
 const logger = getLogger("Consensus")
+
+const TIMESTAMP_TOLERANCE = 120000
 
 export interface IPutResult {
     oldStatus: BlockStatus,
@@ -93,6 +94,33 @@ export class Consensus extends EventEmitter implements IConsensus {
 
     public putHeader(header: BlockHeader): Promise<IStatusChange> {
         return this.put(header)
+    }
+
+    public async putTxBlocks(txBlocks: Array<{ hash: Hash, txs: SignedTx[] }>) {
+        const statusChanges: IStatusChange[] = []
+        for (const txBlock of txBlocks) {
+            const header = await this.getHeaderByHash(txBlock.hash)
+            if (!(header instanceof BlockHeader)) { continue }
+            const block = new Block({ header, txs: txBlock.txs })
+            await this.upgradeHeaders(header)
+            statusChanges.push(await this.putBlock(block))
+        }
+        try {
+            if (this.headerTip.header instanceof BlockHeader) {
+                await this.upgradeHeaders(this.headerTip.header)
+            }
+        } catch (e) {
+            logger.debug(`Failed to upgrade to header tip: ${e}`)
+        }
+        return statusChanges
+    }
+
+    public async getBlockTxs(hash: Hash) {
+        const block = (await this.getBlockByHash(hash))
+        if (!(block instanceof Block)) {
+            throw new Error(`Tried to get txs from genesis block`)
+        }
+        return { hash, txs: block.txs }
     }
 
     public getBlockByHash(hash: Hash): Promise<AnyBlock> {
@@ -221,8 +249,8 @@ export class Consensus extends EventEmitter implements IConsensus {
         return this.db.getBlockAtHeight(height)
     }
     private async put(header: BlockHeader, block?: Block): Promise<IStatusChange> {
-        if (header.timeStamp > Date.now()) {
-            await this.futureBlockQueue.waitUntil(header.timeStamp)
+        if (header.timeStamp > Date.now() + TIMESTAMP_TOLERANCE) {
+            await this.futureBlockQueue.waitUntil(header.timeStamp - TIMESTAMP_TOLERANCE)
         }
 
         if (header.merkleRoot.equals(Hash.emptyHash)) {
@@ -234,6 +262,7 @@ export class Consensus extends EventEmitter implements IConsensus {
             const startHtip = this.headerTip.height
             const hash = new Hash(header)
             const { oldStatus, status, dbBlock } = await this.process(hash, header, block)
+
             if (status !== undefined && oldStatus !== status) {
                 await this.db.setBlockStatus(hash, status)
             }
@@ -244,7 +273,7 @@ export class Consensus extends EventEmitter implements IConsensus {
 
             await this.db.putDBBlock(hash, dbBlock)
 
-            if (this.headerTip === undefined || (dbBlock.height - dbBlock.totalWork) > (this.headerTip.height - this.headerTip.totalWork)) {
+            if (this.headerTip === undefined || (this.forkChoice(dbBlock, this.headerTip))) {
                 this.headerTip = dbBlock
                 await this.db.setHeaderTip(hash)
             }
@@ -257,7 +286,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                 return { oldStatus, status, htip: this.headerTip.height > startHtip }
             }
 
-            if (block !== undefined && (this.blockTip === undefined || (dbBlock.height - dbBlock.totalWork) > (this.blockTip.height - this.blockTip.totalWork))) {
+            if (block !== undefined && (this.blockTip === undefined || this.forkChoice(dbBlock, this.blockTip))) {
                 await this.reorganize(hash, block, dbBlock)
                 await this.db.setBlockTip(hash)
                 this.emit("candidate", this.blockTip, hash)
@@ -270,7 +299,6 @@ export class Consensus extends EventEmitter implements IConsensus {
 
             return { oldStatus, status, htip: this.headerTip.height > startHtip }
         })
-
     }
     private async process(hash: Hash, header: BlockHeader, block?: Block): Promise<IPutResult> {
         // Consensus Critical
@@ -323,7 +351,7 @@ export class Consensus extends EventEmitter implements IConsensus {
             }
 
             if (this.minedDatabase !== undefined) {
-                await this.minedDatabase.putMinedBlock(hash, block.header.timeStamp, block.txs, block.header.miner)
+                this.minedDatabase.putMinedBlock(hash, block.header.timeStamp, block.txs, block.header.miner)
             }
         }
 
@@ -353,7 +381,6 @@ export class Consensus extends EventEmitter implements IConsensus {
             block = tmpBlock
             popStopHeight -= 1
         }
-
         let popHeight = this.blockTip.height
         let popHash = new Hash(this.blockTip.header)
         const popCount = popHeight - popStopHeight + 1
@@ -400,6 +427,41 @@ export class Consensus extends EventEmitter implements IConsensus {
         this.blockTip = newDBBlock
         // This must not use await because of lock. So we used then.
         this.txPool.putTxs(popTxs).then(() => this.txPool.removeTxs(removeTxs))
+    }
+
+    private async upgradeHeaders(header: BlockHeader) {
+        logger.debug(`Upgrading headers up to hash: ${new Hash(header).toString()}`)
+        const upgradeQueue: BlockHeader[] = []
+        const maxLength = Math.floor((100 * 1024 * 1024) / MAX_HEADER_SIZE) // 100MB of headers
+        let status: BlockStatus
+        const results: IStatusChange[] = []
+        do {
+            status = await this.getBlockStatus(header.previousHash[0])
+            if (status >= BlockStatus.Block) { break }
+            logger.debug(header.previousHash[0].toString())
+            const previousHeader = await this.getHeaderByHash(header.previousHash[0])
+            if (!(previousHeader instanceof BlockHeader)) {
+                // Header is genesis header
+                break
+            }
+            if (!previousHeader.merkleRoot.equals(Hash.emptyHash)) {
+                throw new Error(`Header merkleRoot is not empty`)
+            }
+            header = previousHeader
+            upgradeQueue.push(header)
+            if (upgradeQueue.length > maxLength) {
+                upgradeQueue.shift()
+            }
+        } while (status < BlockStatus.Block)
+        upgradeQueue.reverse()
+        for (const blockHeader of upgradeQueue) {
+            results.push(await this.putHeader(blockHeader))
+        }
+        return results
+    }
+
+    private forkChoice(newDBBlock: DBBlock, tip: DBBlock): boolean {
+        return newDBBlock.totalWork > tip.totalWork
     }
 
     private async initGenesisBlock(): Promise<GenesisBlock> {

@@ -1,28 +1,18 @@
-import { fstat } from "fs"
 import levelup = require("levelup")
 import { getLogger } from "log4js"
 import Long = require("long")
 import rocksdb = require("rocksdb")
-import { hyconfromString, hycontoString } from "../../api/client/stringUtil"
+import { hycontoString } from "../../api/client/stringUtil"
 import { Address } from "../../common/address"
 import { AsyncLock } from "../../common/asyncLock"
-import { Block } from "../../common/block"
 import { GenesisBlock } from "../../common/blockGenesis"
 import { ITxPool } from "../../common/itxPool"
-import { PublicKey } from "../../common/publicKey"
-import { GenesisSignedTx } from "../../common/txGenesisSigned"
 import { SignedTx } from "../../common/txSigned"
-import { Server } from "../../server"
 import { Hash } from "../../util/hash"
-import * as mnemonic from "../../wallet/mnemonic"
-import { Wallet } from "../../wallet/wallet"
-import { Verify } from "../verify"
 import { Account } from "./account"
 import { DBState } from "./dbState"
 import { NodeRef } from "./nodeRef"
 import { StateNode } from "./stateNode"
-// tslint:disable-next-line:no-var-requires
-const assert = require("assert")
 
 const logger = getLogger("WorldState")
 
@@ -136,7 +126,9 @@ export class WorldState {
 
     public async next(previousState: Hash, minerAddress: Address, txs?: SignedTx[]): Promise<{ stateTransition: IStateTransition, validTxs: SignedTx[], invalidTxs: SignedTx[] }> {
         // Consensus Critical
+
         txs === undefined ? txs = this.txPool.getTxs(4096).slice(0, 4096) : txs = txs
+
         const batch: DBState[] = []
         const changes: IChange[] = []
         const mapAccount: Map<string, DBState> = new Map<string, DBState>()
@@ -145,6 +137,7 @@ export class WorldState {
         const validTxs: SignedTx[] = []
         const invalidTxs: SignedTx[] = []
         return await this.accountLock.critical(async () => {
+
             for (const tx of txs) {
                 const validity = await this.processTx(tx, previousState, mapIndex, changes)
                 switch (validity) {
@@ -159,6 +152,7 @@ export class WorldState {
                         break
                 }
             }
+
             const miner = await this.getModifiedAccount(minerAddress, previousState, mapIndex, changes)
             miner.account.balance = miner.account.balance.add(fees)
             this.putChange(miner, mapIndex, changes)
@@ -208,7 +202,7 @@ export class WorldState {
                             }
                             continue
                         }
-                        const dbChild = await this.getDBState(ref.child).catch((e) => undefined)
+                        const dbChild = await this.getDBState(ref.child).catch((e) => logger.debug(e))
                         if (dbChild) {
                             if (mapAccount.get(ref.child.toString()) === undefined) {
                                 dbChild.refCount++
@@ -245,7 +239,9 @@ export class WorldState {
                 // TODO: Remove this if function and test
                 return TxValidity.Invalid
             }
+
             const from = await this.getModifiedAccount(tx.from, previousState, mapIndex, changes)
+
             if (tx.nonce < (from.account.nonce + 1)) {
                 logger.info(`Tx ${new Hash(tx)} Rejected: TxNonce=${tx.nonce} ${tx.from} Nonce=${from.account.nonce}`)
                 return TxValidity.Invalid
@@ -263,14 +259,18 @@ export class WorldState {
 
             from.account.balance = from.account.balance.sub(total)
             from.account.nonce++
-
             if (tx.to === undefined) {
                 logger.warn(`TX ${new Hash(tx).toString()} burned ${hycontoString(tx.amount)} HYC from ${tx.from.toString()}`)
             } else {
+
                 const to = await this.getModifiedAccount(tx.to, previousState, mapIndex, changes)
+
                 to.account.balance = to.account.balance.add(tx.amount)
+
                 this.putChange(to, mapIndex, changes)
+
             }
+
             this.putChange(from, mapIndex, changes)
 
             return TxValidity.Valid

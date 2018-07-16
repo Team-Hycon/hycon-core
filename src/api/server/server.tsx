@@ -166,8 +166,8 @@ export class HttpServer {
         router.get("/address/:address", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getAddressInfo(req.params.address))
         })
-        router.get("/getAllAccounts/:name", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.getAllAccounts(req.params.name))
+        router.get("/getAllAccounts", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getAllAccounts(req.body.name, req.body.password, req.body.startIndex))
         })
         router.get("/block/height/:height", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlockAtHeight(req.params.height))
@@ -276,6 +276,27 @@ export class HttpServer {
 
         router.get("/setMinerCount/:count", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.setMinerCount(req.params.count))
+        })
+
+        router.get("/getLedgerWallet/:startIndex/:count", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getLedgerWallet(req.params.startIndex, req.params.count))
+        })
+
+        router.get("/sendTxWithLedger/:index/:from/:to/:amount/:fee", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.sendTxWithLedger(
+                req.params.index,
+                req.params.from,
+                req.params.to,
+                req.params.amount,
+                req.params.fee,
+                async (tx: SignedTx) => {
+                    const newTxs = await this.hyconServer.txQueue.putTxs([tx])
+                    this.hyconServer.broadcastTxs(newTxs)
+                }))
+        })
+
+        router.get("/possibilityLedger", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.possibilityLedger())
         })
 
         this.app.use(`/api/${apiVersion}`, router)

@@ -1,4 +1,3 @@
-import { BlockHeader } from "./blockHeader"
 import { PriorityQueue } from "./priorityQueue"
 
 interface IPromiseControl { resolve: () => void, reject: (e: any) => void, timer: NodeJS.Timer, timeStamp: number }

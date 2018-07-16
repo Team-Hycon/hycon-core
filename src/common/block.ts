@@ -2,9 +2,8 @@ import { getLogger } from "log4js"
 import merkle = require("merkle-lib")
 import * as proto from "../serialization/proto"
 import { Hash } from "../util/hash"
-import { Address } from "./address"
 import { GenesisBlock } from "./blockGenesis"
-import { AnyBlockHeader, BlockHeader } from "./blockHeader"
+import { BlockHeader } from "./blockHeader"
 import { SignedTx } from "./txSigned"
 
 const logger = getLogger("Block")
