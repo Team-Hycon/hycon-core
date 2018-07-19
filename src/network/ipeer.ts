@@ -1,8 +1,7 @@
 
-import { AnyBlock, Block } from "../common/block"
+import { Block } from "../common/block"
 import { AnyBlockHeader } from "../common/blockHeader"
 import { SignedTx } from "../common/txSigned"
-import { IStatusChange } from "../consensus/iconsensus"
 import * as proto from "../serialization/proto"
 import { IStatus } from "../serialization/proto"
 import { IPeer } from "../serialization/proto"
@@ -14,9 +13,6 @@ export interface IPeer {
     ping(): Promise<number>
     putTxs(txs: SignedTx[]): Promise<boolean>
     getTxs(minFee?: number): Promise<SignedTx[]>
-    putBlocks(blocks: AnyBlock[]): Promise<IStatusChange[]>
-    putHeaders(header: AnyBlockHeader[]): Promise<IStatusChange[]>
-    putBlockTxs(txBlocks: proto.IBlockTxs[]): Promise<proto.IPutBlockTxsReturn>
     getBlockTxs(hashes: Hash[]): Promise<IBlockTxs[]>
     getHash(height: number): Promise<Hash | undefined>
     getBlocksByHashes(hashes: Hash[]): Promise<Block[]>

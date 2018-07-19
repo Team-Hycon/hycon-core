@@ -69,7 +69,7 @@ export class MinerView extends React.Component<IMinerViewProps, IMinerView> {
                             <div>
                                 <Icon style={{ marginRight: "10px", color: "grey", fontSize: "40px", paddingTop: "1%" }}>multiline_chart</Icon>
                                 <span style={{ float: "right", color: "grey", fontSize: "25px", paddingTop: "2%" }}>
-                                    <span style={{ float: "right", color: "grey" }}>{this.state.miner.networkHashRate.toLocaleString()} H/s</span><br />
+                                    <span style={{ float: "right", color: "grey" }}>{this.state.miner.networkHashRate.toLocaleString()} kH/s</span><br />
                                     <span style={{ float: "right", color: "grey", fontSize: "12px" }}>Estimated Average Network Hash Rate</span>
                                 </span>
                             </div>

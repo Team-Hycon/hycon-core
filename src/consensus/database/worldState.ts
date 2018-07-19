@@ -92,6 +92,9 @@ export class WorldState {
         if (fromAccount === undefined || fromAccount.nonce >= tx.nonce) {
             return TxValidity.Invalid
         }
+        if (fromAccount.balance.lessThan(tx.amount.add(tx.fee))) {
+            return TxValidity.Invalid
+        }
         if (fromAccount.nonce + 1 === tx.nonce) {
             return TxValidity.Valid
         }

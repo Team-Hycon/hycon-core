@@ -1,13 +1,11 @@
 import { getLogger } from "log4js"
 import { AnyBlock, Block } from "../common/block"
-import { AnyBlockHeader, BlockHeader } from "../common/blockHeader"
+import { BlockHeader } from "../common/blockHeader"
 import { BaseBlockHeader } from "../common/genesisHeader"
 import { IPeer } from "../network/ipeer"
-import { IBlockTxs } from "../network/rabbit/rabbitPeer"
 import { MAX_PACKET_SIZE } from "../network/rabbit/socketParser"
-import { IPutBlockTxsReturn } from "../serialization/proto"
 import { Hash } from "../util/hash"
-import { IConsensus } from "./iconsensus"
+import { IConsensus, IStatusChange } from "./iconsensus"
 const logger = getLogger("Sync")
 
 export const REPEATED_OVERHEAD = 6
@@ -100,11 +98,15 @@ export class Sync {
 
             await this.findCommons(localBlockTip, remoteBlockTip)
 
-            const startHeaderHeight = await this.syncHeaders(remoteHeaderTip, localHeaderTip, remoteVersion)
+            const syncHeaderResult = await this.syncHeaders(remoteHeaderTip, localHeaderTip, remoteVersion)
+            if (!syncHeaderResult.ahead) {
+                return
+            }
+
             if (remoteVersion > 5 && this.version > 5) {
-                await this.syncTxs(startHeaderHeight, remoteBlockTip, localBlockTip, localHeaderTip, remoteVersion)
+                await this.syncTxs(remoteBlockTip, localBlockTip, localHeaderTip, remoteVersion)
             } else {
-                await this.syncBlocks(startHeaderHeight, remoteBlockTip, localBlockTip, remoteVersion)
+                await this.syncBlocks(syncHeaderResult.startHeaderHeight, remoteBlockTip, localBlockTip, remoteVersion)
             }
 
             this.peer = undefined
@@ -127,13 +129,10 @@ export class Sync {
         const startHeaderHeight = await this.findStartHeader()
         logger.debug(`Find Start Header=${startHeaderHeight}`)
         if (remoteHeaderWork > localHeaderWork) {
-            logger.info(`Receiving Headers from ${this.peer.getInfo()}`)
+            logger.debug(`Receiving Headers from ${this.peer.getInfo()}`)
             await this.getHeaders(startHeaderHeight)
-        } else if (remoteHeaderWork < localHeaderWork) {
-            logger.info(`Sending Headers to ${this.peer.getInfo()}`)
-            await this.putHeaders(startHeaderHeight)
         }
-        return startHeaderHeight
+        return { startHeaderHeight, ahead: remoteHeaderWork > localHeaderWork }
     }
 
     private async syncBlocks(startHeaderHeight: number, remoteBlockTip: ITip, localBlockTip: ITip, remoteVersion: number) {
@@ -149,16 +148,12 @@ export class Sync {
         const startBlockHeight = await this.findStartBlock(startHeaderHeight)
         logger.debug(`Find Start Block=${startBlockHeight}`)
         if (remoteBlockWork > localBlockWork) {
-            logger.info(`Receiving Blocks from ${this.peer.getInfo()}`)
+            logger.debug(`Receiving Blocks from ${this.peer.getInfo()}`)
             await this.getBlocks(startBlockHeight)
-        } else if (remoteBlockWork < localBlockWork) {
-            logger.info(`Sending Blocks to ${this.peer.getInfo()}`)
-            await this.putBlocks(startBlockHeight)
         }
-        return startBlockHeight
     }
 
-    private async syncTxs(startHeaderHeight: number, remoteBlockTip: ITip, localBlockTip: ITip, localHeaderTip: ITip, remoteVersion: number) {
+    private async syncTxs(remoteBlockTip: ITip, localBlockTip: ITip, localHeaderTip: ITip, remoteVersion: number) {
         let remoteBlockWork: number
         let localBlockWork: number
         if (remoteVersion > 7) {
@@ -171,12 +166,9 @@ export class Sync {
         if (remoteBlockWork > localBlockWork) {
             const blockHashes = await this.scanHeaders(localHeaderTip)
             if (blockHashes.length > 0) {
-                logger.info(`Receiving transactions from ${this.peer.getInfo()}`)
+                logger.debug(`Receiving transactions from ${this.peer.getInfo()}`)
                 return await this.getTxBlocks(blockHashes)
             }
-        } else if (remoteBlockWork < localBlockWork) {
-            logger.info(`Sending transactions to ${this.peer.getInfo()}`)
-            return await this.putTxBlocks(startHeaderHeight)
         }
     }
 
@@ -302,25 +294,11 @@ export class Sync {
                     if (result.status === undefined || result.status < BlockStatus.Header) {
                         throw new Error(`Header Rejected ${result.status}`)
                     }
-                }
-                height += headers.length
-            } while (headers.length > 0)
-        } catch (e) {
-            throw new Error(`Could not completely sync headers: ${e}`)
-        }
-    }
 
-    private async putHeaders(height: number) {
-        let headers: AnyBlockHeader[]
-        if (height < 1) {
-            height = 1
-        }
-        try {
-            do {
-                headers = await this.consensus.getHeadersRange(height, headerCount)
-                const results = await this.peer.putHeaders(headers)
-                if (results.some((result) => result.status === undefined || result.status < BlockStatus.Header)) {
-                    throw new Error("Header Rejected")
+                    if (result.oldStatus >= result.status) {
+                        logger.debug(`Received header has already been received`)
+                        break
+                    }
                 }
                 height += headers.length
             } while (headers.length > 0)
@@ -332,61 +310,29 @@ export class Sync {
     private async getTxBlocks(blockHashes: Hash[]) {
         const requestSize = blockHashes.length * (HASH_SIZE + BYTES_OVERHEAD) + REPEATED_OVERHEAD
         const numRequests = Math.ceil(requestSize / MAX_PACKET_SIZE)
-        let txBlocks: IBlockTxs[] = []
+        const statusChanges: IStatusChange[] = []
         try {
             const txBlocksPerRequest = Math.floor(blockHashes.length / numRequests)
             for (let i = 0; i < numRequests; i++) {
                 const requestHashes = blockHashes.slice(i * txBlocksPerRequest, (i + 1) * txBlocksPerRequest)
                 while (requestHashes.length > 0) {
-                    const receivedTxBlocks = await this.peer.getBlockTxs(requestHashes)
-                    txBlocks = txBlocks.concat(receivedTxBlocks)
-                    requestHashes.splice(0, receivedTxBlocks.length)
+                    const receivedTxBlock = await this.peer.getBlockTxs(requestHashes)
+                    requestHashes.splice(0, receivedTxBlock.length)
+                    const changes = await this.consensus.putTxBlocks(receivedTxBlock)
+                    statusChanges.concat(changes)
+                    if (!changes.every((change) => {
+                        return change.oldStatus < change.status
+                    })) {
+                        logger.debug(`Received txBlock has already been received`)
+                        return statusChanges
+                    }
                 }
             }
-            return await this.consensus.putTxBlocks(txBlocks)
+            return statusChanges
         } catch (e) {
             throw new Error(`Could not completely sync txs: ${e}`)
         }
     }
-
-    private async putTxBlocks(height: number) {
-        let packetSize = 0
-        let fullPacket = false
-        const txBlocks: IBlockTxs[] = []
-        const results: IPutBlockTxsReturn = { statusChanges: [] }
-        try {
-
-            let block = await this.consensus.getBlockAtHeight(height)
-            while (block) {
-                try {
-                    block = await this.consensus.getBlockAtHeight(height)
-                } catch (e) {
-                    break
-                }
-                height++
-                if (block.txs.length === 0) {
-                    continue
-                } else if (!(block instanceof Block)) {
-                    break
-                }
-                txBlocks.push({ hash: new Hash(block.header), txs: block.txs })
-                // Estimate of the size of the hash and accompanying transactions
-                packetSize += HASH_SIZE + BYTES_OVERHEAD + block.txs.length * MAX_TX_SIZE + REPEATED_OVERHEAD
-                if (packetSize > MAX_PACKET_SIZE - MAX_BLOCK_SIZE) {
-                    fullPacket = true
-                    results.statusChanges = results.statusChanges.concat((await this.peer.putBlockTxs(txBlocks)).statusChanges)
-                    break
-                }
-            }
-            if (!fullPacket && txBlocks.length > 0) {
-                results.statusChanges = results.statusChanges.concat((await this.peer.putBlockTxs(txBlocks)).statusChanges)
-            }
-            return results
-        } catch (e) {
-            throw new Error(`Could not send block txs: ${e}`)
-        }
-    }
-
     private async findStartBlock(height: number): Promise<number> {
         let min = this.commonBlock.height
         while (min + 1 < height) {
@@ -415,15 +361,18 @@ export class Sync {
 
     private async getBlocks(height: number) {
         let blocks: AnyBlock[]
-
         try {
             do {
                 blocks = await this.peer.getBlocksByRange(height, blockCount)
                 for (const block of blocks) {
                     if (block instanceof Block) {
-                        const { status } = await this.consensus.putBlock(block)
-                        if (status < BlockStatus.Block) {
+                        const result = await this.consensus.putBlock(block)
+                        if (result.status < BlockStatus.Block) {
                             throw new Error(`Block rejected ${status}`)
+                        }
+                        if (result.oldStatus >= result.status) {
+                            logger.debug(`Received block has already been received`)
+                            return
                         }
                     }
                 }
@@ -431,22 +380,6 @@ export class Sync {
             } while (blocks.length > 0)
         } catch (e) {
             throw new Error(`Could not completely sync blocks: ${e}`)
-        }
-    }
-
-    private async putBlocks(height: number) {
-        let blocks: AnyBlock[]
-        try {
-            do {
-                blocks = await this.consensus.getBlocksRange(height, blockCount)
-                const results = await this.peer.putBlocks(blocks)
-                if (results.some((result) => result.status === undefined || result.status < BlockStatus.Block)) {
-                    throw new Error(`Block rejected`)
-                }
-                height += blocks.length
-            } while (blocks.length > 0)
-        } catch (e) {
-            throw new Error(`Could not completely sync blocks: ${e} -- ${this.peer.getInfo()}`)
         }
     }
 }

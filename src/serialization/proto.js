@@ -43,8 +43,6 @@ $root.Network = (function() {
      * @property {IGetHashReturn|null} [getHashReturn] Network getHashReturn
      * @property {IGetBlockTxs|null} [getBlockTxs] Network getBlockTxs
      * @property {IGetBlockTxsReturn|null} [getBlockTxsReturn] Network getBlockTxsReturn
-     * @property {IPutBlockTxs|null} [putBlockTxs] Network putBlockTxs
-     * @property {IPutBlockTxsReturn|null} [putBlockTxsReturn] Network putBlockTxsReturn
      */
 
     /**
@@ -286,33 +284,17 @@ $root.Network = (function() {
      */
     Network.prototype.getBlockTxsReturn = null;
 
-    /**
-     * Network putBlockTxs.
-     * @member {IPutBlockTxs|null|undefined} putBlockTxs
-     * @memberof Network
-     * @instance
-     */
-    Network.prototype.putBlockTxs = null;
-
-    /**
-     * Network putBlockTxsReturn.
-     * @member {IPutBlockTxsReturn|null|undefined} putBlockTxsReturn
-     * @memberof Network
-     * @instance
-     */
-    Network.prototype.putBlockTxsReturn = null;
-
     // OneOf field names bound to virtual getters and setters
     var $oneOfFields;
 
     /**
      * Network request.
-     * @member {"status"|"statusReturn"|"ping"|"pingReturn"|"putTx"|"putTxReturn"|"getTxs"|"getTxsReturn"|"putBlock"|"putBlockReturn"|"getBlocksByHash"|"getBlocksByHashReturn"|"getHeadersByHash"|"getHeadersByHashReturn"|"getBlocksByRange"|"getBlocksByRangeReturn"|"getHeadersByRange"|"getHeadersByRangeReturn"|"getPeers"|"getPeersReturn"|"getTip"|"getTipReturn"|"putHeaders"|"putHeadersReturn"|"getHash"|"getHashReturn"|"getBlockTxs"|"getBlockTxsReturn"|"putBlockTxs"|"putBlockTxsReturn"|undefined} request
+     * @member {"status"|"statusReturn"|"ping"|"pingReturn"|"putTx"|"putTxReturn"|"getTxs"|"getTxsReturn"|"putBlock"|"putBlockReturn"|"getBlocksByHash"|"getBlocksByHashReturn"|"getHeadersByHash"|"getHeadersByHashReturn"|"getBlocksByRange"|"getBlocksByRangeReturn"|"getHeadersByRange"|"getHeadersByRangeReturn"|"getPeers"|"getPeersReturn"|"getTip"|"getTipReturn"|"putHeaders"|"putHeadersReturn"|"getHash"|"getHashReturn"|"getBlockTxs"|"getBlockTxsReturn"|undefined} request
      * @memberof Network
      * @instance
      */
     Object.defineProperty(Network.prototype, "request", {
-        get: $util.oneOfGetter($oneOfFields = ["status", "statusReturn", "ping", "pingReturn", "putTx", "putTxReturn", "getTxs", "getTxsReturn", "putBlock", "putBlockReturn", "getBlocksByHash", "getBlocksByHashReturn", "getHeadersByHash", "getHeadersByHashReturn", "getBlocksByRange", "getBlocksByRangeReturn", "getHeadersByRange", "getHeadersByRangeReturn", "getPeers", "getPeersReturn", "getTip", "getTipReturn", "putHeaders", "putHeadersReturn", "getHash", "getHashReturn", "getBlockTxs", "getBlockTxsReturn", "putBlockTxs", "putBlockTxsReturn"]),
+        get: $util.oneOfGetter($oneOfFields = ["status", "statusReturn", "ping", "pingReturn", "putTx", "putTxReturn", "getTxs", "getTxsReturn", "putBlock", "putBlockReturn", "getBlocksByHash", "getBlocksByHashReturn", "getHeadersByHash", "getHeadersByHashReturn", "getBlocksByRange", "getBlocksByRangeReturn", "getHeadersByRange", "getHeadersByRangeReturn", "getPeers", "getPeersReturn", "getTip", "getTipReturn", "putHeaders", "putHeadersReturn", "getHash", "getHashReturn", "getBlockTxs", "getBlockTxsReturn"]),
         set: $util.oneOfSetter($oneOfFields)
     });
 
@@ -396,10 +378,6 @@ $root.Network = (function() {
             $root.GetBlockTxs.encode(message.getBlockTxs, writer.uint32(/* id 27, wireType 2 =*/218).fork()).ldelim();
         if (message.getBlockTxsReturn != null && message.hasOwnProperty("getBlockTxsReturn"))
             $root.GetBlockTxsReturn.encode(message.getBlockTxsReturn, writer.uint32(/* id 28, wireType 2 =*/226).fork()).ldelim();
-        if (message.putBlockTxs != null && message.hasOwnProperty("putBlockTxs"))
-            $root.PutBlockTxs.encode(message.putBlockTxs, writer.uint32(/* id 29, wireType 2 =*/234).fork()).ldelim();
-        if (message.putBlockTxsReturn != null && message.hasOwnProperty("putBlockTxsReturn"))
-            $root.PutBlockTxsReturn.encode(message.putBlockTxsReturn, writer.uint32(/* id 30, wireType 2 =*/242).fork()).ldelim();
         return writer;
     };
 
@@ -517,12 +495,6 @@ $root.Network = (function() {
                 break;
             case 28:
                 message.getBlockTxsReturn = $root.GetBlockTxsReturn.decode(reader, reader.uint32());
-                break;
-            case 29:
-                message.putBlockTxs = $root.PutBlockTxs.decode(reader, reader.uint32());
-                break;
-            case 30:
-                message.putBlockTxsReturn = $root.PutBlockTxsReturn.decode(reader, reader.uint32());
                 break;
             default:
                 reader.skipType(tag & 7);
@@ -838,26 +810,6 @@ $root.Network = (function() {
                     return "getBlockTxsReturn." + error;
             }
         }
-        if (message.putBlockTxs != null && message.hasOwnProperty("putBlockTxs")) {
-            if (properties.request === 1)
-                return "request: multiple values";
-            properties.request = 1;
-            {
-                var error = $root.PutBlockTxs.verify(message.putBlockTxs);
-                if (error)
-                    return "putBlockTxs." + error;
-            }
-        }
-        if (message.putBlockTxsReturn != null && message.hasOwnProperty("putBlockTxsReturn")) {
-            if (properties.request === 1)
-                return "request: multiple values";
-            properties.request = 1;
-            {
-                var error = $root.PutBlockTxsReturn.verify(message.putBlockTxsReturn);
-                if (error)
-                    return "putBlockTxsReturn." + error;
-            }
-        }
         return null;
     };
 
@@ -1012,16 +964,6 @@ $root.Network = (function() {
             if (typeof object.getBlockTxsReturn !== "object")
                 throw TypeError(".Network.getBlockTxsReturn: object expected");
             message.getBlockTxsReturn = $root.GetBlockTxsReturn.fromObject(object.getBlockTxsReturn);
-        }
-        if (object.putBlockTxs != null) {
-            if (typeof object.putBlockTxs !== "object")
-                throw TypeError(".Network.putBlockTxs: object expected");
-            message.putBlockTxs = $root.PutBlockTxs.fromObject(object.putBlockTxs);
-        }
-        if (object.putBlockTxsReturn != null) {
-            if (typeof object.putBlockTxsReturn !== "object")
-                throw TypeError(".Network.putBlockTxsReturn: object expected");
-            message.putBlockTxsReturn = $root.PutBlockTxsReturn.fromObject(object.putBlockTxsReturn);
         }
         return message;
     };
@@ -1178,16 +1120,6 @@ $root.Network = (function() {
             object.getBlockTxsReturn = $root.GetBlockTxsReturn.toObject(message.getBlockTxsReturn, options);
             if (options.oneofs)
                 object.request = "getBlockTxsReturn";
-        }
-        if (message.putBlockTxs != null && message.hasOwnProperty("putBlockTxs")) {
-            object.putBlockTxs = $root.PutBlockTxs.toObject(message.putBlockTxs, options);
-            if (options.oneofs)
-                object.request = "putBlockTxs";
-        }
-        if (message.putBlockTxsReturn != null && message.hasOwnProperty("putBlockTxsReturn")) {
-            object.putBlockTxsReturn = $root.PutBlockTxsReturn.toObject(message.putBlockTxsReturn, options);
-            if (options.oneofs)
-                object.request = "putBlockTxsReturn";
         }
         return object;
     };
@@ -2492,422 +2424,6 @@ $root.PutTxReturn = (function() {
     };
 
     return PutTxReturn;
-})();
-
-$root.PutBlockTxs = (function() {
-
-    /**
-     * Properties of a PutBlockTxs.
-     * @exports IPutBlockTxs
-     * @interface IPutBlockTxs
-     * @property {Array.<IBlockTxs>|null} [txBlocks] PutBlockTxs txBlocks
-     */
-
-    /**
-     * Constructs a new PutBlockTxs.
-     * @exports PutBlockTxs
-     * @classdesc Represents a PutBlockTxs.
-     * @implements IPutBlockTxs
-     * @constructor
-     * @param {IPutBlockTxs=} [properties] Properties to set
-     */
-    function PutBlockTxs(properties) {
-        this.txBlocks = [];
-        if (properties)
-            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * PutBlockTxs txBlocks.
-     * @member {Array.<IBlockTxs>} txBlocks
-     * @memberof PutBlockTxs
-     * @instance
-     */
-    PutBlockTxs.prototype.txBlocks = $util.emptyArray;
-
-    /**
-     * Creates a new PutBlockTxs instance using the specified properties.
-     * @function create
-     * @memberof PutBlockTxs
-     * @static
-     * @param {IPutBlockTxs=} [properties] Properties to set
-     * @returns {PutBlockTxs} PutBlockTxs instance
-     */
-    PutBlockTxs.create = function create(properties) {
-        return new PutBlockTxs(properties);
-    };
-
-    /**
-     * Encodes the specified PutBlockTxs message. Does not implicitly {@link PutBlockTxs.verify|verify} messages.
-     * @function encode
-     * @memberof PutBlockTxs
-     * @static
-     * @param {IPutBlockTxs} message PutBlockTxs message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    PutBlockTxs.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.txBlocks != null && message.txBlocks.length)
-            for (var i = 0; i < message.txBlocks.length; ++i)
-                $root.BlockTxs.encode(message.txBlocks[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-        return writer;
-    };
-
-    /**
-     * Encodes the specified PutBlockTxs message, length delimited. Does not implicitly {@link PutBlockTxs.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof PutBlockTxs
-     * @static
-     * @param {IPutBlockTxs} message PutBlockTxs message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    PutBlockTxs.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a PutBlockTxs message from the specified reader or buffer.
-     * @function decode
-     * @memberof PutBlockTxs
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {PutBlockTxs} PutBlockTxs
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    PutBlockTxs.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.PutBlockTxs();
-        while (reader.pos < end) {
-            var tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                if (!(message.txBlocks && message.txBlocks.length))
-                    message.txBlocks = [];
-                message.txBlocks.push($root.BlockTxs.decode(reader, reader.uint32()));
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a PutBlockTxs message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof PutBlockTxs
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {PutBlockTxs} PutBlockTxs
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    PutBlockTxs.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a PutBlockTxs message.
-     * @function verify
-     * @memberof PutBlockTxs
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    PutBlockTxs.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.txBlocks != null && message.hasOwnProperty("txBlocks")) {
-            if (!Array.isArray(message.txBlocks))
-                return "txBlocks: array expected";
-            for (var i = 0; i < message.txBlocks.length; ++i) {
-                var error = $root.BlockTxs.verify(message.txBlocks[i]);
-                if (error)
-                    return "txBlocks." + error;
-            }
-        }
-        return null;
-    };
-
-    /**
-     * Creates a PutBlockTxs message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof PutBlockTxs
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {PutBlockTxs} PutBlockTxs
-     */
-    PutBlockTxs.fromObject = function fromObject(object) {
-        if (object instanceof $root.PutBlockTxs)
-            return object;
-        var message = new $root.PutBlockTxs();
-        if (object.txBlocks) {
-            if (!Array.isArray(object.txBlocks))
-                throw TypeError(".PutBlockTxs.txBlocks: array expected");
-            message.txBlocks = [];
-            for (var i = 0; i < object.txBlocks.length; ++i) {
-                if (typeof object.txBlocks[i] !== "object")
-                    throw TypeError(".PutBlockTxs.txBlocks: object expected");
-                message.txBlocks[i] = $root.BlockTxs.fromObject(object.txBlocks[i]);
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a PutBlockTxs message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof PutBlockTxs
-     * @static
-     * @param {PutBlockTxs} message PutBlockTxs
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    PutBlockTxs.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        var object = {};
-        if (options.arrays || options.defaults)
-            object.txBlocks = [];
-        if (message.txBlocks && message.txBlocks.length) {
-            object.txBlocks = [];
-            for (var j = 0; j < message.txBlocks.length; ++j)
-                object.txBlocks[j] = $root.BlockTxs.toObject(message.txBlocks[j], options);
-        }
-        return object;
-    };
-
-    /**
-     * Converts this PutBlockTxs to JSON.
-     * @function toJSON
-     * @memberof PutBlockTxs
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    PutBlockTxs.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return PutBlockTxs;
-})();
-
-$root.PutBlockTxsReturn = (function() {
-
-    /**
-     * Properties of a PutBlockTxsReturn.
-     * @exports IPutBlockTxsReturn
-     * @interface IPutBlockTxsReturn
-     * @property {Array.<IStatusChange>|null} [statusChanges] PutBlockTxsReturn statusChanges
-     */
-
-    /**
-     * Constructs a new PutBlockTxsReturn.
-     * @exports PutBlockTxsReturn
-     * @classdesc Represents a PutBlockTxsReturn.
-     * @implements IPutBlockTxsReturn
-     * @constructor
-     * @param {IPutBlockTxsReturn=} [properties] Properties to set
-     */
-    function PutBlockTxsReturn(properties) {
-        this.statusChanges = [];
-        if (properties)
-            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * PutBlockTxsReturn statusChanges.
-     * @member {Array.<IStatusChange>} statusChanges
-     * @memberof PutBlockTxsReturn
-     * @instance
-     */
-    PutBlockTxsReturn.prototype.statusChanges = $util.emptyArray;
-
-    /**
-     * Creates a new PutBlockTxsReturn instance using the specified properties.
-     * @function create
-     * @memberof PutBlockTxsReturn
-     * @static
-     * @param {IPutBlockTxsReturn=} [properties] Properties to set
-     * @returns {PutBlockTxsReturn} PutBlockTxsReturn instance
-     */
-    PutBlockTxsReturn.create = function create(properties) {
-        return new PutBlockTxsReturn(properties);
-    };
-
-    /**
-     * Encodes the specified PutBlockTxsReturn message. Does not implicitly {@link PutBlockTxsReturn.verify|verify} messages.
-     * @function encode
-     * @memberof PutBlockTxsReturn
-     * @static
-     * @param {IPutBlockTxsReturn} message PutBlockTxsReturn message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    PutBlockTxsReturn.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.statusChanges != null && message.statusChanges.length)
-            for (var i = 0; i < message.statusChanges.length; ++i)
-                $root.StatusChange.encode(message.statusChanges[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-        return writer;
-    };
-
-    /**
-     * Encodes the specified PutBlockTxsReturn message, length delimited. Does not implicitly {@link PutBlockTxsReturn.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof PutBlockTxsReturn
-     * @static
-     * @param {IPutBlockTxsReturn} message PutBlockTxsReturn message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    PutBlockTxsReturn.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a PutBlockTxsReturn message from the specified reader or buffer.
-     * @function decode
-     * @memberof PutBlockTxsReturn
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {PutBlockTxsReturn} PutBlockTxsReturn
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    PutBlockTxsReturn.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.PutBlockTxsReturn();
-        while (reader.pos < end) {
-            var tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                if (!(message.statusChanges && message.statusChanges.length))
-                    message.statusChanges = [];
-                message.statusChanges.push($root.StatusChange.decode(reader, reader.uint32()));
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a PutBlockTxsReturn message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof PutBlockTxsReturn
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {PutBlockTxsReturn} PutBlockTxsReturn
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    PutBlockTxsReturn.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a PutBlockTxsReturn message.
-     * @function verify
-     * @memberof PutBlockTxsReturn
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    PutBlockTxsReturn.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.statusChanges != null && message.hasOwnProperty("statusChanges")) {
-            if (!Array.isArray(message.statusChanges))
-                return "statusChanges: array expected";
-            for (var i = 0; i < message.statusChanges.length; ++i) {
-                var error = $root.StatusChange.verify(message.statusChanges[i]);
-                if (error)
-                    return "statusChanges." + error;
-            }
-        }
-        return null;
-    };
-
-    /**
-     * Creates a PutBlockTxsReturn message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof PutBlockTxsReturn
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {PutBlockTxsReturn} PutBlockTxsReturn
-     */
-    PutBlockTxsReturn.fromObject = function fromObject(object) {
-        if (object instanceof $root.PutBlockTxsReturn)
-            return object;
-        var message = new $root.PutBlockTxsReturn();
-        if (object.statusChanges) {
-            if (!Array.isArray(object.statusChanges))
-                throw TypeError(".PutBlockTxsReturn.statusChanges: array expected");
-            message.statusChanges = [];
-            for (var i = 0; i < object.statusChanges.length; ++i) {
-                if (typeof object.statusChanges[i] !== "object")
-                    throw TypeError(".PutBlockTxsReturn.statusChanges: object expected");
-                message.statusChanges[i] = $root.StatusChange.fromObject(object.statusChanges[i]);
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a PutBlockTxsReturn message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof PutBlockTxsReturn
-     * @static
-     * @param {PutBlockTxsReturn} message PutBlockTxsReturn
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    PutBlockTxsReturn.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        var object = {};
-        if (options.arrays || options.defaults)
-            object.statusChanges = [];
-        if (message.statusChanges && message.statusChanges.length) {
-            object.statusChanges = [];
-            for (var j = 0; j < message.statusChanges.length; ++j)
-                object.statusChanges[j] = $root.StatusChange.toObject(message.statusChanges[j], options);
-        }
-        return object;
-    };
-
-    /**
-     * Converts this PutBlockTxsReturn to JSON.
-     * @function toJSON
-     * @memberof PutBlockTxsReturn
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    PutBlockTxsReturn.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return PutBlockTxsReturn;
 })();
 
 $root.GetBlockTxs = (function() {

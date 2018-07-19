@@ -86,12 +86,6 @@ export interface INetwork {
 
     /** Network getBlockTxsReturn */
     getBlockTxsReturn?: IGetBlockTxsReturn;
-
-    /** Network putBlockTxs */
-    putBlockTxs?: IPutBlockTxs;
-
-    /** Network putBlockTxsReturn */
-    putBlockTxsReturn?: IPutBlockTxsReturn;
 }
 
 /** Represents a Network. */
@@ -187,14 +181,8 @@ export class Network implements INetwork {
     /** Network getBlockTxsReturn. */
     public getBlockTxsReturn?: IGetBlockTxsReturn;
 
-    /** Network putBlockTxs. */
-    public putBlockTxs?: IPutBlockTxs;
-
-    /** Network putBlockTxsReturn. */
-    public putBlockTxsReturn?: IPutBlockTxsReturn;
-
     /** Network request. */
-    public request?: ("status"|"statusReturn"|"ping"|"pingReturn"|"putTx"|"putTxReturn"|"getTxs"|"getTxsReturn"|"putBlock"|"putBlockReturn"|"getBlocksByHash"|"getBlocksByHashReturn"|"getHeadersByHash"|"getHeadersByHashReturn"|"getBlocksByRange"|"getBlocksByRangeReturn"|"getHeadersByRange"|"getHeadersByRangeReturn"|"getPeers"|"getPeersReturn"|"getTip"|"getTipReturn"|"putHeaders"|"putHeadersReturn"|"getHash"|"getHashReturn"|"getBlockTxs"|"getBlockTxsReturn"|"putBlockTxs"|"putBlockTxsReturn");
+    public request?: ("status"|"statusReturn"|"ping"|"pingReturn"|"putTx"|"putTxReturn"|"getTxs"|"getTxsReturn"|"putBlock"|"putBlockReturn"|"getBlocksByHash"|"getBlocksByHashReturn"|"getHeadersByHash"|"getHeadersByHashReturn"|"getBlocksByRange"|"getBlocksByRangeReturn"|"getHeadersByRange"|"getHeadersByRangeReturn"|"getPeers"|"getPeersReturn"|"getTip"|"getTipReturn"|"putHeaders"|"putHeadersReturn"|"getHash"|"getHashReturn"|"getBlockTxs"|"getBlockTxsReturn");
 
     /**
      * Creates a new Network instance using the specified properties.
@@ -832,186 +820,6 @@ export class PutTxReturn implements IPutTxReturn {
 
     /**
      * Converts this PutTxReturn to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-/** Properties of a PutBlockTxs. */
-export interface IPutBlockTxs {
-
-    /** PutBlockTxs txBlocks */
-    txBlocks?: IBlockTxs[];
-}
-
-/** Represents a PutBlockTxs. */
-export class PutBlockTxs implements IPutBlockTxs {
-
-    /**
-     * Constructs a new PutBlockTxs.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: IPutBlockTxs);
-
-    /** PutBlockTxs txBlocks. */
-    public txBlocks: IBlockTxs[];
-
-    /**
-     * Creates a new PutBlockTxs instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns PutBlockTxs instance
-     */
-    public static create(properties?: IPutBlockTxs): PutBlockTxs;
-
-    /**
-     * Encodes the specified PutBlockTxs message. Does not implicitly {@link PutBlockTxs.verify|verify} messages.
-     * @param message PutBlockTxs message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: IPutBlockTxs, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified PutBlockTxs message, length delimited. Does not implicitly {@link PutBlockTxs.verify|verify} messages.
-     * @param message PutBlockTxs message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: IPutBlockTxs, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a PutBlockTxs message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns PutBlockTxs
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): PutBlockTxs;
-
-    /**
-     * Decodes a PutBlockTxs message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns PutBlockTxs
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): PutBlockTxs;
-
-    /**
-     * Verifies a PutBlockTxs message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a PutBlockTxs message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns PutBlockTxs
-     */
-    public static fromObject(object: { [k: string]: any }): PutBlockTxs;
-
-    /**
-     * Creates a plain object from a PutBlockTxs message. Also converts values to other types if specified.
-     * @param message PutBlockTxs
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: PutBlockTxs, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this PutBlockTxs to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-/** Properties of a PutBlockTxsReturn. */
-export interface IPutBlockTxsReturn {
-
-    /** PutBlockTxsReturn statusChanges */
-    statusChanges?: IStatusChange[];
-}
-
-/** Represents a PutBlockTxsReturn. */
-export class PutBlockTxsReturn implements IPutBlockTxsReturn {
-
-    /**
-     * Constructs a new PutBlockTxsReturn.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: IPutBlockTxsReturn);
-
-    /** PutBlockTxsReturn statusChanges. */
-    public statusChanges: IStatusChange[];
-
-    /**
-     * Creates a new PutBlockTxsReturn instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns PutBlockTxsReturn instance
-     */
-    public static create(properties?: IPutBlockTxsReturn): PutBlockTxsReturn;
-
-    /**
-     * Encodes the specified PutBlockTxsReturn message. Does not implicitly {@link PutBlockTxsReturn.verify|verify} messages.
-     * @param message PutBlockTxsReturn message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: IPutBlockTxsReturn, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified PutBlockTxsReturn message, length delimited. Does not implicitly {@link PutBlockTxsReturn.verify|verify} messages.
-     * @param message PutBlockTxsReturn message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: IPutBlockTxsReturn, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a PutBlockTxsReturn message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns PutBlockTxsReturn
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): PutBlockTxsReturn;
-
-    /**
-     * Decodes a PutBlockTxsReturn message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns PutBlockTxsReturn
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): PutBlockTxsReturn;
-
-    /**
-     * Verifies a PutBlockTxsReturn message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a PutBlockTxsReturn message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns PutBlockTxsReturn
-     */
-    public static fromObject(object: { [k: string]: any }): PutBlockTxsReturn;
-
-    /**
-     * Creates a plain object from a PutBlockTxsReturn message. Also converts values to other types if specified.
-     * @param message PutBlockTxsReturn
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: PutBlockTxsReturn, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this PutBlockTxsReturn to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };

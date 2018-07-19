@@ -47,9 +47,6 @@ message Network {
 
         GetBlockTxs getBlockTxs=27;
         GetBlockTxsReturn getBlockTxsReturn=28;
-
-        PutBlockTxs putBlockTxs=29;
-        PutBlockTxsReturn putBlockTxsReturn=30;
     }
 }
 
@@ -79,14 +76,6 @@ message PutTx {
 
 message PutTxReturn {
     bool success=1;
-}
-
-message PutBlockTxs {
-    repeated BlockTxs txBlocks=1;
-}
-
-message PutBlockTxsReturn {
-    repeated StatusChange statusChanges=1;
 }
 
 message GetBlockTxs {

@@ -59,7 +59,6 @@ export abstract class BasePeer {
                 case "putHeaders":
                 case "getHash":
                 case "getBlockTxs":
-                case "putBlockTxs":
                     this.requestSemaphore.critical(async () => await this.respond(route, res, packet)).catch((e) => logger.debug(e))
                     break
                 case "statusReturn":
@@ -76,7 +75,6 @@ export abstract class BasePeer {
                 case "putHeadersReturn":
                 case "getHashReturn":
                 case "getBlockTxsReturn":
-                case "putBlockTxsReturn":
                     if (route === 0) {
                         logger.debug(`Recieved ${res.request} broadcast`)
                     }

@@ -80,15 +80,6 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return { hash: new Hash(reply.getTipReturn.hash), height: Number(reply.getTipReturn.height), totalwork: reply.getTipReturn.totalwork }
     }
 
-    public async putHeaders(headers: AnyBlockHeader[]): Promise<IStatusChange[]> {
-        const { reply, packet } = await this.sendRequest({ putHeaders: { headers } })
-        if (reply.putHeadersReturn === undefined) {
-            this.protocolError(new Error(`Reply has no 'putHeadersReturn': ${JSON.stringify(reply)}`))
-            throw new Error("Invalid response")
-        }
-        return reply.putHeadersReturn.statusChanges
-    }
-
     public async getHash(height: number): Promise<Hash | undefined> {
         try {
             const { reply, packet } = await this.sendRequest({ getHash: { height } })
@@ -105,19 +96,6 @@ export class RabbitPeer extends BasePeer implements IPeer {
         } catch (e) {
             logger.debug(`Could not getHash() from peer: ${e}`)
             return
-        }
-    }
-
-    public async putBlockTxs(txBlocks: proto.IBlockTxs[]): Promise<proto.IPutBlockTxsReturn> {
-        try {
-            const { reply, packet } = await this.sendRequest({ putBlockTxs: { txBlocks } })
-            if (reply.putBlockTxsReturn === undefined) {
-                this.protocolError(new Error(`Reply has no putBlockTxsReturn: ${JSON.stringify(reply)}`))
-                throw new Error("Invalid response")
-            }
-            return reply.putBlockTxsReturn
-        } catch (e) {
-            throw new Error(`Could not send block transactions ${e}`)
         }
     }
 
@@ -204,16 +182,6 @@ export class RabbitPeer extends BasePeer implements IPeer {
             txs.push(new SignedTx(tx))
         }
         return txs
-    }
-
-    public async putBlocks(blocks: Block[]): Promise<IStatusChange[]> {
-        const { reply, packet } = await this.sendRequest({ putBlock: { blocks } })
-        if (reply.putBlockReturn === undefined) {
-            this.protocolError(new Error(`Reply has no 'putBlockReturn': ${JSON.stringify(reply)}`))
-            throw new Error("Invalid response")
-        }
-
-        return reply.putBlockReturn.statusChanges
     }
 
     public async getBlocksByHashes(hashes: Hash[]): Promise<Block[]> {
@@ -306,9 +274,6 @@ export class RabbitPeer extends BasePeer implements IPeer {
             case "getBlockTxs":
                 response = await this.respondGetBlockTxs(reply, request[request.request])
                 break
-            case "putBlockTxs":
-                response = await this.respondPutBlockTxs(reply, request[request.request])
-                break
             case "getBlocksByRange":
                 response = await this.respondGetBlocksByRange(reply, request[request.request])
                 break
@@ -396,42 +361,37 @@ export class RabbitPeer extends BasePeer implements IPeer {
     }
 
     private async respondPutBlock(reply: boolean, request: proto.IPutBlock, rebroadcast: () => void): Promise<proto.INetwork> {
-        const relay = true
-        const headerStatusChanges: IStatusChange[] = []
-        const blockStatusChanges: IStatusChange[] = []
+        request.blocks = request.blocks.slice(0, 1)
+        let block: Block
+        let header: BlockHeader
         try {
-            for (const iblock of request.blocks) {
-                const block = new Block(iblock)
-                const header = block.header
-                try {
-                    const result = await this.consensus.putHeader(header)
-                    headerStatusChanges.push(result)
-                } catch (e) {
-                    logger.debug(e)
-                }
-            }
-            if (headerStatusChanges.every((x) => ((x.oldStatus === BlockStatus.Nothing) && (x.status >= BlockStatus.Header)) && x.htip)) {
-                rebroadcast()
-            }
-            for (const iblock of request.blocks) {
-                const block = new Block(iblock)
-                try {
-                    const result = await this.consensus.putBlock(block)
-                    blockStatusChanges.push(result)
-                } catch (e) {
-                    blockStatusChanges.push({ oldStatus: BlockStatus.Nothing, status: BlockStatus.Block, htip: false })
-                }
-            }
-            if (!relay && this.sync === undefined) {
-                this.forceSync().then(() => { this.sync = undefined }).catch(() => { this.sync = undefined })
-            }
+            block = new Block(request.blocks[0])
+            header = block.header
         } catch (e) {
-            logger.debug(`Failed to put block: ${e}`)
+            return { putBlockReturn: { statusChanges: [] } }
         }
-        if (relay && request.blocks && request.blocks.length > 0) {
-            logger.debug(`PutBlock Relay=${relay}`)
+        let result: IStatusChange
+        try {
+            result = await this.consensus.putHeader(header)
+        } catch (e) {
+            result = { oldStatus: BlockStatus.Nothing, status: BlockStatus.Nothing, htip: false }
         }
-        return { putBlockReturn: { statusChanges: blockStatusChanges } }
+
+        if (result.oldStatus > result.status) {
+            return { putBlockReturn: { statusChanges: [result] } }
+        }
+
+        if (((result.oldStatus === BlockStatus.Nothing) && result.status >= BlockStatus.Header) && result.htip) {
+            rebroadcast()
+        }
+
+        try {
+            result = await this.consensus.putBlock(block)
+        } catch (e) {
+            result = { oldStatus: BlockStatus.Header, status: BlockStatus.Header, htip: false }
+        }
+
+        return { putBlockReturn: { statusChanges: [result] } }
     }
 
     private async respondGetBlocksByHash(reply: boolean, request: proto.IGetBlocksByHash): Promise<proto.INetwork> {
@@ -514,22 +474,18 @@ export class RabbitPeer extends BasePeer implements IPeer {
     }
 
     private async respondPutHeaders(reply: boolean, request: proto.IPutHeaders, rebroadcast: () => void): Promise<proto.INetwork> {
-        let relay = false
-        const statusChanges: IStatusChange[] = []
-        for (const iheader of request.headers) {
-            try {
-                const header = new BlockHeader(iheader)
-                statusChanges.push(await this.consensus.putHeader(header))
-            } catch (e) {
-                statusChanges.push({ oldStatus: BlockStatus.Nothing, status: BlockStatus.Header })// TODO: Feedback
+        let result: IStatusChange
+        try {
+            request.headers = request.headers.slice(0, 1)
+            const header = new BlockHeader(request.headers[0])
+            result = await this.consensus.putHeader(header)
+            if (result.status !== undefined && result.status !== BlockStatus.Rejected && result.oldStatus !== result.status) {
+                rebroadcast()
             }
+        } catch (e) {
+            result = { oldStatus: BlockStatus.Nothing, status: BlockStatus.Nothing }
         }
-        relay = statusChanges.every((change) => (change.status !== undefined && change.status !== BlockStatus.Rejected && change.oldStatus !== change.status))
-        logger.debug(`PutHeader`)
-        if (relay) {
-            rebroadcast()
-        }
-        return { putHeadersReturn: { statusChanges } }
+        return { putHeadersReturn: { statusChanges: [result] } }
     }
 
     private async respondGetHash(reply: boolean, request: proto.IGetHash): Promise<proto.INetwork> {
@@ -541,28 +497,6 @@ export class RabbitPeer extends BasePeer implements IPeer {
         } catch (e) {
             logger.error(`Failed to getHash: ${e}`)
             message = { getHashReturn: { success: false } }
-        }
-        return message
-    }
-
-    private async respondPutBlockTxs(reply: boolean, request: proto.IPutBlockTxs): Promise<proto.INetwork> {
-        let message: proto.INetwork
-        try {
-            const txBlocks: Array<{ hash: Hash, txs: SignedTx[] }> = []
-            for (const txBlock of request.txBlocks) {
-                const hash = new Hash(txBlock.hash)
-                const txs = []
-                for (const itx of txBlock.txs) {
-                    const tx = new SignedTx(itx)
-                    txs.push(tx)
-                }
-                txBlocks.push({ hash, txs })
-            }
-            const statusChanges = await this.consensus.putTxBlocks(txBlocks)
-            message = { putBlockTxsReturn: { statusChanges } }
-
-        } catch (e) {
-            logger.error(`Failed to receive block txs: ${e}`)
         }
         return message
     }
