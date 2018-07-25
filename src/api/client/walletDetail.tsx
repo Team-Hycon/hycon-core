@@ -42,6 +42,7 @@ export class WalletDetail extends React.Component<any, any> {
             name: props.name,
             notFound: false,
             password: "",
+            pendings: [],
             rest: props.rest,
             showDialog1: false,
             txs: [],
@@ -60,7 +61,7 @@ export class WalletDetail extends React.Component<any, any> {
         this.props.rest.getWalletDetail(this.state.name).then((data: IHyconWallet & IResponseError) => {
             this.state.rest.setLoading(false)
             if (this.mounted && data.address) {
-                this.setState({ wallet: data, address: data.address, txs: data.txs, minedBlocks: data.minedBlocks })
+                this.setState({ wallet: data, address: data.address, txs: data.txs, minedBlocks: data.minedBlocks, pendings: data.pendings })
             } else {
                 this.setState({ notFound: true })
             }
@@ -209,6 +210,17 @@ export class WalletDetail extends React.Component<any, any> {
                 </table>
                 <Tabs style={{ paddingTop: "2px" }} inkBarStyle={{ backgroundColor: "#000" }}>
                     <Tab label="Transaction" style={{ backgroundColor: "#FFF", color: "#000" }}>
+                        {this.state.pendings.map((tx: ITxProp) => {
+                            return (
+                                <div key={accountIndex++}>
+                                    <TxLine tx={tx} rest={this.state.rest} />
+                                    {tx.from === this.state.address ?
+                                        (<button className="mdl-button mdl-js-button mdl-button--raised mdl-button--accent txAmtBtn">-{tx.estimated} HYCON</button>)
+                                        :
+                                        (<button className="mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn">{tx.amount} HYCON</button>)}
+                                </div>
+                            )
+                        })}
                         {this.state.txs.map((tx: ITxProp) => {
                             return (
                                 <div key={accountIndex++}>

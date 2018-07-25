@@ -1,9 +1,10 @@
 import Long = require("long")
 import * as React from "react"
+import update = require("react-addons-update")
 import { NotFound } from "./notFound"
-import { IBlock, IResponseError, IRest } from "./rest"
+import { IBlock, IResponseError, IRest, ITxProp } from "./rest"
 import { hyconfromString, hycontoString } from "./stringUtil"
-import { TxList } from "./txList"
+import { TxLine } from "./txLine"
 interface IBlockProps {
     rest: IRest
     hash: string
@@ -13,20 +14,27 @@ interface IBlockProps {
 interface IBlockViewState {
     rest: IRest
     block?: IBlock
+    txs: ITxProp[]
     hash: string
     amount?: string
     fees?: string
+    length?: number
     volume?: string
     notFound: boolean
+    hasMore: boolean
+    index: number
 }
 export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
     public mounted: boolean = false
     constructor(props: IBlockProps) {
         super(props)
         this.state = {
+            hasMore: true,
             hash: props.hash,
+            index: 1,
             notFound: false,
             rest: props.rest,
+            txs: [],
         }
     }
     public componentWillUnmount() {
@@ -38,22 +46,15 @@ export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
         this.state.rest.getBlock(this.state.hash).then((data: IBlock & IResponseError) => {
             this.state.rest.setLoading(false)
             if (data.txs) {
-                let amount = Long.fromInt(0)
-                let fees = Long.fromInt(0)
-                for (const tx of data.txs) {
-                    amount = amount.add(hyconfromString(tx.amount))
-                    if (tx.fee !== undefined) {
-                        fees = fees.add(hyconfromString(tx.fee))
-                    }
-                }
-                const volume = amount.add(fees)
                 this.state.rest.setLoading(false)
                 if (this.mounted) {
                     this.setState({
-                        amount: hycontoString(amount),
+                        amount: data.amount,
                         block: data,
-                        fees: hycontoString(fees),
-                        volume: hycontoString(volume),
+                        fees: data.fee,
+                        length: data.length,
+                        txs: data.txs,
+                        volume: data.volume,
                     })
                 }
             } else {
@@ -64,6 +65,7 @@ export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
         })
     }
     public render() {
+        let txIndex = 0
         if (this.state.notFound) {
             return <NotFound />
         }
@@ -127,7 +129,7 @@ export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
                         </tr>
                         <tr>
                             <td className="tdSubTitle subTitle_width20">Num of Txs</td>
-                            <td>{this.state.block.txs.length}</td>
+                            <td>{this.state.length}</td>
                         </tr>
                         <tr>
                             <td className="tdSubTitle subTitle_width20">Tx Volume</td>
@@ -143,8 +145,31 @@ export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
                         </tr>
                     </tbody>
                 </table>
-                <TxList txs={this.state.block.txs} rest={this.state.rest} />
+                {this.state.txs.map((tx: ITxProp) => {
+                    return (
+                        <div key={txIndex++}>
+                            <TxLine tx={tx} rest={this.state.rest} />
+                            <button className="mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn green">
+                                {tx.estimated + " HYCON"}
+                            </button>
+                        </div>
+                    )
+                })}
+                {this.state.hasMore && this.state.txs.length > 0 ?
+                    (<div><button className="btn btn-block btn-info" onClick={() => this.fetchNextTxs()}>Load more</button></div>)
+                    :
+                    (<div></div>)}
             </div>
         )
+    }
+
+    private fetchNextTxs() {
+        this.state.rest.getNextTxsInBlock(this.state.hash, this.state.txs[0].hash, this.state.index).then((result: ITxProp[]) => {
+            if (result.length === 0) { this.setState({ hasMore: false }) }
+            this.setState({
+                index: this.state.index + 1,
+                txs: update(this.state.txs, { $push: result }),
+            })
+        })
     }
 }

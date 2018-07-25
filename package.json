@@ -103,12 +103,15 @@
         "react-router": "^4.2.0",
         "react-router-config": "^1.0.0-beta.4",
         "react-router-dom": "^4.2.2",
+        "reflect-metadata": "^0.1.12",
         "rocksdb": "git+https://github.com/Team-Hycon/rocksdb.git",
         "secp256k1": "^3.5.0",
         "sha256": "^0.2.0",
         "sqlite3": "^4.0.0",
         "sqlite3-transactions": "0.0.5",
         "stratum": "git://github.com/dev-jbam/node-stratum.git",
+        "tsconfig": "^7.0.0",
+        "typeorm": "^0.2.7",
         "wallet.ts": "^0.2.5"
     }
 }

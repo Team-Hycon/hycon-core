@@ -100,12 +100,30 @@ export abstract class BasePeer {
         }
     }
 
+    protected getTimeout(request: proto.INetwork) {
+        // tslint:disable-next-line:forin
+        for (const key in request) {
+            switch (key) {
+                case "getHash":
+                case "getTip":
+                case "status":
+                    return 4000
+                case "getBlockTxs":
+                case "getHeadersByRange":
+                case "getBlocksByRange":
+                    return 120000
+                default:
+                    return BasePeer.DefaultTimeoutTime
+            }
+        }
+    }
+
     protected async sendRequest(request: proto.INetwork): Promise<ReplyAndPacket> {
         const id = this.newReplyID()
         let timeout: NodeJS.Timer
         try {
             return await new Promise<ReplyAndPacket>((resolved, reject) => {
-                timeout = setTimeout(() => reject("Timeout"), BasePeer.DefaultTimeoutTime)
+                timeout = setTimeout(() => reject("Timeout"), this.getTimeout(request))
                 this.replyMap.set(id, { resolved, reject, timeout })
                 this.send(id, request).catch(reject)
             })

@@ -1,8 +1,9 @@
+import { Icon, IconButton, InputAdornment, TextField } from "@material-ui/core"
 import Long = require("long")
 import * as React from "react"
 import update = require("react-addons-update")
 import * as ReactPaginate from "react-paginate"
-import { Link } from "react-router-dom"
+import { Redirect } from "react-router-dom"
 import { BlockLine } from "./blockLine"
 import { IBlock, IRest } from "./rest"
 import { hyconfromString, hycontoString } from "./stringUtil"
@@ -16,7 +17,14 @@ export class BlockList extends React.Component<any, any> {
     public mounted: boolean = false
     constructor(props: any) {
         super(props)
-        this.state = { blocks: [], rest: props.rest, length: 0, index: 0 }
+        this.state = {
+            blocks: [],
+            index: 0,
+            length: 0,
+            redirect: false,
+            rest: props.rest,
+            searchWord: undefined,
+        }
     }
     public componentWillUnmount() {
         this.mounted = false
@@ -71,10 +79,24 @@ export class BlockList extends React.Component<any, any> {
         if (this.state.blocks.length === 0) {
             return < div ></div >
         }
+        if (this.state.redirect) {
+            return <Redirect to={`/block/${this.state.blockHash}`} />
+        }
         return (
             <div>
-                <div className="contentTitle">
-                    LATEST BLOCKS
+                <div className="contentTitle">Latest Blocks</div>
+                <TextField label="Search" placeholder="Block Hash"
+                    onChange={(data) => this.handleBlockHash(data)}
+                    onKeyPress={(event) => { if (event.key === "Enter") { this.searchBlock(event) } }}
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <IconButton onClick={(event) => { this.searchBlock(event) }}><Icon>search</Icon></IconButton>
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+                <div>
                     <span className="seeMoreLink">
                         <ReactPaginate previousLabel={"PREV"}
                             nextLabel={"NEXT"}
@@ -91,7 +113,6 @@ export class BlockList extends React.Component<any, any> {
                         />
                     </span>
                 </div>
-
                 <div>
                     <table className="mdl-data-table mdl-js-data-table mdl-shadow--2dp table_margined">
                         <thead>
@@ -117,5 +138,18 @@ export class BlockList extends React.Component<any, any> {
 
     private handlePageClick = (data: any) => {
         this.getRecentBlockList(data.selected)
+    }
+    private handleBlockHash(data: any) {
+        this.setState({ blockHash: data.target.value })
+    }
+    private searchBlock(event: any) {
+        if (this.state.blockHash === undefined) {
+            event.preventDefault()
+        } else if (!/^[a-zA-Z0-9]+$/.test(this.state.blockHash)) {
+            event.preventDefault()
+            if (alert(`Please enter a valid block hash consisting of numbers and English`)) { window.location.reload() }
+        } else {
+            this.setState({ redirect: true })
+        }
     }
 }

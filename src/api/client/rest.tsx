@@ -23,12 +23,17 @@ export interface ITxProp {
     from?: string
     to?: string
     signature?: string
+    nonce?: number
 }
 export interface IBlock {
     hash: string
     height?: number
     txs: ITxProp[]
     timeStamp: number
+    amount?: string
+    fee?: string
+    length?: number
+    volume?: string
     difficulty: string
     prevBlock?: string
     nonce?: string
@@ -43,6 +48,7 @@ export interface IWalletAddress {
     balance: string
     nonce: number
     txs: ITxProp[]
+    pendings?: ITxProp[]
     minedBlocks?: IMinedInfo[]
     pendingAmount?: string
 }
@@ -83,6 +89,7 @@ export interface IHyconWallet {
     address?: string
     balance?: string
     txs?: ITxProp[]
+    pendings?: ITxProp[]
     language?: string
     pendingAmount?: string
     minedBlocks?: IMinedInfo[]
@@ -138,6 +145,7 @@ export interface IRest {
     getPendingTxs(index: number): Promise<{ txs: ITxProp[], length: number, totalCount: number, totalAmount: string, totalFee: string }>
     getHint(name: string): Promise<string>
     getNextTxs(address: string, txHash: string, index: number): Promise<ITxProp[]>
+    getNextTxsInBlock(blockhash: string, txHash: string, index: number): Promise<ITxProp[]>
     checkDupleName(name: string): Promise<boolean>
     getMinedBlocks(address: string, blockHash: string, index: number): Promise<IMinedInfo[]>
     getMiner(): Promise<IMiner>
@@ -151,4 +159,5 @@ export interface IRest {
     getLedgerWallet(startIndex: number, count: number): Promise<IHyconWallet[] | number>
     sendTxWithLedger(index: number, from: string, to: string, amount: string, fee: string, queueTx?: Function): Promise<{ res: boolean, case?: number }>
     possibilityLedger(): Promise<boolean>
+    getMarketCap(): Promise<{ amount: string }>
 }

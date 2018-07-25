@@ -1,6 +1,7 @@
 import { getLogger } from "log4js"
+import Long = require("long")
 import * as sqlite3 from "sqlite3"
-import { hycontoString } from "../../api/client/stringUtil"
+import { hyconfromString, hycontoString } from "../../api/client/stringUtil"
 import { Address } from "../../common/address"
 import { Block } from "../../common/block"
 import { BlockHeader } from "../../common/blockHeader"
@@ -36,6 +37,7 @@ export class TxDatabase implements ITxDatabase {
             this.db.run(`CREATE INDEX IF NOT EXISTS blocktime ON txdb(blocktime);`)
             this.db.run(`CREATE INDEX IF NOT EXISTS txto ON txdb(txto);`)
             this.db.run(`CREATE INDEX IF NOT EXISTS txfrom ON txdb(txfrom);`)
+            this.db.run(`CREATE INDEX IF NOT EXISTS blockhash ON txdb(blockhash);`)
         })
 
         if (tipHeight !== undefined) {
@@ -157,6 +159,32 @@ export class TxDatabase implements ITxDatabase {
         })
     }
 
+    public async getTxsInBlock(blockHash: string, result: DBTx[] = []): Promise<{ txs: DBTx[], amount: string, fee: string, length: number }> {
+        const params = {
+            $blockhash: blockHash.toString(),
+        }
+        return new Promise<{ txs: DBTx[], amount: string, fee: string, length: number }>(async (resolved, rejected) => {
+            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime FROM txdb WHERE blockhash = $blockhash ORDER BY blocktime`, params, async (err: Error, rows: any) => {
+                let amount = Long.fromInt(0)
+                let fee = Long.fromInt(0)
+                let index = 0
+                for (const row of rows) {
+                    const status = await this.consensus.getBlockStatus(row.blockhash)
+                    if (status === BlockStatus.MainChain) {
+                        amount = amount.add(hyconfromString(row.amount))
+                        fee = fee.add(hyconfromString(row.fee))
+
+                        if (index < 10) {
+                            result.push(new DBTx(row.txhash, row.blockhash, row.txto, row.txfrom, row.amount, row.fee, row.blocktime))
+                        }
+                        ++index
+                    }
+                }
+                return resolved({ txs: result, amount: hycontoString(amount), fee: hycontoString(fee), length: index })
+            })
+        })
+    }
+
     public async getNextTxs(address: Address, txHash: Hash, result: DBTx[] = [], pageNumber: number = 1, count?: number): Promise<DBTx[]> {
         const params = {
             $address: address.toString(),
@@ -186,6 +214,34 @@ export class TxDatabase implements ITxDatabase {
 
     }
 
+    public async getNextTxsInBlock(blockHash: string, txHash: string, result: DBTx[], idx: number, count?: number): Promise<DBTx[]> {
+        const params = {
+            $blockhash: blockHash.toString(),
+            $count: count - result.length,
+            $startIndex: idx * count,
+            $txhash: txHash,
+        }
+        return new Promise<DBTx[]>(async (resolved, rejected) => {
+            this.db.all(`SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime FROM txdb WHERE (blocktime <= (SELECT blocktime FROM txdb WHERE txhash = $txhash)) AND (blockhash = $blockhash) ORDER BY blocktime DESC LIMIT $startIndex, $count`, params, async (err: Error, rows: any) => {
+                for (const row of rows) {
+                    const status = await this.consensus.getBlockStatus(row.blockhash)
+                    if (status === BlockStatus.MainChain) {
+                        result.push(new DBTx(row.txhash, row.blockhash, row.txto, row.txfrom, row.amount, row.fee, row.blocktime))
+                    }
+
+                    if (result.length === count) { break }
+                }
+                if (rows.length < count) {
+                    return resolved(result)
+                }
+                if (result.length < count) {
+                    result = await this.getNextTxsInBlock(blockHash, txHash, result, ++idx, count)
+                }
+                return resolved(result)
+            })
+        })
+    }
+
     public async getTx(key: Hash): Promise<{ tx: DBTx, confirmation: number } | undefined> {
         const params = { $txhash: key.toString() }
         let tx: DBTx
@@ -197,6 +253,20 @@ export class TxDatabase implements ITxDatabase {
                 const tip = this.consensus.getBlocksTip()
                 const confirmation = tip.height - height
                 return resolved({ tx, confirmation })
+            })
+        })
+    }
+
+    public async getBurnAmount(): Promise<{ amount: Long }> {
+        return new Promise<{ amount: Long }>(async (resolved, rejected) => {
+            this.db.all(`select amount from txdb where txto = '🔥'`, async (err: Error, rows: any) => {
+                let amount: Long = Long.UZERO
+                if (rows !== undefined) {
+                    for (const row of rows) {
+                        amount = amount.add(hyconfromString(row.amount))
+                    }
+                }
+                return resolved({ amount })
             })
         })
     }

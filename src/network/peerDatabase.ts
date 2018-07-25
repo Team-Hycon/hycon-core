@@ -1,19 +1,13 @@
-import * as delay from "delay"
 import { getLogger } from "log4js"
-import * as sqlite3 from "sqlite3"
-import * as sqlite3Trans from "sqlite3Trans"
+import "reflect-metadata"
+import { Connection, createConnection } from "typeorm"
 import { AsyncLock } from "../common/asyncLock"
 import * as proto from "../serialization/proto"
 import { Hash } from "../util/hash"
 import { INetwork } from "./inetwork"
 import { IPeerDatabase } from "./ipeerDatabase"
-// tslint:disable-next-line:no-var-requires
-const TransactionDatabase = require("sqlite3-transactions").TransactionDatabase
-const logger = getLogger("PeerDatabase")
-
-interface ITableInfo { cid: number, name: string, type: string, notnull: number, dflt_value: string, pk: number }
-interface IRow { KEY: number, HOST: string, PORT: number, LASTSEEN: number, FAILCOUNT: number, SUCCESSCOUNT: number, LASTATTEMPT: number, ACTIVE: boolean, CURRENTQUEUE: number }
-interface IRowCount { num: number }
+import { PeerModel } from "./peerModel"
+const logger = getLogger("PeerDb")
 export class PeerDatabase implements IPeerDatabase {
     public static ipeer2key(peer: proto.IPeer): number {
         const hash = new Hash(peer.host + "!" + peer.port.toString())
@@ -24,484 +18,286 @@ export class PeerDatabase implements IPeerDatabase {
         return key
     }
 
-    private network: INetwork
-    private db: sqlite3Trans.Database
+    public static model2ipeer(peerModel: PeerModel): proto.IPeer {
+        const peer: proto.IPeer = {
+            active: peerModel.active,
+            currentQueue: peerModel.currentQueue,
+            failCount: peerModel.failCount,
+            host: peerModel.host,
+            lastAttempt: peerModel.lastAttempt,
+            lastSeen: peerModel.lastSeen,
+            port: peerModel.port,
+            successCount: peerModel.successCount,
+        }
+        return peer
+    }
+
+    private connection: Connection
     private maxPeerCount: number = 200
-
-    constructor(network: INetwork, path: string = "peerdb") {
-        this.db = new TransactionDatabase(
-            // tslint:disable-next-line:no-bitwise
-            new sqlite3.Database(path + `sql`, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE),
-        )
+    private network: INetwork
+    private path: string
+    private dbLock: AsyncLock
+    constructor(network: INetwork, path: string) {
         this.network = network
+        this.path = path
+        this.dbLock = new AsyncLock(1)
     }
 
-    public async init(): Promise<boolean> {
-        const sql = `CREATE TABLE IF NOT EXISTS peerdb (
-                KEY INTEGER PRIMARY KEY NOT NULL,
-                HOST TEXT NOT NULL,
-                PORT INTEGER NOT NULL,
-                LASTSEEN INTEGER,
-                FAILCOUNT INTEGER,
-                SUCCESSCOUNT INTEGER,
-                LASTATTEMPT INTEGER,
-                ACTIVE INTEGER,
-                CURRENTQUEUE INTEGER
-            )`
-        await new Promise<void>((resolve, reject) => {
-            this.db.run(sql, (err: Error) => {
-                if (err) { reject(`Create table peerdb: ${err}`) }
-                resolve()
+    public async init() {
+        try {
+            this.connection = await createConnection({
+                database: `${this.path}sql`,
+                entities: [PeerModel],
+                synchronize: true,
+                type: "sqlite",
             })
-        })
+            await this.dbLock.releaseLock()
+            await this.reset()
+        } catch (e) {
+            logger.debug(`DB init error: ${e}`)
+            throw e
+        }
+    }
 
-        const tableInfo: ITableInfo[] = await new Promise<ITableInfo[]>((resolve, reject) => {
-            this.db.all("PRAGMA table_info('peerdb')", (err: Error, rows: ITableInfo[]) => {
-                if (err) { reject(`Get peerdb table info: ${err}`) }
-                resolve(rows)
-            })
-        })
-
-        let exist: boolean = false
-
-        for (const i of tableInfo) {
-            if (i.name === "SUCCESSCOUNT") {
-                exist = true
+    public async seen(peer: proto.IPeer): Promise<proto.IPeer> {
+        try {
+            if (peer.port > 10000) {
+                return
             }
-        }
-
-        if (!exist) {
-            const sqlAdd = `ALTER TABLE peerdb ADD COLUMN SUCCESSCOUNT INTEGER`
-            await new Promise<void>((resolve, reject) => {
-                this.db.run(sqlAdd, (err: Error) => {
-                    if (err) { reject(`Add peerdb column: ${err}`) }
-                    resolve()
-                })
+            return this.dbLock.critical(async () => {
+                const key = PeerDatabase.ipeer2key(peer)
+                const peerExist = await this.connection.manager.findOne(PeerModel, { key })
+                if (peerExist) {
+                    peerExist.lastSeen = Date.now()
+                    peerExist.successCount += 1
+                    peerExist.active = true
+                    const ret = PeerDatabase.model2ipeer(await this.connection.manager.save(peerExist))
+                    logger.debug(`seen peer : ${ret.host}~${ret.port}~${ret.active}`)
+                    return ret
+                } else {
+                    const newPeer = new PeerModel()
+                    newPeer.key = key
+                    newPeer.host = peer.host
+                    newPeer.port = peer.port
+                    newPeer.lastSeen = Date.now()
+                    newPeer.successCount = 1
+                    newPeer.active = true
+                    const ret = PeerDatabase.model2ipeer(await this.connection.manager.save(newPeer))
+                    logger.debug(`seen peer : ${ret.host}~${ret.port}~${ret.active}`)
+                    return ret
+                }
             })
+        } catch (e) {
+            logger.debug(`seen peer error: ${e}`)
+            throw e
         }
-        return true
     }
 
-    public async clearAll(): Promise<void> {
-        const sql = `DELETE FROM peerdb`
-        await new Promise<void>((resolve, reject) => {
-            this.db.run(sql, (err: Error) => {
-                if (err) { reject(`Destroy table peerdb: ${err}`) }
-                resolve()
+    public async fail(peer: proto.IPeer): Promise<proto.IPeer> {
+        try {
+            if (peer.port > 10000) {
+                return
+            }
+            return this.dbLock.critical(async () => {
+                const key = PeerDatabase.ipeer2key(peer)
+                const peerExist = await this.connection.manager.findOne(PeerModel, { key })
+                if (peerExist) {
+                    peerExist.lastAttempt = Date.now()
+                    peerExist.failCount += 1
+                    const ret = PeerDatabase.model2ipeer(await this.connection.manager.save(peerExist))
+                    logger.debug(`fail peer : ${ret.host}~${ret.port}~${ret.active}`)
+                    return ret
+                } else {
+                    const newPeer = new PeerModel()
+                    newPeer.key = key
+                    newPeer.host = peer.host
+                    newPeer.port = peer.port
+                    newPeer.lastAttempt = Date.now()
+                    newPeer.active = false
+                    const ret = PeerDatabase.model2ipeer(await this.connection.manager.save(newPeer))
+                    logger.debug(`fail peer : ${ret.host}~${ret.port}~${ret.active}`)
+                    return ret
+                }
             })
-        })
+        } catch (e) {
+            logger.debug(`fail peer error: ${e}`)
+            throw e
+        }
     }
 
-    public close() {
-        this.db.close()
+    public async deactivate(key: number) {
+        try {
+            return this.dbLock.critical(async () => {
+                const peerExist = await this.connection.manager.findOne(PeerModel, { key })
+                if (peerExist) {
+                    peerExist.active = false
+                    await this.connection.manager.save(peerExist)
+                    logger.debug(`deactivate peer successful with key ${key}`)
+                }
+            })
+        } catch (e) {
+            logger.debug(`deactivate peer error: ${e}`)
+            throw e
+        }
     }
 
-    public async put(peer: proto.IPeer): Promise<proto.IPeer> {
-        return await this.doPut(peer)
-    }
-    public async putPeers(peers: proto.IPeer[]): Promise<boolean> {
-        const length = peers.length
-        if (length < this.maxPeerCount) {
-            this.doPutPeers(peers)
-        } else {
+    public async putPeers(peers: proto.IPeer[]) {
+        try {
             const tp = peers.splice(0, this.maxPeerCount)
-            this.doPutPeers(tp)
+            await this.doPutPeers(tp)
+        } catch (e) {
+            logger.debug(`put peers error: ${e}`)
+            throw e
         }
-        return true
     }
 
-    public async seen(peerOriginal: proto.IPeer): Promise<proto.IPeer> {
-        const key = PeerDatabase.ipeer2key(peerOriginal)
-        // if exist, read data
-        let peer = peerOriginal
+    public async getRandomPeer(): Promise<proto.IPeer> {
         try {
-            peer = await this.doGet(key)
-        } catch (error) {
-            // this is new peer!
+            let sql: string
+            let wSuccess: number
+            let wFail: number
+            let wLastSeen: number
+            let params: number[] = []
+            let size = 0
+            if (this.network) {
+                size = this.network.getConnectionCount()
+            }
+            if (size < 20) {
+                wLastSeen = 0.5
+                wSuccess = 2
+                wFail = 10
+                sql = `SELECT * FROM peer_model WHERE active = 0 ORDER BY ABS(RANDOM()%100+1) *
+                CASE WHEN
+                    (?*successCount - ?*failCount + ?*(
+                        CASE
+                            WHEN (lastSeen = 0) THEN 0
+                            WHEN (strftime('%s', 'now')*1000 - lastSeen)/1000/60/60 > 100 THEN 0
+                            ELSE 100 - (strftime('%s', 'now')*1000 - lastSeen)/1000/60/60
+                        END
+                    )) = 0 THEN 1
+                ELSE
+                    (?*successCount - ?*failCount + ?*(
+                        CASE
+                            WHEN (lastSeen = 0) THEN 0
+                            WHEN (strftime('%s', 'now')*1000 - lastSeen)/1000/60/60 > 100 THEN 0
+                            ELSE 100 - (strftime('%s', 'now')*1000 - lastSeen)/1000/60/60
+                        END
+                    ))
+                END
+                DESC LIMIT 1`
+                params = [wSuccess, wFail, wLastSeen, wSuccess, wFail, wLastSeen]
+            }
+            if (size >= 20 && size < 40) {
+                wSuccess = 2
+                wFail = 10
+                sql = `SELECT * FROM peer_model WHERE active = 0 ORDER BY ABS(RANDOM()%100+1) *
+                CASE WHEN
+                    (?*successCount - ?*failCount) = 0 THEN 1
+                ELSE
+                    (?*successCount - ?*failCount)
+                END
+                DESC LIMIT 1`
+                params = [wSuccess, wFail, wSuccess, wFail]
+            }
+            if (size >= 40) {
+                sql = `SELECT * FROM peer_model WHERE active = 0 ORDER BY RANDOM() DESC LIMIT 1`
+            }
+            return this.dbLock.critical(async () => {
+                const rows = await this.connection.manager.query(sql, params)
+                const res = PeerDatabase.model2ipeer(rows[0])
+                logger.debug(`peer pick: ${res.host}~${res.port}~${res.successCount}~${res.lastSeen}~${res.failCount}~${res.lastAttempt}~${res.active}`)
+                return res
+            })
+        } catch (e) {
+            logger.debug(`get random peer error: ${e}`)
+            throw e
         }
-        peer.lastSeen = Date.now()
-
-        if (peer.successCount === undefined) {
-            peer.successCount = 1
-        } else {
-            peer.successCount++
-        }
-        // peer.failCount = 0
-        return await this.doPut(peer)
-    }
-
-    public async fail(peerOriginal: proto.IPeer, limit: number): Promise<proto.IPeer> {
-        const key = PeerDatabase.ipeer2key(peerOriginal)
-        // if exist, read data
-        let peer = peerOriginal
-        try {
-            peer = await this.doGet(key)
-        } catch (error) {
-            // this is new peer!
-        }
-        // it already exists
-        peer.lastAttempt = Date.now()
-        if (peer.failCount === undefined) {
-            peer.failCount = 1
-        } else {
-            peer.failCount++
-        }
-        return await this.doPut(peer)
-
     }
 
     public async get(key: number): Promise<proto.IPeer> {
-        const sql = `SELECT * FROM peerdb WHERE KEY = ${key}`
-        return new Promise((resolve, reject) => {
-            this.db.get(sql, (err: Error, row: IRow) => {
-                if (err) { reject(`Get peer: ${err}`) }
-                if (row) {
-                    const peer: proto.IPeer = {
-                        active: row.ACTIVE,
-                        currentQueue: row.CURRENTQUEUE,
-                        failCount: row.FAILCOUNT,
-                        host: row.HOST,
-                        lastAttempt: row.LASTATTEMPT,
-                        lastSeen: row.LASTSEEN,
-                        port: row.PORT,
-                        successCount: row.SUCCESSCOUNT,
-                    }
-                    resolve(peer)
+        try {
+            return this.dbLock.critical(async () => {
+                const res = await this.connection.manager.findOne(PeerModel, { key })
+                if (res) {
+                    return PeerDatabase.model2ipeer(res)
                 } else {
-                    reject(`Invalid Row Get peer: ${err}`)
+                    // peer with the key not exist
+                    return undefined
                 }
             })
-        })
-
-    }
-
-    public async getRandomPeer(exemptions: proto.IPeer[]): Promise<proto.IPeer> {
-        let condition = ""
-        for (const exemption of exemptions) {
-            const exemptionKey = PeerDatabase.ipeer2key(exemption)
-            condition += `${exemptionKey},`
+        } catch (e) {
+            logger.debug(`get peer key error: ${e}`)
+            throw e
         }
-        if (condition.length > 0) {
-            condition = condition.substring(0, condition.length - 1)
-        }
-
-        let wSuccess: number
-        let wFail: number
-        let wLastSeem: number
-        let sql: string
-        let size = 0
-        if (this.network) {
-            size = this.network.getConnectionCount()
-        }
-        if (size < 20) {
-            wLastSeem = 0.5
-            wSuccess = 2
-            wFail = 10
-            sql = `SELECT * FROM peerdb WHERE KEY NOT IN ($condition) ORDER BY ABS(RANDOM()%100) *
-            CASE WHEN
-                ($wSuccess*successCount - $wFail*failCount + $wLastSeem*(
-                    CASE
-                        WHEN (lastSeen = 0) THEN 0
-                        WHEN (lastSeen = '') THEN 0
-                        WHEN (strftime('%s', 'now')*1000 - lastSeen)/1000/60/60 > 100 THEN 0
-                        ELSE 100 - (strftime('%s', 'now')*1000 - lastSeen)/1000/60/60
-                    END
-                )) = 0 THEN 1
-            ELSE
-                ($wSuccess*successCount - $wFail*failCount + $wLastSeem*(
-                    CASE
-                        WHEN (lastSeen = 0) THEN 0
-                        WHEN (lastSeen = '') THEN 0
-                        WHEN (strftime('%s', 'now')*1000 - lastSeen)/1000/60/60 > 100 THEN 0
-                        ELSE 100 - (strftime('%s', 'now')*1000 - lastSeen)/1000/60/60
-                    END
-                ))
-            END
-            DESC LIMIT 1`
-        }
-        if (size >= 20 && size < 40) {
-            wSuccess = 2
-            wFail = 10
-            sql = `SELECT * FROM peerdb WHERE KEY NOT IN ($condition) ORDER BY ABS(RANDOM()%100) *
-            CASE WHEN
-                ($wSuccess*successCount - $wFail*failCount) = 0 THEN 1
-            ELSE
-                ($wSuccess*successCount - $wFail*failCount)
-            END
-            DESC LIMIT 1`
-        }
-
-        if (size >= 40) {
-            sql = `SELECT * FROM peerdb WHERE KEY NOT IN (${condition}) ORDER BY RANDOM() DESC LIMIT 1`
-        }
-
-        return new Promise((resolve, reject) => {
-            const params = {
-                $condition: condition,
-                $wFail: wFail,
-                $wLastSeem: wLastSeem,
-                $wSuccess: wSuccess,
-            }
-            this.db.get(sql, params, (err: Error, row: IRow) => {
-                if (err) { reject(`Get random peer: ${err}`) }
-                if (row === undefined) { reject(`Get random peer: no peer been picked`) } else {
-                    const peer: proto.IPeer = {
-                        active: row.ACTIVE,
-                        currentQueue: row.CURRENTQUEUE,
-                        failCount: row.FAILCOUNT,
-                        host: row.HOST,
-                        lastAttempt: row.LASTATTEMPT,
-                        lastSeen: row.LASTSEEN,
-                        port: row.PORT,
-                        successCount: row.SUCCESSCOUNT,
-                    }
-                    // logger.info(`Pick: ${peer.host}:${peer.port}:${peer.successCount}:${peer.failCount}:${peer.lastSeen}`)
-                    resolve(peer)
-                }
-            })
-        })
-
-    }
-
-    public async remove(peer: proto.IPeer, db: sqlite3Trans.Database = this.db): Promise<boolean> {
-        return new Promise<boolean>((resolve, reject) => {
-            const key = PeerDatabase.ipeer2key(peer)
-            const sql = `DELETE FROM peerdb
-                                WHERE KEY = $key`
-            const params = {
-                $key: key,
-            }
-            db.run(sql, params, (err: Error) => {
-                if (err) { resolve(false) }
-                resolve(true)
-            })
-        })
-
     }
 
     public async getKeys(): Promise<number[]> {
-        const sql = `SELECT * FROM peerdb`
-        return new Promise<number[]>((resolve, reject) => {
-            this.db.all(sql, (err: Error, rows: IRow[]) => {
-                if (err) { reject(`GetKeys: ${err}`) }
-                const ret: number[] = []
-                for (const row of rows) {
-                    const peer: proto.IPeer = {
-                        active: row.ACTIVE,
-                        currentQueue: row.CURRENTQUEUE,
-                        failCount: row.FAILCOUNT,
-                        host: row.HOST,
-                        lastAttempt: row.LASTATTEMPT,
-                        lastSeen: row.LASTSEEN,
-                        port: row.PORT,
-                        successCount: row.SUCCESSCOUNT,
-                    }
-                    const key = PeerDatabase.ipeer2key(peer)
-                    ret.push(key)
-                }
-                resolve(ret)
-            })
-        })
-
-    }
-
-    public async peerCount(): Promise<number> {
-        const sql = `SELECT COUNT(*) as num FROM peerdb`
-        return new Promise<number>((resolve, reject) => {
-            this.db.get(sql, (err: Error, row: IRowCount) => {
-                if (err) { reject(`PeerCount: ${err}`) }
-                resolve(row.num)
-            })
-        })
-    }
-
-    private async update(peer: proto.IPeer, db = this.db): Promise<void> {
-        return new Promise<void>(async (resolve, reject) => {
-            const key = PeerDatabase.ipeer2key(peer)
-            const original = await this.doGet(key, db)
-            const sql = `UPDATE peerdb SET
-                                LASTSEEN = $lastSeen,
-                                FAILCOUNT = $failCount,
-                                LASTATTEMPT = $lastAttempt,
-                                ACTIVE = $active,
-                                CURRENTQUEUE = $currentQueue,
-                                SUCCESSCOUNT = $successCount
-                            WHERE KEY = $key`
-            const params = {
-                $active: peer.active !== undefined ? peer.active : original.active,
-                $currentQueue: peer.currentQueue !== undefined ? peer.currentQueue : original.currentQueue,
-                $failCount: peer.failCount !== undefined ? original.failCount ? Math.max(peer.failCount, original.failCount) : peer.failCount : original.failCount,
-                $key: key,
-                $lastAttempt: peer.lastAttempt !== undefined ? original.lastAttempt ? Math.max(Number(peer.lastAttempt), Number(original.lastAttempt)) : peer.lastAttempt : original.lastAttempt,
-                $lastSeen: peer.lastSeen !== undefined ? original.lastSeen ? Math.max(Number(peer.lastSeen), Number(original.lastSeen)) : peer.lastSeen : original.lastSeen,
-                $successCount: peer.successCount !== undefined ? original.successCount ? Math.max(peer.successCount, original.successCount) : peer.successCount : original.successCount,
-            }
-
-            const stmt = db.prepare(sql)
-            stmt.run(params)
-            stmt.finalize()
-            resolve()
-        })
-    }
-
-    private async insert(peer: proto.IPeer, db = this.db): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const key = PeerDatabase.ipeer2key(peer)
-            const sql = `INSERT INTO peerdb (
-                                            KEY,
-                                            HOST,
-                                            PORT,
-                                            LASTSEEN,
-                                            FAILCOUNT,
-                                            LASTATTEMPT,
-                                            ACTIVE,
-                                            CURRENTQUEUE,
-                                            SUCCESSCOUNT
-                                        ) VALUES (
-                                            $key,
-                                            $host,
-                                            $port,
-                                            $lastSeen,
-                                            $failCount,
-                                            $lastAttempt,
-                                            $active,
-                                            $currentQueue,
-                                            $successCount
-                                        )`
-            const params = {
-                $active: peer.active ? peer.active : 0,
-                $currentQueue: peer.currentQueue ? peer.currentQueue : 0,
-                $failCount: peer.failCount ? peer.failCount : 0,
-                $host: peer.host,
-                $key: key,
-                $lastAttempt: peer.lastAttempt ? peer.lastAttempt : "",
-                $lastSeen: peer.lastSeen ? peer.lastSeen : "",
-                $port: peer.port,
-                $successCount: peer.successCount ? peer.successCount : 0,
-            }
-            const stmt = db.prepare(sql)
-            stmt.run(params)
-            stmt.finalize()
-            resolve()
-        })
-    }
-
-    private async transaction() {
-        return new Promise<sqlite3Trans.Transaction>((resolve, reject) => {
-            const tmpdb: sqlite3Trans.Database = this.db
-            tmpdb.beginTransaction((err: Error, tx: sqlite3Trans.Transaction) => {
-                if (err) { reject(`Peerdb transaction init: ${err} `) }
-                resolve(tx)
-            })
-        })
-    }
-
-    private async commit(transaction: sqlite3Trans.Transaction) {
-        return new Promise<void>((resolve, reject) => {
-            transaction.commit((err: Error) => {
-                if (err) { reject(`Peerdb transaction commit: ${err}`) }
-                resolve()
-            })
-        })
-    }
-
-    private async getAll(condition: string): Promise<proto.IPeer[]> {
-        const sql = `SELECT * FROM peerdb WHERE KEY NOT IN (${condition}) AND FAILCOUNT=0`
-        return new Promise<proto.IPeer[]>((resolve, reject) => {
-            this.db.all(sql, (err: Error, rows: IRow[]) => {
-                if (err) { reject(`Getall: ${err}`) }
-                const ret: proto.IPeer[] = []
-                for (const row of rows) {
-                    const peer: proto.IPeer = {
-                        active: row.ACTIVE,
-                        currentQueue: row.CURRENTQUEUE,
-                        failCount: row.FAILCOUNT,
-                        host: row.HOST,
-                        lastAttempt: row.LASTATTEMPT,
-                        lastSeen: row.LASTSEEN,
-                        port: row.PORT,
-                    }
-                    ret.push(peer)
-                }
-                resolve(ret)
-            })
-        })
-    }
-
-    private async doPutPeers(peers: proto.IPeer[]): Promise<void> {
-
-        const transaction = await this.transaction()
-        for (const peer of peers) {
-            if (!this.isValidPort(peer.port)) {
-                continue
-            }
-            const key = PeerDatabase.ipeer2key(peer)
-
-            try {
-                await this.doGet(key, transaction)
-                await this.update(peer, transaction)
-            } catch (e) {
-                await this.insert(peer, transaction)
-            }
-        }
-        await this.commit(transaction)
-    }
-
-    private async doPut(peer: proto.IPeer): Promise<proto.IPeer> {
-        if (!this.isValidPort(peer.port)) {
-            throw new Error(`doPut Error InvalidPort=${peer.port}`)
-        }
-        const key = PeerDatabase.ipeer2key(peer)
-        const transaction = await this.transaction()
-        let ret = peer
         try {
-            await this.doGet(key, transaction)
-            await this.update(peer, transaction)
-        } catch (error) {
-            await this.insert(peer, transaction)
-        }
-
-        // inserted or updated
-        // it's latest
-        try {
-            ret = await this.doGet(key, transaction)
-        } catch {
-            // error in fetching get
-        }
-        await this.commit(transaction)
-        return ret
-    }
-
-    private async doGet(key: number, db = this.db): Promise<proto.IPeer> {
-        const params = { $key: key }
-        const sql = `SELECT * FROM peerdb WHERE KEY = $key`
-        return new Promise((resolve, reject) => {
-            const stmt = db.prepare(sql)
-            stmt.get(params, (err: Error, row: IRow) => {
-                if (err) { reject(`doGet peer: ${err} `) }
-                if (row) {
-                    const peer: proto.IPeer = {
-                        active: row.ACTIVE,
-                        currentQueue: row.CURRENTQUEUE,
-                        failCount: row.FAILCOUNT,
-                        host: row.HOST,
-                        lastAttempt: row.LASTATTEMPT,
-                        lastSeen: row.LASTSEEN,
-                        port: row.PORT,
-                        successCount: row.SUCCESSCOUNT,
+            return this.dbLock.critical(async () => {
+                const rets = await this.connection.manager.query("Select key from peer_model")
+                if (rets) {
+                    const keys = []
+                    for (const ret of rets) {
+                        keys.push(ret.key)
                     }
-                    stmt.finalize()
-                    resolve(peer)
+                    return keys
                 } else {
-                    stmt.finalize()
-                    reject(`doGet InvalidRow peer: ${err} `)
+                    // no peers in db
+                    return undefined
                 }
             })
-
-        })
+        } catch (e) {
+            logger.debug(`get keys error: ${e}`)
+            throw e
+        }
     }
 
-    private isValidPort(port: number) {
-        return 0 < port && port < 10000
+    public async removeAll(): Promise<void> {
+        try {
+            return this.dbLock.critical(async () => {
+                await this.connection.manager.clear(PeerModel)
+            })
+        } catch (e) {
+            logger.debug(`remove all peers: ${e}`)
+        }
+    }
+    private async doPutPeers(peers: proto.IPeer[]) {
+        try {
+            await this.dbLock.critical(async () => {
+                await this.connection.manager.transaction(async (manager) => {
+                    for (const peer of peers) {
+                        const key = PeerDatabase.ipeer2key(peer)
+                        const peerExist = await manager.findOne(PeerModel, { key })
+                        if (!peerExist) {
+                            const peerModel = new PeerModel()
+                            peerModel.key = key
+                            peerModel.host = peer.host
+                            peerModel.port = peer.port
+                            await manager.save(peerModel)
+                        }
+                    }
+                })
+            })
+        } catch (e) {
+            throw e
+        }
+    }
+
+    private async reset() {
+        try {
+            const keys = await this.getKeys()
+            this.dbLock.critical(async () => {
+                await this.connection.manager.transaction(async (manager) => {
+                    for (const key of keys) {
+                        const res = await manager.findOne(PeerModel, { key })
+                        res.active = false
+                        await manager.save(res)
+                    }
+                })
+            })
+        } catch (e) {
+            logger.debug(`reset error: ${e}`)
+            throw e
+        }
     }
 }

@@ -3,122 +3,113 @@ import * as proto from "../src/serialization/proto"
 
 describe("peerDatabase test", () => {
     let dbPeer: PeerDatabase
-    let res: boolean
     let peerGood: proto.IPeer
     let peerBad: proto.IPeer
     let peers: proto.IPeer[]
+    let errInit: Error
 
-    beforeEach(async () => {
-        await dbPeer.clearAll()
-    })
     beforeAll(async () => {
-        dbPeer = new PeerDatabase(null)
-        res = await dbPeer.init()
-        peerGood = {
-            host: "192.168.1.100",
-            port: 8888,
+        try {
+            dbPeer = new PeerDatabase(undefined, "peerdb")
+            await dbPeer.init()
+            await dbPeer.removeAll()
+            peerGood = {
+                host: "192.168.1.100",
+                port: 8888,
+            }
+            peerBad = {
+                host: "888.888.888.888",
+                port: 10001,
+            }
+            peers = [
+                {
+                    host: "192.168.100.2",
+                    port: 1234,
+                },
+                {
+                    host: "192.168.100.3",
+                    port: 2345,
+                },
+                {
+                    host: "192.168.100.4",
+                    port: 3456,
+                },
+                {
+                    host: "192.168.100.5",
+                    port: 4567,
+                },
+            ]
+        } catch (e) {
+            errInit = e
         }
-        peerBad = {
-            host: "888.888.888.888",
-            port: 10001,
-        }
-        peers = [
-            {
-                host: "192.168.100.2",
-                port: 1234,
-            },
-            {
-                host: "192.168.100.3",
-                port: 2345,
-            },
-            {
-                host: "192.168.100.4",
-                port: 3456,
-            },
-            {
-                host: "192.168.100.5",
-                port: 4567,
-            },
-        ]
-
     })
 
     afterAll(async () => {
-        dbPeer.close()
+        await dbPeer.removeAll()
     })
 
-    it("constructor(): init db object, and should return db object if sucessful", () => {
-        expect(dbPeer).toBeDefined()
+    it("init(): init db table, should no error throw", () => {
+        expect(errInit).toBeUndefined()
     })
 
-    it("init(): init db table, and return true if successful", () => {
-        expect(res).toBeTruthy()
-    })
-
-    it("put(): if there is peer record at db, update the peer record, otherwise insert the peer record into table. It should return the peer or undefined if peer port exceeds 10000", async () => {
-        const peer = await dbPeer.put(peerGood)
+    it("seen(): save peer to db and update lastSeen, successCount and active status, should no error throw", async () => {
+        let errSeen: Error
         try {
-            await dbPeer.put(peerBad)
+            await dbPeer.seen(peerGood)
         } catch (e) {
-            expect(peer.host).toEqual(peerGood.host)
-            expect(peer.port).toEqual(peerGood.port)
-            return
+            errSeen = e
         }
-        fail()
-
+        expect(errSeen).toBeUndefined()
     })
 
-    it("putPeers(): put multiple peers, should return true if it is successful", async () => {
-        expect(await dbPeer.putPeers(peers)).toBeTruthy()
+    it("fail(): save peer to db and update lastAttempt, failCount, should no error throw", async () => {
+        let errFail: Error
+        try {
+            await dbPeer.fail(peerGood)
+        } catch (e) {
+            errFail = e
+        }
+        expect(errFail).toBeUndefined()
     })
 
-    it("seen(): lastSeen and failCount property of peer should be updated if it is successful", async () => {
-        const peer = await dbPeer.seen(peerGood)
-        expect(peer.successCount).toBeDefined()
-        expect(peer.lastSeen).toBeDefined()
-    })
-
-    it("fail(): lastAttempt and failCount property of peer should be updated if it is successful", async () => {
-        await dbPeer.put(peerGood)
-        const peer = await dbPeer.fail(peerGood, 10)
-        expect(peer.failCount).toBeDefined()
-        expect(peer.lastAttempt).toBeDefined()
-    })
-
-    it("get(): should return the peer if it exist otherwise return undefine", async () => {
-        await dbPeer.put(peerGood)
+    it("deactivate(): update active status when peer disconnected, should no error throw", async () => {
+        await dbPeer.seen(peerGood)
         const key = PeerDatabase.ipeer2key(peerGood)
-        const keyNotExist = PeerDatabase.ipeer2key(peerBad)
-        const result: proto.IPeer = await dbPeer.get(key)
-
-        expect(result.host).toEqual(peerGood.host)
-        expect(result.port).toEqual(peerGood.port)
-
+        let errDea: Error
         try {
-            await dbPeer.get(keyNotExist)
-            fail()
+            await dbPeer.deactivate(key)
         } catch (e) {
-            // success
+            errDea = e
         }
-
+        expect(errDea).toBeUndefined()
     })
 
-    it("remove(): return true if remove peer successful", async () => {
-        const peer = await dbPeer.put(peerGood)
-        res = await dbPeer.remove(peer)
-        expect(res).toBeTruthy()
+    it("putPeers(): bulk save predefined maxPeerCount of peers in a SQL transaction, should no error throw", async () => {
+        let errPut: Error
+        try {
+            await dbPeer.putPeers(peers)
+        } catch (e) {
+            errPut = e
+        }
+        expect(errPut).toBeUndefined()
     })
 
-    it("getRandomPeer(): should return a random peer or undefine if there is no peers except for peers been connected", async () => {
+    it("getRandomPeer(): should return a random peer except for peers been connected", async () => {
         await dbPeer.putPeers(peers)
-        const exception = [peers[0], peers[1]]
-        const peer = await dbPeer.getRandomPeer(exception)
-        expect(peer).toBeDefined()
+        const random = await dbPeer.getRandomPeer()
+        expect(random).toBeDefined()
     })
 
-    it("getKeys(): should return all key of peers in db", async () => {
+    it("get(): should return a peer with specific key", async () => {
+        const key = PeerDatabase.ipeer2key(peerGood)
+        await dbPeer.seen(peerGood)
+        const ret = await dbPeer.get(key)
+        expect(ret).toBeDefined()
+    })
+
+    it("getKeys(): should return all key of peers", async () => {
         await dbPeer.putPeers(peers)
-        const result: number[] = await dbPeer.getKeys()
-        expect(result).toBeDefined()
+        const keys = await dbPeer.getKeys()
+        expect(keys).toBeDefined()
     })
 })

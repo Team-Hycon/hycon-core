@@ -1,9 +1,7 @@
-import { Button, CardContent, Checkbox, FormControl, FormControlLabel, FormGroup, Grid, Icon, Input, InputLabel, MenuItem, NativeSelect, Select, Step, StepLabel, Stepper } from "@material-ui/core"
-import { Card, Dialog, IconButton, IconMenu, TextField } from "material-ui"
-import * as QRCode from "qrcode.react"
+import { Button, CardContent, FormControl, Grid, Icon, Input, InputLabel, MenuItem, Select, Step, StepLabel, Stepper } from "@material-ui/core"
+import { Card, Dialog, IconButton, TextField } from "material-ui"
 import * as React from "react"
 import { Redirect } from "react-router"
-import { IBlock, IHyconWallet, IRest } from "./rest"
 import { encodingMnemonic } from "./stringUtil"
 
 const steps = ["Enter wallet information", "Receive and type mnemonic", "Check mnemonic"]
@@ -250,15 +248,15 @@ export class AddWallet extends React.Component<any, any> {
                             <div style={{ color: "red", fontSize: "11px" }}>*A mnemonic is a collection of words you need to recover your wallet. Please be careful not to lose it.*</div>
                             <br /><br />
                             <div style={{ fontWeight: "bold" }}>{this.state.mnemonic}</div>
-                            <input style={{ border: "none", borderBottom: "0.5px solid", width: "53%" }} type="text" autoComplete="off"
+                            <Input style={{ border: "none", borderBottom: "0.5px solid", width: "53%" }} placeholder="Please type mnemonic phrase above" autoComplete="off"
                                 onChange={(data) => { this.handleConfirmMnemonic(data) }} onPaste={(e) => { e.preventDefault() }}
                                 onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
                             />
                         </div>
                         <div style={{ display: `${this.state.activeStep === 2 ? ("block") : ("none")}` }}>
-                            <h4 style={{ color: "grey", marginBottom: "0%" }}>Please type one more time to check the mnemonic word.</h4>
+                            <h4 style={{ color: "grey", marginBottom: "0%" }}>Confirm mnemonic phrase</h4>
                             <br /><br />
-                            <input style={{ border: "none", borderBottom: "0.5px solid", width: "53%" }} type="text" autoComplete="off"
+                            <Input style={{ border: "none", borderBottom: "0.5px solid", width: "53%" }} placeholder="Please type one more time to confirm mnemonic phrase" autoComplete="off"
                                 onChange={(data) => { this.handleTypeMnemonic(data) }} onPaste={(e) => { e.preventDefault() }}
                                 onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
                             />

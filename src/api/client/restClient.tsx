@@ -301,6 +301,16 @@ export class RestClient implements IRest {
         )
     }
 
+    public getNextTxsInBlock(blockhash: string, txHash: string, index: number): Promise<ITxProp[]> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/nextTxsInBlock/${blockhash}/${txHash}/${index}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+
     public checkDupleName(name: string): Promise<boolean> {
         return Promise.resolve(
             fetch(`/api/${this.apiVersion}/dupleName/${name}`)
@@ -432,6 +442,17 @@ export class RestClient implements IRest {
                 .then((response) => response.json())
                 .catch((err: Error) => {
                     console.log(`Error when sendTxWithLedger`)
+                    console.log(err)
+                }),
+        )
+    }
+
+    public getMarketCap(): Promise<{ amount: string }> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/getMarketCap`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(`Error when getMarketCap`)
                     console.log(err)
                 }),
         )

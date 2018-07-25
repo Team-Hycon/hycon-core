@@ -25,7 +25,7 @@ import { BlockStatus, MAX_HEADER_SIZE } from "./sync"
 import { Verify } from "./verify"
 const logger = getLogger("Consensus")
 
-const TIMESTAMP_TOLERANCE = 120000
+export const TIMESTAMP_TOLERANCE = 120000
 
 export interface IPutResult {
     oldStatus: BlockStatus,
@@ -178,11 +178,34 @@ export class Consensus extends EventEmitter implements IConsensus {
         return this.txdb.getLastTxs(address, result, idx, count)
     }
 
+    public getTxsInBlock(blockHash: string, count?: number): Promise<{ txs: DBTx[], amount: string, fee: string, length: number }> {
+        if (this.txdb === undefined) {
+            throw new Error(`The database to get txs does not exist.`)
+        }
+        const result: DBTx[] = []
+        const idx: number = 0
+        return this.txdb.getTxsInBlock(blockHash, result, idx, count)
+    }
+
     public async getNextTxs(address: Address, txHash: Hash, index: number, count?: number): Promise<DBTx[]> {
         try {
             if (this.txdb) {
                 const result: DBTx[] = []
                 return await this.txdb.getNextTxs(address, txHash, result, index, count)
+            } else {
+                return Promise.reject(`The database to get txs does not exist.`)
+            }
+        } catch (e) {
+            logger.error(`Fail to getNextTxs : ${e}`)
+            return e
+        }
+    }
+
+    public async getNextTxsInBlock(blockHash: string, txHash: string, index: number, count?: number): Promise<DBTx[]> {
+        try {
+            if (this.txdb) {
+                const result: DBTx[] = []
+                return await this.txdb.getNextTxsInBlock(blockHash, txHash, result, index, count)
             } else {
                 return Promise.reject(`The database to get txs does not exist.`)
             }
@@ -224,6 +247,11 @@ export class Consensus extends EventEmitter implements IConsensus {
     public getHeadersTip(): { hash: Hash; height: number, totalwork: number } {
         return { hash: new Hash(this.headerTip.header), height: this.headerTip.height, totalwork: this.headerTip.totalWork }
     }
+
+    public getHtip() {
+        return this.headerTip
+    }
+
     public async txValidity(tx: SignedTx): Promise<TxValidity> {
         return this.lock.critical(async () => {
             let validity = await this.worldState.validateTx(this.blockTip.header.stateRoot, tx)
@@ -248,6 +276,10 @@ export class Consensus extends EventEmitter implements IConsensus {
     public async getBlockAtHeight(height: number): Promise<Block | GenesisBlock | undefined> {
         return this.db.getBlockAtHeight(height)
     }
+
+    public async getBurnAmount(): Promise<{ amount: Long }> {
+        return this.txdb.getBurnAmount()
+    }
     private async put(header: BlockHeader, block?: Block): Promise<IStatusChange> {
         if (header.timeStamp > Date.now() + TIMESTAMP_TOLERANCE) {
             await this.futureBlockQueue.waitUntil(header.timeStamp - TIMESTAMP_TOLERANCE)
@@ -259,7 +291,6 @@ export class Consensus extends EventEmitter implements IConsensus {
         }
 
         return this.lock.critical(async () => {
-            const startHtip = this.headerTip.height
             const hash = new Hash(header)
             const { oldStatus, status, dbBlock } = await this.process(hash, header, block)
 
@@ -268,7 +299,7 @@ export class Consensus extends EventEmitter implements IConsensus {
             }
 
             if (dbBlock === undefined || status < BlockStatus.Header) {
-                return { oldStatus, status, htip: this.headerTip.height > startHtip }
+                return { oldStatus, status }
             }
 
             await this.db.putDBBlock(hash, dbBlock)
@@ -283,7 +314,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                     + ` ${hash}(${dbBlock.height}, ${dbBlock.totalWork.toExponential()}),`
                     + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
                     + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
-                return { oldStatus, status, htip: this.headerTip.height > startHtip }
+                return { oldStatus, status }
             }
 
             if (block !== undefined && (this.blockTip === undefined || this.forkChoice(dbBlock, this.blockTip))) {
@@ -297,7 +328,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                 + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
                 + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
 
-            return { oldStatus, status, htip: this.headerTip.height > startHtip }
+            return { oldStatus, status }
         })
     }
     private async process(hash: Hash, header: BlockHeader, block?: Block): Promise<IPutResult> {

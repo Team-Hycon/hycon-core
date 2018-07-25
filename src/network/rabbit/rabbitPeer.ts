@@ -5,9 +5,11 @@ import { AnyBlock, Block } from "../../common/block"
 import { AnyBlockHeader, BlockHeader } from "../../common/blockHeader"
 import { ITxPool } from "../../common/itxPool"
 import { SignedTx } from "../../common/txSigned"
-import { IConsensus, IStatusChange } from "../../consensus/iconsensus"
-import { BlockStatus, BYTES_OVERHEAD, HASH_SIZE, MAX_TX_SIZE, MAX_TXS_PER_BLOCK, REPEATED_OVERHEAD, Sync } from "../../consensus/sync"
+import { TIMESTAMP_TOLERANCE } from "../../consensus/consensus"
+import { IConsensus } from "../../consensus/iconsensus"
+import { BlockStatus, BYTES_OVERHEAD, HASH_SIZE, MAX_TX_SIZE, MAX_TXS_PER_BLOCK, REPEATED_OVERHEAD } from "../../consensus/sync"
 import { globalOptions } from "../../main"
+import { MinerServer } from "../../miner/minerServer"
 import * as proto from "../../serialization/proto"
 import { Hash } from "../../util/hash"
 import { IPeer } from "../ipeer"
@@ -17,15 +19,20 @@ import { RabbitNetwork } from "./rabbitNetwork"
 import { MAX_PACKET_SIZE } from "./socketParser"
 const logger = getLogger("NetPeer")
 
+const DIFFICULTY_TOLERANCE = 0.05
+const BROADCAST_LIMIT = 10
+
 export interface IBlockTxs { hash: Hash, txs: SignedTx[] }
 export class RabbitPeer extends BasePeer implements IPeer {
+    public static seenBlocksSet: Set<Hash> = new Set<Hash>()
+    public static seenBlocks: Hash[] = []
     public listenPort: number
     public guid: string
     private consensus: IConsensus
     private txPool: ITxPool
     private network: RabbitNetwork
-    private peerDatabase: IPeerDatabase
-    private sync: Sync
+    private receivedBroadcasts: number
+    private lastReceivedTime: number
 
     constructor(socket: Socket, network: RabbitNetwork, consensus: IConsensus, txPool: ITxPool, peerDB: IPeerDatabase) {
         super(socket)
@@ -34,7 +41,8 @@ export class RabbitPeer extends BasePeer implements IPeer {
         this.network = network
         this.consensus = consensus
         this.txPool = txPool
-        this.peerDatabase = peerDB
+        this.receivedBroadcasts = 0
+        this.lastReceivedTime = 0
     }
 
     public async detectStatus(): Promise<proto.IStatus> {
@@ -284,7 +292,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
                 response = await this.respondGetTip(reply, request[request.request])
                 break
             case "putHeaders":
-                response = await this.respondPutHeaders(reply, request[request.request], rebroadcast)
+                response = await this.respondPutHeaders(reply, request[request.request])
                 break
             case "getHash":
                 response = await this.respondGetHash(reply, request[request.request])
@@ -360,38 +368,68 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return { getTxsReturn: { success: false, txs: [] } }
     }
 
+    private async blockBroadcastCondition(block: Block) {
+        const timeDelta = Math.abs(block.header.timeStamp - Date.now())
+        if (timeDelta > TIMESTAMP_TOLERANCE) {
+            return false
+        }
+        const merkleRoot = Block.calculateMerkleRoot(block.txs)
+        if (!block.header.merkleRoot.equals(merkleRoot)) {
+            return false
+        }
+
+        const blockHash = new Hash(block.header)
+        const status = await this.consensus.getBlockStatus(blockHash)
+        if (status < BlockStatus.Nothing || status >= BlockStatus.Block) {
+            return false
+        }
+
+        if (RabbitPeer.seenBlocksSet.has(blockHash)) {
+            return false
+        }
+
+        const proximalDifficulty = this.consensus.getHtip().header.difficulty * (1 + DIFFICULTY_TOLERANCE)
+        const prehash = block.header.preHash()
+        if (!MinerServer.checkNonce(prehash, block.header.nonce, proximalDifficulty)) {
+            return false
+        }
+
+        RabbitPeer.seenBlocksSet.add(blockHash)
+        if (RabbitPeer.seenBlocks.length > 1000) {
+            const [old] = RabbitPeer.seenBlocks.splice(0, 1)
+            RabbitPeer.seenBlocksSet.delete(old)
+        }
+        RabbitPeer.seenBlocks.push(blockHash)
+
+        return true
+    }
+
     private async respondPutBlock(reply: boolean, request: proto.IPutBlock, rebroadcast: () => void): Promise<proto.INetwork> {
-        request.blocks = request.blocks.slice(0, 1)
-        let block: Block
-        let header: BlockHeader
-        try {
-            block = new Block(request.blocks[0])
-            header = block.header
-        } catch (e) {
-            return { putBlockReturn: { statusChanges: [] } }
-        }
-        let result: IStatusChange
-        try {
-            result = await this.consensus.putHeader(header)
-        } catch (e) {
-            result = { oldStatus: BlockStatus.Nothing, status: BlockStatus.Nothing, htip: false }
-        }
+        setImmediate(async () => {
+            this.receivedBroadcasts += 1
+            const decay = (Date.now() - this.lastReceivedTime) / 1000
+            this.lastReceivedTime = Date.now()
+            this.receivedBroadcasts = Math.max(0, this.receivedBroadcasts - decay)
 
-        if (result.oldStatus > result.status) {
-            return { putBlockReturn: { statusChanges: [result] } }
-        }
+            if (this.receivedBroadcasts > BROADCAST_LIMIT) {
+                return
+            }
 
-        if (((result.oldStatus === BlockStatus.Nothing) && result.status >= BlockStatus.Header) && result.htip) {
-            rebroadcast()
-        }
+            request.blocks = request.blocks.slice(0, 1)
+            let block: Block
+            try {
+                block = new Block(request.blocks[0])
 
-        try {
-            result = await this.consensus.putBlock(block)
-        } catch (e) {
-            result = { oldStatus: BlockStatus.Header, status: BlockStatus.Header, htip: false }
-        }
+                if (this.blockBroadcastCondition(block)) {
+                    rebroadcast()
+                }
+                await this.consensus.putBlock(block)
+            } catch (e) {
+                logger.debug(e)
+            }
+        })
 
-        return { putBlockReturn: { statusChanges: [result] } }
+        return { putBlockReturn: { statusChanges: [] } }
     }
 
     private async respondGetBlocksByHash(reply: boolean, request: proto.IGetBlocksByHash): Promise<proto.INetwork> {
@@ -473,19 +511,18 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return message
     }
 
-    private async respondPutHeaders(reply: boolean, request: proto.IPutHeaders, rebroadcast: () => void): Promise<proto.INetwork> {
-        let result: IStatusChange
-        try {
-            request.headers = request.headers.slice(0, 1)
-            const header = new BlockHeader(request.headers[0])
-            result = await this.consensus.putHeader(header)
-            if (result.status !== undefined && result.status !== BlockStatus.Rejected && result.oldStatus !== result.status) {
-                rebroadcast()
+    private async respondPutHeaders(reply: boolean, request: proto.IPutHeaders): Promise<proto.INetwork> {
+        setImmediate(async () => {
+            try {
+                request.headers = request.headers.slice(0, 1)
+                const header = new BlockHeader(request.headers[0])
+                await this.consensus.putHeader(header)
+            } catch (e) {
+                logger.debug(e)
             }
-        } catch (e) {
-            result = { oldStatus: BlockStatus.Nothing, status: BlockStatus.Nothing }
-        }
-        return { putHeadersReturn: { statusChanges: [result] } }
+        })
+
+        return { putHeadersReturn: { statusChanges: [] } }
     }
 
     private async respondGetHash(reply: boolean, request: proto.IGetHash): Promise<proto.INetwork> {
@@ -518,13 +555,8 @@ export class RabbitPeer extends BasePeer implements IPeer {
 
             message = { getBlockTxsReturn: { txBlocks } }
         } catch (e) {
-            logger.error(`Failed to send block txs: ${e}`)
+            logger.debug(`Failed to send block txs: ${e}`)
         }
         return message
-    }
-
-    private async forceSync() {
-        this.sync = new Sync(this, this.consensus, this.network.version)
-        return this.sync.sync()
     }
 }

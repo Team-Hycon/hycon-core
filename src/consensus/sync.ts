@@ -55,7 +55,7 @@ interface ISyncInfo {
 }
 
 export class Sync {
-    public peer: IPeer
+    public peerInfo: { peer: IPeer, tip: ITip }
     private version: number
     private consensus: IConsensus
     private differentHeight: number
@@ -63,28 +63,24 @@ export class Sync {
     private commonBlock: ISyncInfo
     private commonHeader: ISyncInfo
 
-    constructor(peer: IPeer, consensus: IConsensus, version: number) {
-        this.peer = peer
+    constructor(peerInfo: { peer: IPeer, tip: ITip }, consensus: IConsensus, version: number) {
+        this.peerInfo = peerInfo
         this.consensus = consensus
         this.version = version
     }
 
     public async sync() {
         logger.debug(`Start Syncing`)
+        let remoteVersion: number
         try {
             const localBlockTip = this.consensus.getBlocksTip()
             const localHeaderTip = this.consensus.getHeadersTip()
 
-            if (!this.peer) {
-                logger.info(`No peer to sync with, Local=${localHeaderTip.height} `)
-                return
-            }
-
             logger.debug(`Get remote tip`)
 
-            const remoteBlockTip = await this.peer.getTip()
-            const remoteHeaderTip = await this.peer.getTip(true)
-            const remoteVersion = (await this.peer.status()).version
+            const remoteHeaderTip = this.peerInfo.tip
+            const remoteBlockTip = await this.peerInfo.peer.getTip()
+            remoteVersion = (await this.peerInfo.peer.status()).version
 
             if (remoteVersion < 4) {
                 logger.debug("Peer is an old version, using fallback sync")
@@ -93,7 +89,7 @@ export class Sync {
             }
 
             if (!localHeaderTip.hash.equals(remoteHeaderTip.hash)) {
-                logger.info(`Local=${localHeaderTip.height}:${localHeaderTip.hash}  Remote=${remoteHeaderTip.height}:${remoteHeaderTip.hash}`)
+                logger.debug(`Local=${localHeaderTip.height}:${localHeaderTip.hash}  Remote=${remoteHeaderTip.height}:${remoteHeaderTip.hash}`)
             }
 
             await this.findCommons(localBlockTip, remoteBlockTip)
@@ -109,9 +105,9 @@ export class Sync {
                 await this.syncBlocks(syncHeaderResult.startHeaderHeight, remoteBlockTip, localBlockTip, remoteVersion)
             }
 
-            this.peer = undefined
+            this.peerInfo = undefined
         } catch (e) {
-            logger.warn(`Syncing ${this.peer.getInfo()} failed: ${e}`)
+            logger.warn(`Syncing ${this.peerInfo.peer.getInfo()} failed: ${e}`)
         }
         return
     }
@@ -129,7 +125,7 @@ export class Sync {
         const startHeaderHeight = await this.findStartHeader()
         logger.debug(`Find Start Header=${startHeaderHeight}`)
         if (remoteHeaderWork > localHeaderWork) {
-            logger.debug(`Receiving Headers from ${this.peer.getInfo()}`)
+            logger.debug(`Receiving Headers from ${this.peerInfo.peer.getInfo()}`)
             await this.getHeaders(startHeaderHeight)
         }
         return { startHeaderHeight, ahead: remoteHeaderWork > localHeaderWork }
@@ -148,7 +144,7 @@ export class Sync {
         const startBlockHeight = await this.findStartBlock(startHeaderHeight)
         logger.debug(`Find Start Block=${startBlockHeight}`)
         if (remoteBlockWork > localBlockWork) {
-            logger.debug(`Receiving Blocks from ${this.peer.getInfo()}`)
+            logger.debug(`Receiving Blocks from ${this.peerInfo.peer.getInfo()}`)
             await this.getBlocks(startBlockHeight)
         }
     }
@@ -166,7 +162,7 @@ export class Sync {
         if (remoteBlockWork > localBlockWork) {
             const blockHashes = await this.scanHeaders(localHeaderTip)
             if (blockHashes.length > 0) {
-                logger.debug(`Receiving transactions from ${this.peer.getInfo()}`)
+                logger.debug(`Receiving transactions from ${this.peerInfo.peer.getInfo()}`)
                 return await this.getTxBlocks(blockHashes)
             }
         }
@@ -224,7 +220,7 @@ export class Sync {
     // hash: peer hash of this height
     private async updateCommons(height: number, hash?: Hash) {
         if (hash === undefined) {
-            hash = await this.peer.getHash(height)
+            hash = await this.peerInfo.peer.getHash(height)
         }
         const status = await this.consensus.getBlockStatus(hash)
         const syncInfo = { status, height, hash }
@@ -259,7 +255,7 @@ export class Sync {
         while (min + 1 < height) {
             // tslint:disable-next-line:no-bitwise
             const mid = (min + height) >> 1
-            const hash = await this.peer.getHash(mid)
+            const hash = await this.peerInfo.peer.getHash(mid)
             switch (await this.consensus.getBlockStatus(hash)) {
                 case BlockStatus.MainChain:
                 case BlockStatus.Block:
@@ -284,7 +280,7 @@ export class Sync {
         let headers: BaseBlockHeader[]
         try {
             do {
-                headers = await this.peer.getHeadersByRange(height, headerCount)
+                headers = await this.peerInfo.peer.getHeadersByRange(height, headerCount)
                 for (const header of headers) {
                     if (!(header instanceof BlockHeader)) {
                         continue
@@ -316,7 +312,7 @@ export class Sync {
             for (let i = 0; i < numRequests; i++) {
                 const requestHashes = blockHashes.slice(i * txBlocksPerRequest, (i + 1) * txBlocksPerRequest)
                 while (requestHashes.length > 0) {
-                    const receivedTxBlock = await this.peer.getBlockTxs(requestHashes)
+                    const receivedTxBlock = await this.peerInfo.peer.getBlockTxs(requestHashes)
                     requestHashes.splice(0, receivedTxBlock.length)
                     const changes = await this.consensus.putTxBlocks(receivedTxBlock)
                     statusChanges.concat(changes)
@@ -338,7 +334,7 @@ export class Sync {
         while (min + 1 < height) {
             // tslint:disable-next-line:no-bitwise
             const mid = (min + height) >> 1
-            const hash = await this.peer.getHash(mid)
+            const hash = await this.peerInfo.peer.getHash(mid)
             switch (await this.consensus.getBlockStatus(hash)) {
                 case BlockStatus.MainChain:
                 case BlockStatus.Block:
@@ -363,7 +359,7 @@ export class Sync {
         let blocks: AnyBlock[]
         try {
             do {
-                blocks = await this.peer.getBlocksByRange(height, blockCount)
+                blocks = await this.peerInfo.peer.getBlocksByRange(height, blockCount)
                 for (const block of blocks) {
                     if (block instanceof Block) {
                         const result = await this.consensus.putBlock(block)

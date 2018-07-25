@@ -1,5 +1,5 @@
 import * as React from "react"
-import { match, Redirect, RouteComponentProps, RouteProps } from "react-router"
+import { RouteComponentProps } from "react-router"
 import { RouteConfig } from "react-router-config"
 import { Link, Route, Switch } from "react-router-dom"
 
@@ -45,7 +45,6 @@ export const routes: RouteConfig[] = [
 
 // tslint:disable:no-shadowed-variable
 export class App extends React.Component<{ rest: IRest }, any> {
-    public errMsg1: string = "Please enter a valid Hash value consisting of numbers and English"
     public rest: IRest
     public blockView: ({ match }: RouteComponentProps<{ hash: string }>) => JSX.Element
     public home: ({ match }: RouteComponentProps<{}>) => JSX.Element
@@ -76,11 +75,9 @@ export class App extends React.Component<{ rest: IRest }, any> {
         super(props)
         this.state = {
             block: "block",
-            blockHash: undefined,
             isParity: false,
             loading: false,
             name: "BlockExplorer",
-            redirect: false,
             tx: "Tx 1",
         }
         this.rest = props.rest
@@ -141,23 +138,7 @@ export class App extends React.Component<{ rest: IRest }, any> {
             <AddressInfo hash={match.params.hash} rest={this.rest} selectedLedger={match.params.selectedLedger} />
         )
     }
-    public handleBlockHash(data: any) {
-        this.setState({ blockHash: data.target.value })
-    }
-    public searchBlock(event: any) {
-        if (this.state.blockHash === undefined) {
-            event.preventDefault()
-        } else if (!/^[a-zA-Z0-9]+$/.test(this.state.blockHash)) {
-            event.preventDefault()
-            if (alert(this.errMsg1)) { window.location.reload() }
-        } else {
-            this.setState({ redirect: true })
-        }
-    }
     public render() {
-        if (this.state.redirect) {
-            return <Redirect to={`/block/${this.state.blockHash}`} />
-        }
         return (
             <div className="mdl-layout mdl-js-layout mdl-layout--fixed-header">
                 <header className="mdl-layout__header" >
@@ -165,20 +146,6 @@ export class App extends React.Component<{ rest: IRest }, any> {
                         <span className="mdl-layout-title">Hycon Blockexplorer</span>
                         <div className="mdl-layout-spacer" />
                         <nav className="mdl-navigation">
-                            <div className="mdl-textfield mdl-js-textfield mdl-textfield--expandable">
-                                <label className="mdl-button mdl-js-button mdl-button--icon">
-                                    <i className="material-icons">search</i>
-                                </label>
-                                <form>
-                                    <div className="mdl-textfield__expandable-holder">
-                                        <input
-                                            className="mdl-textfield__input searchBox" type="text" placeholder="Block Hash"
-                                            onChange={(data) => this.handleBlockHash(data)}
-                                            onKeyPress={(event) => { if (event.key === "Enter") { this.searchBlock(event) } }}
-                                        />
-                                    </div>
-                                </form>
-                            </div>
                             <Link className="mdl-navigation__link navMargin" to="/">Home</Link>
                             {/* <Link className="mdl-navigation__link" to="/block">Block</Link> */}
                             <Link className="mdl-navigation__link" to="/txPool">Tx</Link>

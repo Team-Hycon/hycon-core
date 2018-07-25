@@ -15,12 +15,13 @@ interface IAddressView {
     rest: IRest
     redirectTxView: boolean
     hash: string
-    txs: ITxProp[]
-    hasMore: boolean
-    hasMoreMinedInfo: boolean
-    index: number
-    minedBlocks: IMinedInfo[]
-    minerIndex: number
+    txs: ITxProp[],
+    pendings: ITxProp[],
+    hasMore: boolean,
+    hasMoreMinedInfo: boolean,
+    index: number,
+    minedBlocks: IMinedInfo[],
+    minerIndex: number,
     address?: IWalletAddress
     ledgerIndex?: number
 }
@@ -36,6 +37,7 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
             ledgerIndex: props.selectedLedger,
             minedBlocks: [],
             minerIndex: 1,
+            pendings: [],
             redirectTxView: false,
             rest: props.rest,
             txs: [],
@@ -52,6 +54,7 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
                 this.setState({
                     address: data,
                     minedBlocks: data.minedBlocks,
+                    pendings: data.pendings,
                     txs: data.txs,
                 })
             }
@@ -99,6 +102,24 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
                 </div>
                 <Tabs style={{ paddingTop: "2px" }} inkBarStyle={{ backgroundColor: "#000" }}>
                     <Tab label="Transaction" style={{ backgroundColor: "#FFF", color: "#000" }}>
+                        {this.state.pendings.map((tx: ITxProp) => {
+                            return (
+                                <div key={count++}>
+                                    <TxLine tx={tx} rest={this.state.rest} address={this.state.address} />
+                                    <div>
+                                        {tx.from === this.state.hash ? (
+                                            <button className="mdl-button mdl-js-button mdl-button--raised mdl-button--accent txAmtBtn">
+                                                -{tx.amount} HYCON
+                                            </button>
+                                        ) : (
+                                                <button className="mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn">
+                                                    {tx.amount} HYCON
+                                            </button>
+                                            )}
+                                    </div>
+                                </div>
+                            )
+                        })}
                         {this.state.txs.map((tx: ITxProp) => {
                             return (
                                 <div key={count++}>

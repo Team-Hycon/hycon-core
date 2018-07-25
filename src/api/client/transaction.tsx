@@ -81,7 +81,7 @@ export class Transaction extends React.Component<any, any> {
             return
         }
 
-        if (hyconfromString(event.target.value).add(hyconfromString(this.state.minerFee)).greaterThan(hyconfromString(this.state.piggyBank).sub(hyconfromString(this.state.wallet.pendingAmount)))) {
+        if (hyconfromString(this.state.amount).add(hyconfromString(this.state.minerFee)).greaterThan(hyconfromString(this.state.piggyBank).sub(hyconfromString(this.state.wallet.pendingAmount)))) {
             alert("You can't spend the money you don't have")
             return
         }

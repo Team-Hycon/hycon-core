@@ -21,14 +21,19 @@ configure({
 const logger = getLogger("Main")
 
 import commandLineArgs = require("command-line-args")
+// Alphabetical order
 const optionDefinitions = [
     { name: "api", alias: "a", type: Boolean },
     { name: "api_port", alias: "A", type: Number },
     { name: "bootstrap", type: Boolean },
+    { name: "blockchain_info", alias: "B", type: String },
+    { name: "config", alias: "c", type: String },
     { name: "cpuMiners", alias: "m", type: Number },
+    { name: "data", alias: "d", type: String },
     { name: "disable_upnp", alias: "x", type: Boolean },
     { name: "disable_nat", alias: "N", type: Boolean },
     { name: "genesis", alias: "G", type: String },
+    { name: "help", alias: "h", type: Boolean },
     { name: "lite", type: Boolean },
     { name: "minerAddress", alias: "M", type: String },
     { name: "networkid", alias: "n", type: String },
@@ -36,14 +41,12 @@ const optionDefinitions = [
     { name: "peer", type: String, multiple: true, defaultOption: true },
     { name: "port", alias: "p", type: Number },
     { name: "postfix", alias: "P", type: String },
+    { name: "public_rest", alias: "R", type: Boolean },
     { name: "str_port", alias: "s", type: Number },
     { name: "verbose", alias: "v", type: Boolean, defaultOption: false },
     { name: "visualize", alias: "V", type: Boolean },
     { name: "wallet", alias: "W", type: Boolean },
     { name: "writing", alias: "w", type: Boolean },
-    { name: "help", alias: "h", type: Boolean },
-    { name: "config", alias: "c", type: String },
-    { name: "data", alias: "d", type: String },
 ]
 
 import conf = require("./settings")

@@ -117,7 +117,7 @@ export class MakeTransaction extends React.Component<IMakeTransactionProps, any>
             alert("Please enter a number with up to 9 decimal places")
             return
         }
-        if (hyconfromString(event.target.value).add(hyconfromString(this.state.minerFee)).greaterThan(hyconfromString(this.state.piggyBank).sub(hyconfromString(this.state.pendingAmount)))) {
+        if (hyconfromString(this.state.amount).add(hyconfromString(this.state.minerFee)).greaterThan(hyconfromString(this.state.piggyBank).sub(hyconfromString(this.state.pendingAmount)))) {
             alert("You can't spend the money you don't have")
             return
         }

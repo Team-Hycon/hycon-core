@@ -1,10 +1,8 @@
 import { getLogger } from "log4js"
-import { hyconfromString } from "./api/client/stringUtil"
 import { HttpServer } from "./api/server/server"
 import { ITxPool } from "./common/itxPool"
 import { TxPool } from "./common/txPool"
 import { Consensus } from "./consensus/consensus"
-import { Database } from "./consensus/database/database"
 import { WorldState } from "./consensus/database/worldState"
 import { IConsensus } from "./consensus/iconsensus"
 import { Sync } from "./consensus/sync"
@@ -63,13 +61,47 @@ export class Server {
         await this.runSync()
     }
 
-    public async runSync(): Promise<void> {
+    public async runSync() {
         logger.debug(`begin sync`)
-        const sync = new Sync(this.network.getRandomPeer(), this.consensus, this.network.version)
-        await sync.sync()
-        setTimeout(async () => {
-            await this.runSync()
-        }, 5000)
+        const peers = this.network.getPeers()
+        const tipPromises = []
+        for (const peer of peers) {
+            const tipPromise = peer.getTip().then((tip) => ({ peer, tip })).catch((e) => logger.debug(e))
+            tipPromises.push(tipPromise)
+        }
+        const responses = []
+        for (const tipPromise of tipPromises) {
+            try {
+                const tip = await tipPromise
+                if (tip === undefined) {
+                    continue
+                }
+                responses.push(tip)
+            } catch (e) {
+                logger.debug(e)
+            }
+        }
+
+        if (responses.length > 0) {
+            const bestPeer = responses.reduce((a, b) => {
+                if (a.tip.totalwork === undefined) {
+                    a.tip.totalwork = 0
+                }
+                if (b.tip.totalwork === undefined) {
+                    b.tip.totalwork = 0
+                }
+                if (a.tip.totalwork === b.tip.totalwork) {
+                    return Math.random() > .5 ? a : b
+                }
+                return a.tip.totalwork > b.tip.totalwork ? a : b
+            })
+            if (bestPeer.tip.totalwork > this.consensus.getHtip().totalWork) {
+                const sync = new Sync(bestPeer, this.consensus, this.network.version)
+                await sync.sync()
+            }
+        }
+
+        setImmediate(() => this.runSync())
         logger.debug(`end sync`)
     }
 }
