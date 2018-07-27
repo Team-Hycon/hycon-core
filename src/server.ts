@@ -5,13 +5,14 @@ import { TxPool } from "./common/txPool"
 import { Consensus } from "./consensus/consensus"
 import { WorldState } from "./consensus/database/worldState"
 import { IConsensus } from "./consensus/iconsensus"
-import { Sync } from "./consensus/sync"
+import { Sync, ITip } from "./consensus/sync"
 import { globalOptions } from "./main"
 import { MinerServer } from "./miner/minerServer"
 import { INetwork } from "./network/inetwork"
 import { RabbitNetwork } from "./network/rabbit/rabbitNetwork"
 import { RestManager } from "./rest/restManager"
 import { Wallet } from "./wallet/wallet"
+import { IPeer } from "./network/ipeer";
 
 const logger = getLogger("Server")
 
@@ -63,45 +64,27 @@ export class Server {
 
     public async runSync() {
         logger.debug(`begin sync`)
-        const peers = this.network.getPeers()
-        const tipPromises = []
-        for (const peer of peers) {
-            const tipPromise = peer.getTip().then((tip) => ({ peer, tip })).catch((e) => logger.debug(e))
-            tipPromises.push(tipPromise)
-        }
-        const responses = []
-        for (const tipPromise of tipPromises) {
+        const peerPromises = this.network.getPeers().map((peer) => peer.getTip().then((tip) => ({ peer, tip })).catch((e) => logger.debug(e)))
+        const peers = [] as { peer: IPeer; tip: ITip; }[]
+        for (const peerPromise of peerPromises) {
             try {
-                const tip = await tipPromise
-                if (tip === undefined) {
-                    continue
+                const result = await peerPromise
+                if (result !== undefined) {
+                    peers.push(await result)
                 }
-                responses.push(tip)
             } catch (e) {
                 logger.debug(e)
             }
         }
+        const syncCandidates = peers.filter((peer) => peer.tip.totalwork > this.consensus.getBtip().totalWork)
 
-        if (responses.length > 0) {
-            const bestPeer = responses.reduce((a, b) => {
-                if (a.tip.totalwork === undefined) {
-                    a.tip.totalwork = 0
-                }
-                if (b.tip.totalwork === undefined) {
-                    b.tip.totalwork = 0
-                }
-                if (a.tip.totalwork === b.tip.totalwork) {
-                    return Math.random() > .5 ? a : b
-                }
-                return a.tip.totalwork > b.tip.totalwork ? a : b
-            })
-            if (bestPeer.tip.totalwork > this.consensus.getHtip().totalWork) {
-                const sync = new Sync(bestPeer, this.consensus, this.network.version)
-                await sync.sync()
-            }
+        if (syncCandidates.length > 0) {
+            const syncPeer = syncCandidates[Math.floor(Math.random() * syncCandidates.length)]
+            const sync = new Sync(syncPeer, this.consensus, this.network.version)
+            await sync.sync()
         }
 
-        setImmediate(() => this.runSync())
+        setTimeout(() => this.runSync(), 1000)
         logger.debug(`end sync`)
     }
 }

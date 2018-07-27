@@ -39,6 +39,7 @@ export interface IConsensus extends EventEmitter {
     getCurrentDiff(): number
     getHeadersTip(): { hash: Hash, height: number, totalwork: number }
     getHtip(): DBBlock
+    getBtip(): DBBlock
     getTx(hash: Hash): Promise<{ tx: DBTx, confirmation: number } | undefined>
     txValidity(tx: SignedTx): Promise<TxValidity>
     getHash(height: number): Promise<Hash>

@@ -252,6 +252,10 @@ export class Consensus extends EventEmitter implements IConsensus {
         return this.headerTip
     }
 
+    public getBtip() {
+        return this.blockTip
+    }
+
     public async txValidity(tx: SignedTx): Promise<TxValidity> {
         return this.lock.critical(async () => {
             let validity = await this.worldState.validateTx(this.blockTip.header.stateRoot, tx)

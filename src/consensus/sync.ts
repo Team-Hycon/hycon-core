@@ -42,7 +42,7 @@ export enum BlockStatus {
 const headerCount = Math.floor(MAX_PACKET_SIZE / MAX_HEADER_SIZE)
 const blockCount = Math.floor(MAX_PACKET_SIZE / MAX_BLOCK_SIZE)
 
-interface ITip {
+export interface ITip {
     hash: Hash,
     height: number,
     totalwork: number

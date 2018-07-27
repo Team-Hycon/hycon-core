@@ -31,7 +31,7 @@ export class RabbitNetwork implements INetwork {
         } else { return ipv6 }
     }
     public networkid: string = "hycon"
-    public readonly version: number = 8
+    public readonly version: number = 9
     public port: number
     public publicPort: number
     public guid: string // unique id to prevent self connecting

@@ -2,6 +2,7 @@ import { getLogger } from "log4js"
 import * as Long from "long"
 import opn = require("opn")
 import { Address } from "../../common/address"
+import { AsyncLock } from "../../common/asyncLock"
 import { BlockHeader } from "../../common/blockHeader"
 import { ITxPool } from "../../common/itxPool"
 import { PrivateKey } from "../../common/privateKey"
@@ -9,8 +10,8 @@ import { SignedTx } from "../../common/txSigned"
 import { DBTx } from "../../consensus/database/dbtx"
 import { DifficultyAdjuster } from "../../consensus/difficultyAdjuster"
 import { IConsensus } from "../../consensus/iconsensus"
-import { setMiner } from "../../main"
 import { globalOptions } from "../../main"
+import { setMiner } from "../../main"
 import { MinerServer } from "../../miner/minerServer"
 import { INetwork } from "../../network/inetwork"
 import * as proto from "../../serialization/proto"
@@ -30,11 +31,14 @@ export class RestServer implements IRest {
     private network: INetwork
     private miner: MinerServer
 
+    private txNonceLock: AsyncLock
+
     constructor(consensus: IConsensus, network: INetwork, txPool: ITxPool, miner: MinerServer) {
         this.consensus = consensus
         this.network = network
         this.txPool = txPool
         this.miner = miner
+        this.txNonceLock = new AsyncLock()
     }
 
     public loadingListener(callback: (loading: boolean) => void): void {
@@ -147,35 +151,47 @@ export class RestServer implements IRest {
     }
 
     public async outgoingSignedTx(tx: { privateKey: string, to: string, amount: string, fee: string, nonce?: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
-        try {
-            const address = new Address(tx.to)
-            const wallet = new Wallet(Buffer.from(tx.privateKey, "hex"))
-            const account = await this.consensus.getAccount(new Address(wallet.pubKey.address()))
-            const nonce = tx.nonce === undefined ? account.nonce + 1 : tx.nonce
-            const total = hyconfromString(tx.amount).add(hyconfromString(tx.fee))
-            logger.debug(`Total HYC: ${hycontoString(total)}`)
-            logger.debug(`Account Balance: ${hycontoString(account.balance)}`)
-            logger.debug(`Boolean: ${account.balance.lessThan(total)}`)
-            if (account.balance.lessThan(total)) {
-                throw new Error("insufficient wallet balance to send transaction")
+        return this.txNonceLock.critical(async () => {
+            try {
+                const address = new Address(tx.to)
+                const wallet = new Wallet(Buffer.from(tx.privateKey, "hex"))
+                const account = await this.consensus.getAccount(new Address(wallet.pubKey.address()))
+                let nonce = tx.nonce
+                if (nonce === undefined) {
+                    nonce = account.nonce + 1
+                    const pendingTxs = this.txPool.getTxsOfAddress(address)
+                    for (const pendingTx of pendingTxs) {
+                        if (nonce <= pendingTx.nonce) {
+                            nonce = pendingTx.nonce + 1
+                        }
+                    }
+                }
+                const total = hyconfromString(tx.amount).add(hyconfromString(tx.fee))
+                logger.debug(`Total HYC: ${hycontoString(total)}`)
+                logger.debug(`Account Balance: ${hycontoString(account.balance)}`)
+                logger.debug(`Boolean: ${account.balance.lessThan(total)}`)
+                if (account.balance.lessThan(total)) {
+                    throw new Error("insufficient wallet balance to send transaction")
+                }
+                const signedTx = wallet.send(address, hyconfromString(tx.amount.toString()), nonce, hyconfromString(tx.fee.toString()))
+                const txHash = new Hash(signedTx).toString()
+                if (queueTx) {
+                    logger.info(`Sending TX ${txHash} {from: ${signedTx.from}, to: ${signedTx.to}, amount: ${signedTx.amount}, fee: ${signedTx.fee}, nonce: ${signedTx.nonce}}`)
+                    queueTx(signedTx)
+                } else {
+                    throw new Error("could not queue transaction")
+                }
+                return { txHash }
+            } catch (e) {
+                return {
+                    status: 404,
+                    timestamp: Date.now(),
+                    error: "INVALID_PARAMETER",
+                    message: e.toString(),
+                }
             }
-            const signedTx = wallet.send(address, hyconfromString(tx.amount.toString()), nonce, hyconfromString(tx.fee.toString()))
-            if (queueTx) {
-                queueTx(signedTx)
-            } else {
-                throw new Error("could not queue transaction")
-            }
-            return Promise.resolve({
-                txHash: new Hash(signedTx).toString(),
-            })
-        } catch (e) {
-            return Promise.resolve({
-                status: 404,
-                timestamp: Date.now(),
-                error: "INVALID_PARAMETER",
-                message: e.toString(),
-            })
-        }
+
+        })
     }
 
     public async outgoingTx(tx: { signature: string, from: string, to: string, amount: string, fee: string, nonce: number, recovery: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
