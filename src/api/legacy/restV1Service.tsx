@@ -17,8 +17,6 @@ import { userOptions } from "../../main"
 import { MinerServer } from "../../miner/minerServer"
 import { Network } from "../../network/network"
 import { Hash } from "../../util/hash"
-import { Bitbox } from "../../wallet/bitbox"
-import { Ledger } from "../../wallet/ledger"
 import { Wallet } from "../../wallet/wallet"
 import { IBlock, ICreateWallet, IHyconWallet, IMinedInfo, IMiner, IPeer, IResponseError, ITxProp, IWalletAddress } from "../client/rest"
 const logger = getLogger("RestV1Service")
@@ -940,60 +938,6 @@ export class RestV1Service {
         return false
     }
 
-    public async getLedgerWallet(startIndex: number, count: number): Promise<IHyconWallet[] | number> {
-        try {
-            const addresses = await Ledger.getAddresses(startIndex, count)
-            const wallets: IHyconWallet[] = []
-            for (const address of addresses) {
-                const account = await this.consensus.getAccount(address)
-                const pendings = this.txPool.getOutPendingAddress(address)
-                let pendingAmount = Long.UZERO
-                for (const pending of pendings) {
-                    pendingAmount = strictAdd(pendingAmount, strictAdd(pending.amount, pending.fee))
-                }
-                wallets.push({
-                    address: address.toString(),
-                    balance: account ? hycontoString(account.balance) : "0",
-                    pendingAmount: hycontoString(pendingAmount),
-                })
-            }
-            return wallets
-        } catch (e) {
-            logger.error(`Fail to getLedgerWallet in restServer : ${e}`)
-            return 1
-        }
-    }
-
-    public async sendTxWithLedger(index: number, from: string, to: string, amount: string, fee: string, txNonce?: number, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
-        let status = 0
-        try {
-            const fromAddress = new Address(from)
-            status = 1
-            const { address, nonce } = await this.prepareSendTx(fromAddress, to, amount, fee, txNonce)
-            status = 4
-            const htip = this.consensus.getHtip()
-            const htipHeight = htip !== undefined ? htip.height : 0
-            const signedTx = await Ledger.sign(htipHeight, address, hyconfromString(amount), nonce, hyconfromString(fee), index)
-
-            if (queueTx) { queueTx(signedTx) } else { return { res: false, case: status } }
-
-            return { res: true, case: status }
-        } catch (e) {
-            switch (e) {
-                case 2:
-                    return { res: false, case: 2 }
-                case 3:
-                    return { res: false, case: 3 }
-                default:
-                    return { res: false, case: status }
-            }
-        }
-    }
-
-    public possibilityLedger(): Promise<boolean> {
-        return Promise.resolve(true)
-    }
-
     public async sendTxWithHDWallet(tx: { name: string, password: string, address: string, amount: string, minerFee: string, nonce?: number }, index: number, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
         tx.password === undefined ? tx.password = "" : tx.password = tx.password
         let status = 1
@@ -1068,6 +1012,10 @@ export class RestV1Service {
         }
     }
 
+    public possibilityLedger(): Promise<boolean> {
+        return Promise.resolve(false)
+    }
+
     public async recoverHDWallet(Hwallet: IHyconWallet): Promise<string | boolean> {
         try {
             await Wallet.walletInit()
@@ -1112,112 +1060,6 @@ export class RestV1Service {
 
         return { totalSupply: hycontoString(totalAmount), circulatingSupply: hycontoString(circulatingSupply) }
     }
-
-    public checkPasswordBitbox(): Promise<boolean | number> {
-        try {
-            const bitbox = Bitbox.getBitbox()
-            const isSetted = bitbox.checkPasswordSetting()
-            bitbox.close()
-            return Promise.resolve(isSetted)
-        } catch (e) {
-            return e
-        }
-    }
-
-    public async checkWalletBitbox(password: string): Promise<boolean | number | { error: number, remain_attemp: string }> {
-        try {
-            const bitbox = Bitbox.getBitbox()
-            const isSetted = await bitbox.checkWalletSetting(password)
-            bitbox.close()
-            return Promise.resolve(isSetted)
-        } catch (e) {
-            return e
-        }
-    }
-
-    public async getBitboxWallet(password: string, startIndex: number, count: number): Promise<IHyconWallet[] | number> {
-        try {
-            const bitbox = Bitbox.getBitbox()
-            const addresses = await bitbox.getAddress(password, startIndex, count)
-            bitbox.close()
-            const wallets: IHyconWallet[] = []
-            for (const address of addresses) {
-                const account = await this.consensus.getAccount(address)
-                const pendings = this.txPool.getOutPendingAddress(address)
-                let pendingAmount = Long.fromNumber(0)
-                for (const pending of pendings) {
-                    pendingAmount = strictAdd(pendingAmount, strictAdd(pending.amount, pending.fee))
-                }
-                wallets.push({
-                    address: address.toString(),
-                    balance: account ? hycontoString(account.balance) : "0",
-                    pendingAmount: hycontoString(pendingAmount),
-                })
-            }
-            return wallets
-        } catch (e) {
-            return e
-        }
-    }
-
-    public async sendTxWithBitbox(tx: { from: string, password: string, address: string, amount: string, minerFee: string, nonce?: number }, index: number, queueTx?: Function): Promise<{ res: boolean, case?: (number | { error: number, remain_attemp: string }) }> {
-        let checkFrom = false
-        try {
-            const fromAddress = new Address(tx.from)
-            checkFrom = true
-            const { address, nonce } = await this.prepareSendTx(fromAddress, tx.address, tx.amount, tx.minerFee, tx.nonce)
-
-            const bitbox = Bitbox.getBitbox()
-            const htip = this.consensus.getHtip()
-            const htipHeight = htip !== undefined ? htip.height : 0
-            const signedTx = await bitbox.sign(htipHeight, fromAddress, index, tx.password, address, hyconfromString(tx.amount), nonce, hyconfromString(tx.minerFee))
-            bitbox.close()
-            if (queueTx) { queueTx(signedTx) } else { return Promise.reject(false) }
-            return { res: true }
-        } catch (e) {
-            if (!checkFrom) { return { res: false, case: 1 } }
-            logger.error(`sendTxWithBitbox : ${e}`)
-            return { res: false, case: e }
-        }
-    }
-
-    public setBitboxPassword(password: string): Promise<boolean | number> {
-        try {
-            const bitbox = Bitbox.getBitbox()
-            bitbox.createPassword(password)
-            const result = bitbox.checkPasswordSetting()
-            bitbox.close()
-            return Promise.resolve(result)
-        } catch (e) {
-            logger.error(`Error setBitboxPassword : ${e}`)
-            return e
-        }
-    }
-
-    public async createBitboxWallet(name: string, password: string): Promise<boolean | number> {
-        try {
-            const bitbox = Bitbox.getBitbox()
-            await bitbox.setWallet(name, password)
-            const result = await bitbox.checkWalletSetting(password)
-            bitbox.close()
-            return result
-        } catch (e) {
-            logger.error(`Error createBitboxWallet : ${e}`)
-            return e
-        }
-    }
-
-    public async updateBitboxPassword(originalPwd: string, newPwd: string): Promise<boolean | number | { error: number, remain_attemp: string }> {
-        try {
-            const bitbox = Bitbox.getBitbox()
-            const result = await bitbox.updatePassword(originalPwd, newPwd)
-            bitbox.close()
-            return result
-        } catch (e) {
-            return e
-        }
-    }
-
     public async isUncleBlock(blockHash: string): Promise<boolean | IResponseError> {
         try {
             const result = await this.consensus.isUncleBlock(Hash.decode(blockHash))
@@ -1296,7 +1138,6 @@ export class RestV1Service {
         }
         return blockList
     }
-
     private async prepareSendTx(fromAddress: Address, toAddress: string, amount: string, minerFee: string, txNonce?: number): Promise<{ address: Address, nonce: number }> {
         let checkAddr = false
         try {
