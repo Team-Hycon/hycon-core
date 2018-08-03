@@ -9,6 +9,7 @@ import { DelayQueue } from "../common/delayQueue"
 import { ITxPool } from "../common/itxPool"
 import { SignedTx } from "../common/txSigned"
 import { globalOptions } from "../main"
+import { MAX_HEADER_SIZE } from "../network/rabbit/networkConstants"
 import { Hash } from "../util/hash"
 import { Account } from "./database/account"
 import { Database } from "./database/database"
@@ -21,7 +22,7 @@ import { TxDatabase } from "./database/txDatabase"
 import { TxValidity, WorldState } from "./database/worldState"
 import { DifficultyAdjuster } from "./difficultyAdjuster"
 import { IConsensus, IStatusChange } from "./iconsensus"
-import { BlockStatus, MAX_HEADER_SIZE } from "./sync"
+import { BlockStatus } from "./sync"
 import { Verify } from "./verify"
 const logger = getLogger("Consensus")
 
@@ -318,7 +319,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                     + ` ${hash}(${dbBlock.height}, ${dbBlock.totalWork.toExponential()}),`
                     + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
                     + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
-                return { oldStatus, status }
+                return { oldStatus, status, height: dbBlock.height }
             }
 
             if (block !== undefined && (this.blockTip === undefined || this.forkChoice(dbBlock, this.blockTip))) {
@@ -332,7 +333,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                 + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
                 + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
 
-            return { oldStatus, status }
+            return { oldStatus, status, height: dbBlock.height }
         })
     }
     private async process(hash: Hash, header: BlockHeader, block?: Block): Promise<IPutResult> {

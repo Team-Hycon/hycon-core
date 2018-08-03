@@ -3,11 +3,12 @@ import * as Long from "long"
 import { Socket } from "net"
 import { AnyBlock, Block } from "../../common/block"
 import { AnyBlockHeader, BlockHeader } from "../../common/blockHeader"
+import { BaseBlockHeader } from "../../common/genesisHeader"
 import { ITxPool } from "../../common/itxPool"
 import { SignedTx } from "../../common/txSigned"
 import { TIMESTAMP_TOLERANCE } from "../../consensus/consensus"
-import { IConsensus } from "../../consensus/iconsensus"
-import { BlockStatus, BYTES_OVERHEAD, HASH_SIZE, MAX_TX_SIZE, MAX_TXS_PER_BLOCK, REPEATED_OVERHEAD } from "../../consensus/sync"
+import { IConsensus, IStatusChange } from "../../consensus/iconsensus"
+import { BlockStatus, ITip } from "../../consensus/sync"
 import { globalOptions } from "../../main"
 import { MinerServer } from "../../miner/minerServer"
 import * as proto from "../../serialization/proto"
@@ -15,8 +16,8 @@ import { Hash } from "../../util/hash"
 import { IPeer } from "../ipeer"
 import { IPeerDatabase } from "../ipeerDatabase"
 import { BasePeer } from "./basePeer"
+import { BYTES_OVERHEAD, HASH_SIZE, MAX_BLOCKS_PER_PACKET, MAX_HEADERS_PER_PACKET, MAX_PACKET_SIZE, MAX_TX_SIZE, MAX_TXS_PER_BLOCK, REPEATED_OVERHEAD } from "./networkConstants"
 import { RabbitNetwork } from "./rabbitNetwork"
-import { MAX_PACKET_SIZE } from "./socketParser"
 const logger = getLogger("NetPeer")
 
 const DIFFICULTY_TOLERANCE = 0.05
@@ -33,6 +34,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private network: RabbitNetwork
     private receivedBroadcasts: number
     private lastReceivedTime: number
+    private version: number
 
     constructor(socket: Socket, network: RabbitNetwork, consensus: IConsensus, txPool: ITxPool, peerDB: IPeerDatabase) {
         super(socket)
@@ -65,6 +67,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
 
             this.listenPort = status.port
             this.guid = status.guid
+            this.version = status.version
             if (status.version > this.network.version) {
                 logger.warn(`Peer is using a higher version number(${status.version}) than current version(${this.network.version})`)
             }
@@ -74,18 +77,14 @@ export class RabbitPeer extends BasePeer implements IPeer {
             this.disconnect()
             throw e
         }
-
     }
 
-    public async getTip(header = false): Promise<{ hash: Hash, height: number, totalwork: number }> {
-        // Deprecated in favor of getHeaderTip and getBlockTip
-        const { reply, packet } = await this.sendRequest({ getTip: { dummy: 0, header } })
-        if (reply.getTipReturn === undefined) {
-            this.protocolError(new Error(`Reply has no 'getTipReturn': ${JSON.stringify(reply)}`))
-            throw new Error("Invalid response")
-        }
+    public async getHTip() {
+        return this.getTip(true)
+    }
 
-        return { hash: new Hash(reply.getTipReturn.hash), height: Number(reply.getTipReturn.height), totalwork: reply.getTipReturn.totalwork }
+    public async getBTip() {
+        return this.getTip(false)
     }
 
     public async getHash(height: number): Promise<Hash | undefined> {
@@ -128,6 +127,10 @@ export class RabbitPeer extends BasePeer implements IPeer {
         } catch (e) {
             throw new Error(`Could not getBlockTxs from peer: ${e}`)
         }
+    }
+
+    public getVersion(): number {
+        return this.version
     }
 
     public async status(): Promise<proto.IStatus> {
@@ -245,13 +248,49 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return headers
     }
 
+    public async headerSync(remoteTip: ITip) {
+        const startHeight = Math.min(this.consensus.getHtip().height, remoteTip.height)
+        const { height: commonHeight, hash: commonHash } = await this.commonSearch(startHeight, remoteTip.height - 1, BlockStatus.Header)
+        logger.debug(`Found Start Header=${commonHeight}`)
+        return this.getHeaders(commonHeight, commonHash, remoteTip.height)
+    }
+    public async blockSync(remoteBlockTip: ITip) {
+        const startHeight = Math.min(this.consensus.getBtip().height, remoteBlockTip.height)
+        const { height: commonHeight, hash: commonHash } = await this.commonSearch(startHeight, remoteBlockTip.height - 1, BlockStatus.Block)
+        logger.debug(`Found Start Block=${commonHeight}`)
+        return this.getBlocks(commonHeight, commonHash, remoteBlockTip.height)
+    }
+
+    public async txSync(remoteTip: ITip) {
+        const blockHashes: Hash[] = []
+        let header = this.consensus.getHtip().header
+        let status: BlockStatus
+        do {
+            status = await this.consensus.getBlockStatus(new Hash(header))
+            if (status >= BlockStatus.Block) { break }
+            if (!(header instanceof BlockHeader)) { continue }
+            if (!header.merkleRoot.equals(Hash.emptyHash)) {
+                blockHashes.unshift(new Hash(header))
+            }
+            if (blockHashes.length > MAX_HEADERS_PER_PACKET) {
+                blockHashes.pop()
+            }
+            header = await this.consensus.getHeaderByHash(header.previousHash[0])
+        } while (status < BlockStatus.Block)
+
+        if (blockHashes.length > 0) {
+            logger.debug(`Receiving transactions from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}`)
+            return this.getTxBlocks(blockHashes)
+        }
+    }
+
     // this is called in BasePeer's onPacket
     protected async respond(id: number, request: proto.Network, packet: Buffer): Promise<void> {
         let response: proto.INetwork
         const reply = id !== 0
         const rebroadcast = () => {
             if (id === 0) {
-                setTimeout(() => this.network.broadcast, packet, this)
+                setImmediate(() => this.network.broadcast(packet))
             }
         }
         switch (request.request) {
@@ -309,6 +348,16 @@ export class RabbitPeer extends BasePeer implements IPeer {
                 logger.debug(`Message response could not be delived: ${e}`)
             }
         }
+    }
+
+    private async getTip(header = false): Promise<{ hash: Hash, height: number, totalwork: number }> {
+        const { reply } = await this.sendRequest({ getTip: { header } })
+        if (reply.getTipReturn === undefined) {
+            this.protocolError(new Error(`Reply has no 'getTipReturn': ${JSON.stringify(reply)}`))
+            throw new Error("Invalid response")
+        }
+
+        return { hash: new Hash(reply.getTipReturn.hash), height: Number(reply.getTipReturn.height), totalwork: reply.getTipReturn.totalwork }
     }
 
     private async respondStatus(reply: boolean, request: proto.IStatus): Promise<proto.INetwork> {
@@ -512,16 +561,6 @@ export class RabbitPeer extends BasePeer implements IPeer {
     }
 
     private async respondPutHeaders(reply: boolean, request: proto.IPutHeaders): Promise<proto.INetwork> {
-        setImmediate(async () => {
-            try {
-                request.headers = request.headers.slice(0, 1)
-                const header = new BlockHeader(request.headers[0])
-                await this.consensus.putHeader(header)
-            } catch (e) {
-                logger.debug(e)
-            }
-        })
-
         return { putHeadersReturn: { statusChanges: [] } }
     }
 
@@ -558,5 +597,130 @@ export class RabbitPeer extends BasePeer implements IPeer {
             logger.debug(`Failed to send block txs: ${e}`)
         }
         return message
+    }
+
+    private async commonSearch(startHeight: number, max: number, searchStatus: BlockStatus) {
+        let min: number
+        let i = 0
+        await this.search(startHeight, (height, status) => {
+            if (status === undefined || status === BlockStatus.Rejected) {
+                this.disconnect()
+                return undefined
+            }
+
+            if (height <= 0 || status >= searchStatus) {
+                min = height
+                return undefined
+            } else {
+                max = height
+            }
+            i++
+            return Math.max(startHeight - Math.pow(2, i), 0)
+        })
+        logger.debug(`Found minimum height(${min})`)
+
+        return this.search(Math.floor((min + max) / 2), (height, status) => {
+            if (height === min) {
+                return undefined
+            }
+
+            if (status === undefined || status === BlockStatus.Rejected) {
+                logger.debug(`Peer supplied rejected information`)
+                this.disconnect()
+                return undefined
+            }
+
+            if (status >= searchStatus) {
+                min = height
+            } else {
+                max = height
+            }
+            return Math.floor((min + max) / 2)
+        })
+    }
+
+    private async search(height: number, update: (height: number, status?: BlockStatus) => number) {
+        while (height !== undefined) {
+            const hash = await this.getHash(height)
+            const status = hash === undefined ? undefined : await this.consensus.getBlockStatus(hash)
+            logger.debug(`Peer's block at height ${height} has status ${status}`)
+            const newHeight = update(height, status)
+            if (newHeight === undefined) {
+                return { height, hash }
+            }
+            height = newHeight
+        }
+    }
+
+    private async getHeaders(commonHeight: number, commonHash: Hash, maxHeight: number) {
+        let headers: BaseBlockHeader[]
+        let previousHash = commonHash
+        logger.debug(`commonHeight: ${commonHeight}, previousHash: ${previousHash}`)
+        let height = commonHeight + 1
+        do {
+            headers = await this.getHeadersByRange(height, MAX_HEADERS_PER_PACKET)
+            for (const header of headers) {
+                if (!(header instanceof BlockHeader)) {
+                    throw new Error(`Received Genesis Block Header during sync`)
+                }
+                const result = await this.consensus.putHeader(header)
+                this.validatePut(height, previousHash, result, header, BlockStatus.Header)
+                height++
+                previousHash = new Hash(header)
+            }
+        } while (height < maxHeight && headers.length > 0)
+    }
+
+    private async getBlocks(commonHeight: number, commonHash: Hash, maxHeight: number) {
+        let blocks: AnyBlock[]
+        let previousHash = commonHash
+        let height = commonHeight + 1
+        do {
+            blocks = await this.getBlocksByRange(height, MAX_BLOCKS_PER_PACKET)
+            for (const block of blocks) {
+                if (!(block instanceof Block)) {
+                    throw new Error(`Received Genesis Block during sync`)
+                }
+                const result = await this.consensus.putBlock(block)
+                this.validatePut(height, previousHash, result, block.header, BlockStatus.Block)
+                height++
+                previousHash = new Hash(block.header)
+            }
+
+        } while (height < maxHeight && blocks.length > 0)
+    }
+
+    private validatePut(height: number, previousHash: Hash, result: IStatusChange, header: BlockHeader, expectedStatus: BlockStatus) {
+        if (result.status === undefined || result.status < expectedStatus) {
+            throw new Error(`Block rejected: ${JSON.stringify(result)}`)
+        }
+        if (result.height !== undefined && result.height !== height) {
+            throw new Error(`Expected header at height(${height}) but got header at height(${result.height})`)
+        }
+        if (!previousHash.equals(header.previousHash[0])) {
+            throw new Error(`Expected header's previousHash(${header.previousHash[0]}) to be ${previousHash}`)
+        }
+        if (result.oldStatus >= result.status) {
+            logger.debug(`Received block has already been received`)
+        }
+    }
+
+    private async getTxBlocks(blockHashes: Hash[]) {
+        const requestSize = blockHashes.length * (HASH_SIZE + BYTES_OVERHEAD) + REPEATED_OVERHEAD
+        const numRequests = Math.ceil(requestSize / MAX_PACKET_SIZE)
+        const txBlocksPerRequest = Math.floor(blockHashes.length / numRequests)
+
+        for (let i = 0; i < numRequests; i++) {
+            const requestHashes = blockHashes.splice(0, txBlocksPerRequest)
+            while (requestHashes.length > 0) {
+                const receivedTxBlock = await this.getBlockTxs(requestHashes)
+                requestHashes.splice(0, receivedTxBlock.length)
+                const changes = await this.consensus.putTxBlocks(receivedTxBlock)
+                if (!changes.every((change) => change.oldStatus < change.status)) {
+                    logger.debug(`Received txBlock has already been received`)
+                    return
+                }
+            }
+        }
     }
 }

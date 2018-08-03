@@ -72,7 +72,7 @@ export class MinerServer {
         }
 
         if (!globalOptions.bootstrap && ((Date.now() - previousDBBlock.header.timeStamp) > 86400000)) {
-            logger.info("Last block is more than a day old, waiting for synchronization prior to mining.")
+            logger.debug("Last block is more than a day old, waiting for synchronization prior to mining.")
             return
         }
 

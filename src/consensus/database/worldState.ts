@@ -88,6 +88,9 @@ export class WorldState {
         }
     }
     public async validateTx(stateRoot: Hash, tx: SignedTx): Promise<TxValidity> {
+        if (tx.from.equals(tx.to)) {
+            return TxValidity.Invalid
+        }
         const fromAccount = await this.getAccount(stateRoot, tx.from)
         if (fromAccount === undefined || fromAccount.nonce >= tx.nonce) {
             return TxValidity.Invalid

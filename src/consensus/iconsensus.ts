@@ -13,7 +13,7 @@ import { DBMined } from "./database/dbMined"
 import { DBTx } from "./database/dbtx"
 import { TxValidity } from "./database/worldState"
 
-export interface IStatusChange { oldStatus?: BlockStatus, status?: BlockStatus }
+export interface IStatusChange { oldStatus?: BlockStatus, status?: BlockStatus, height?: number }
 
 export type AnySignedTx = (GenesisSignedTx | SignedTx)
 
