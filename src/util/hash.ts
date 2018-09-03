@@ -1,6 +1,7 @@
 import Base58 = require("base-58")
 import blake2b = require("blake2b")
 import { Block } from "../common/block"
+import { GenesisBlock } from "../common/blockGenesis"
 import { AnyBlockHeader, BlockHeader } from "../common/blockHeader"
 import { BaseBlockHeader, GenesisBlockHeader } from "../common/genesisHeader"
 import { Tx } from "../common/tx"
@@ -13,7 +14,7 @@ import * as proto from "../serialization/proto"
 // tslint:disable-next-line:no-var-requires
 const cryptonight = require("node-cryptonight").asyncHash
 
-function toUint8Array(ob?: Tx | Block | GenesisBlockHeader | BlockHeader | string | SignedTx | GenesisTx | GenesisSignedTx | StateNode | Account | Uint8Array | Buffer): Uint8Array {
+function toUint8Array(ob?: Tx | Block | GenesisBlock | GenesisBlockHeader | BlockHeader | string | SignedTx | GenesisTx | GenesisSignedTx | StateNode | Account | Uint8Array | Buffer): Uint8Array {
     // Consensus Critical
     if (ob !== undefined) {
         if (typeof ob === "string") {
@@ -28,7 +29,9 @@ function toUint8Array(ob?: Tx | Block | GenesisBlockHeader | BlockHeader | strin
             delete usignedTx.recovery
             delete usignedTx.signature
             return Hash.hash(proto.Tx.encode(usignedTx).finish())
-        } else if (ob instanceof Tx || ob instanceof BlockHeader || ob instanceof BaseBlockHeader || ob instanceof Block || ob instanceof StateNode || ob instanceof Account || ob instanceof GenesisBlockHeader || ob instanceof GenesisTx) {
+        } else if (ob instanceof Block || ob instanceof GenesisBlock) {
+            return Hash.hash(ob.header.encode())
+        } else if (ob instanceof Tx || ob instanceof BaseBlockHeader || ob instanceof BlockHeader || ob instanceof StateNode || ob instanceof Account || ob instanceof GenesisBlockHeader || ob instanceof GenesisTx) {
             return Hash.hash(ob.encode())
         }
         // Danger: typescript claims this line is unreachable, but it is reachable via the slice function

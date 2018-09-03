@@ -21,12 +21,14 @@ export class MinedDatabase {
     public async init(consensus: IConsensus, tipHeight?: number) {
         this.consensus = consensus
         this.db.serialize(() => {
-            this.db.run(`CREATE TABLE IF NOT EXISTS mineddb(idx INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                        blockhash TEXT,
+            this.db.run(`PRAGMA synchronous = OFF;`)
+            this.db.run(`PRAGMA journal_mode = MEMORY;`)
+            this.db.run(`CREATE TABLE IF NOT EXISTS mineddb(blockhash TEXT PRIMARY KEY,
                                                         blocktime INTEGER,
                                                         feeReward TEXT,
-                                                        miner TEXT,
-                                                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`)
+                                                        miner TEXT)`)
+            this.db.run(`CREATE INDEX IF NOT EXISTS miner ON mineddb(miner);`)
+            this.db.run(`CREATE INDEX IF NOT EXISTS blocktime ON mineddb(blocktime);`)
         })
         if (tipHeight !== undefined) {
             let status: BlockStatus
@@ -61,7 +63,7 @@ export class MinedDatabase {
         try {
             let hashData: string = ""
             return new Promise<Hash | undefined>(async (resolved, rejected) => {
-                this.db.all(`SELECT * FROM mineddb ORDER BY timestamp DESC LIMIT 1`, (err, rows) => {
+                this.db.all(`SELECT * FROM mineddb ORDER BY blocktime DESC LIMIT 1`, (err, rows) => {
                     if (rows === undefined || rows.length < 1) { return resolved(undefined) }
                     hashData = rows[0].blockhash
                     return resolved(Hash.decode(hashData))
@@ -73,21 +75,18 @@ export class MinedDatabase {
         }
     }
 
-    public async putMinedBlock(blockHash: Hash, timestamp: number, txs: AnySignedTx[], miner: Address): Promise<void> {
-        const isExist = await this.get(blockHash)
-        if (!isExist) {
-            const stmtInsert = this.db.prepare(`INSERT INTO mineddb (blockhash, feeReward, blocktime, miner) VALUES ($blockhash, $feeReward, $blocktime, $miner)`)
-            let feeReward = hyconfromString("240")
-            for (const tx of txs) { tx instanceof SignedTx ? feeReward = feeReward.add(tx.fee) : feeReward = feeReward }
-            const params = {
-                $blockhash: blockHash.toString(),
-                $blocktime: timestamp,
-                $feeReward: hycontoString(feeReward),
-                $miner: miner.toString(),
-            }
-            stmtInsert.run(params)
-            stmtInsert.finalize()
+    public async putMinedBlock(blockHash: Hash, blocktime: number, txs: AnySignedTx[], miner: Address): Promise<void> {
+        const stmtInsert = this.db.prepare(`INSERT INTO mineddb (blockhash, feeReward, blocktime, miner) VALUES ($blockhash, $feeReward, $blocktime, $miner)`)
+        let feeReward = hyconfromString("240")
+        for (const tx of txs) { tx instanceof SignedTx ? feeReward = feeReward.add(tx.fee) : feeReward = feeReward }
+        const params = {
+            $blockhash: blockHash.toString(),
+            $blocktime: blocktime,
+            $feeReward: hycontoString(feeReward),
+            $miner: miner.toString(),
         }
+        stmtInsert.run(params)
+        stmtInsert.finalize()
     }
 
     public async getMinedBlocks(address: Address, count: number, index: number, blockHash?: Hash, result: DBMined[] = []): Promise<DBMined[]> {
@@ -121,16 +120,6 @@ export class MinedDatabase {
                     result = await this.getMinedBlocks(address, count, ++index, blockHash, result)
                 }
                 return resolved(result)
-            })
-        })
-    }
-
-    public async get(key: Hash): Promise<boolean> {
-        const params = { $blockhash: key.toString() }
-        return new Promise<boolean>(async (resolved, rejected) => {
-            this.db.all(`SELECT blockhash, feeReward, blocktime, miner FROM mineddb WHERE blockhash = $blockhash`, params, async (err, rows) => {
-                if (rows === undefined || rows.length === 0) { return resolved(false) }
-                return resolved(true)
             })
         })
     }

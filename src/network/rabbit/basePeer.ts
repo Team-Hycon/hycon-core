@@ -5,6 +5,8 @@ import * as proto from "../../serialization/proto"
 import { SocketParser } from "./socketParser"
 
 const logger = getLogger("Network")
+const MAX_REPLY_ID = Math.pow(2, 32) - 1
+const MIN_REPLY_ID = Math.pow(2, 30)
 
 // tslint:disable-next-line:interface-name
 interface ReplyAndPacket { reply: proto.Network, packet: Buffer }
@@ -18,7 +20,7 @@ export abstract class BasePeer {
     private requestSemaphore = new AsyncLock(0, 30000, 5)
 
     constructor(socket: Socket) {
-        this.replyId = 1
+        this.replyId = MIN_REPLY_ID + Math.floor(MAX_REPLY_ID - MIN_REPLY_ID)
         this.replyMap = new Map()
         this.socketBuffer = new SocketParser(socket, (route, buffer) => this.onPacket(route, buffer))
         socket.on("close", () => this.close())
@@ -93,8 +95,10 @@ export abstract class BasePeer {
 
     protected async route(route: number, reply: proto.Network, packet: Buffer): Promise<void> {
         try {
-            const { resolved } = this.replyMap.get(route)
-            resolved({ reply, packet })
+            const response = this.replyMap.get(route)
+            if (response !== undefined) {
+                response.resolved({ reply, packet })
+            }
         } catch (e) {
             this.protocolError(e)
         }
@@ -153,8 +157,8 @@ export abstract class BasePeer {
     }
 
     private newReplyID(): number {
-        if (this.replyId >= Number.MAX_SAFE_INTEGER) {
-            this.replyId = 1
+        if (this.replyId >= MAX_REPLY_ID) {
+            this.replyId = MIN_REPLY_ID
         }
         return this.replyId++
     }

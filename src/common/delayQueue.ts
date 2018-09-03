@@ -12,6 +12,10 @@ export class DelayQueue {
         this.queue = new PriorityQueue(maxLength, comparator)
     }
 
+    public size() {
+        return this.queue.length()
+    }
+
     public waitUntil(timeStamp: number) {
         return new Promise((resolve, reject) => {
             const timer = setTimeout(() => {

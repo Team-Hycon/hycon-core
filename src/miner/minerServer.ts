@@ -77,7 +77,7 @@ export class MinerServer {
         }
 
         const miner: Address = new Address(globalOptions.minerAddress)
-        logger.info(`New Candidate Block Difficulty: 0x${previousDBBlock.nextDifficulty.toExponential()} Target: ${DifficultyAdjuster.getTarget(previousDBBlock.nextDifficulty, 32).toString("hex")}`)
+        logger.debug(`New Candidate Block Difficulty: 0x${previousDBBlock.nextDifficulty.toExponential()} Target: ${DifficultyAdjuster.getTarget(previousDBBlock.nextDifficulty, 32).toString("hex")}`)
         clearInterval(this.intervalId)
         this.createCandidate(previousDBBlock, previousHash, miner)
         this.intervalId = setInterval(() => this.createCandidate(previousDBBlock, previousHash, miner), 2000)

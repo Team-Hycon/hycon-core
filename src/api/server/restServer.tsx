@@ -16,6 +16,7 @@ import { MinerServer } from "../../miner/minerServer"
 import { INetwork } from "../../network/inetwork"
 import * as proto from "../../serialization/proto"
 import { Hash } from "../../util/hash"
+import { Bitbox } from "../../wallet/bitbox"
 import { Ledger } from "../../wallet/ledger"
 import { Wallet } from "../../wallet/wallet"
 import { IBlock, ICreateWallet, IHyconWallet, IMinedInfo, IMiner, IPeer, IResponseError, IRest, ITxProp, IUser, IWalletAddress } from "../client/rest"
@@ -196,8 +197,10 @@ export class RestServer implements IRest {
 
     public async outgoingTx(tx: { signature: string, from: string, to: string, amount: string, fee: string, nonce: number, recovery: number }, queueTx?: Function): Promise<{ txHash: string } | IResponseError> {
         try {
+            const fromAddress = new Address(tx.from)
+
             const address = {
-                from: new Address(tx.from),
+                from: fromAddress,
                 to: new Address(tx.to),
                 amount: hyconfromString(tx.amount),
                 fee: hyconfromString(tx.fee),
@@ -212,8 +215,17 @@ export class RestServer implements IRest {
                     throw new Error("transaction information or signature is incorrect")
                 }
             }
-            const account = await this.consensus.getAccount(new Address(tx.from))
-            const total = hyconfromString(tx.amount).add(hyconfromString(tx.fee))
+
+            const pendings = this.txPool.getTxsOfAddress(fromAddress)
+            let pendingAmount = hyconfromString("0")
+            for (const pendingTx of pendings) {
+                if (pendingTx.nonce === tx.nonce) {
+                    break
+                }
+                pendingAmount = pendingAmount.add(pendingTx.amount).add(pendingTx.fee)
+            }
+            const account = await this.consensus.getAccount(fromAddress)
+            const total = hyconfromString(tx.amount).add(hyconfromString(tx.fee)).add(pendingAmount)
             if (account.balance.lessThan(total)) {
                 throw new Error("insufficient wallet balance to send transaction")
             }
@@ -308,6 +320,7 @@ export class RestServer implements IRest {
                     to: result.to !== undefined ? result.to.toString() : "🔥Gimme fuel, gimme fire🔥",
                     estimated: hycontoString(hyconfromString(result.amount).add(hyconfromString(result.fee))),
                     receiveTime: result.blocktime,
+                    nonce: result.nonce,
                 }
                 webTxs.push(webTx)
             }
@@ -359,6 +372,7 @@ export class RestServer implements IRest {
                     to: hyconTx.to,
                     estimated: hycontoString(hyconfromString(hyconTx.amount).add(hyconfromString(hyconTx.fee))),
                     receiveTime: hyconTx.blocktime,
+                    nonce: hyconTx.nonce,
                 }
                 webTxs.push(webTx)
             }
@@ -549,6 +563,7 @@ export class RestServer implements IRest {
                 from: hyconBlockTx.from,
                 to: hyconBlockTx.to,
                 blockHash: hyconBlockTx.blockhash,
+                nonce: hyconBlockTx.nonce,
                 receiveTime: hyconBlockTx.blocktime,
                 estimated: hycontoString(hyconfromString(hyconBlockTx.amount).add(hyconfromString(hyconBlockTx.fee))),
                 confirmation: getTxResult.confirmation,
@@ -564,10 +579,13 @@ export class RestServer implements IRest {
         }
     }
     public async getWalletDetail(name: string): Promise<IHyconWallet | IResponseError> {
-        const mapHashTx: Map<Hash, SignedTx> = new Map<Hash, SignedTx>()
         try {
             await Wallet.walletInit()
-            const addrOfWallet = new Address(await Wallet.getAddress(name))
+            const addressString = await Wallet.getAddress(name)
+            if (addressString === "") {
+                return { name, address: "" }
+            }
+            const addrOfWallet = new Address(addressString)
             const n = 10
             const account = await this.consensus.getAccount(addrOfWallet)
             const results = await this.consensus.getLastTxs(addrOfWallet, n)
@@ -596,6 +614,7 @@ export class RestServer implements IRest {
                         to: tx.to !== undefined ? tx.to.toString() : "🔥Gimme fuel, gimme fire🔥",
                         signature: tx.signature.toString("hex"),
                         estimated: hycontoString(tx.amount.add(tx.fee)),
+                        nonce: tx.nonce,
                     })
                     pendingAmount = pendingAmount.add(tx.amount).add(tx.fee)
                 }
@@ -610,6 +629,7 @@ export class RestServer implements IRest {
                     to: result.to,
                     estimated: hycontoString(hyconfromString(result.amount).add(hyconfromString(result.fee))),
                     receiveTime: result.blocktime,
+                    nonce: result.nonce,
                 }
                 webTxs.push(webTx)
             }
@@ -622,7 +642,37 @@ export class RestServer implements IRest {
                 minedBlocks,
                 pendingAmount: hycontoString(pendingAmount),
             }
-            return Promise.resolve(hyconWallet)
+            return hyconWallet
+        } catch (e) {
+            return Promise.resolve({
+                status: 404,
+                timestamp: Date.now(),
+                error: "NOT_FOUND",
+                message: "the wallet cannot be found",
+            })
+        }
+    }
+
+    public async getHDWallet(name: string, password: string, index: number, count: number): Promise<IHyconWallet[] | IResponseError> {
+        try {
+            const hdWallets = await Wallet.loadHDKeys(name, password, index, count)
+            const wallets: IHyconWallet[] = []
+            for (const wallet of hdWallets) {
+                const address = wallet.pubKey.address()
+
+                const account = await this.consensus.getAccount(address)
+                const pendings = this.txPool.getTxsOfAddress(address)
+                let pendingAmount = Long.fromNumber(0)
+                for (const pending of pendings) {
+                    pendingAmount = pendingAmount.add(pending.amount).add(pending.fee)
+                }
+                wallets.push({
+                    address: address.toString(),
+                    balance: account ? hycontoString(account.balance) : "0",
+                    pendingAmount: hycontoString(pendingAmount),
+                })
+            }
+            return wallets
         } catch (e) {
             return Promise.resolve({
                 status: 404,
@@ -639,21 +689,25 @@ export class RestServer implements IRest {
             const walletList = new Array<IHyconWallet>()
             const walletListResult = await Wallet.walletList(idx)
             for (const wallet of walletListResult.walletList) {
-                const address = new Address(wallet.address)
                 const name = wallet.name
-                const account = await this.consensus.getAccount(address)
-                const pendings = this.txPool.getTxsOfAddress(address)
-                let pendingAmount = Long.fromNumber(0, true)
-                for (const pending of pendings) {
-                    pendingAmount = pendingAmount.add(pending.amount).add(pending.fee)
+                if (wallet.address !== "") {
+                    const address = new Address(wallet.address)
+                    const account = await this.consensus.getAccount(address)
+                    const pendings = this.txPool.getTxsOfAddress(address)
+                    let pendingAmount = Long.fromNumber(0, true)
+                    for (const pending of pendings) {
+                        pendingAmount = pendingAmount.add(pending.amount).add(pending.fee)
+                    }
+                    const tmpHwallet: IHyconWallet = {
+                        address: wallet.address,
+                        name,
+                        balance: account ? hycontoString(account.balance) : "0",
+                        pendingAmount: hycontoString(pendingAmount),
+                    }
+                    walletList.push(tmpHwallet)
+                } else {
+                    walletList.push({ address: "", name })
                 }
-                const tmpHwallet: IHyconWallet = {
-                    address: address.toString(),
-                    name,
-                    balance: account ? hycontoString(account.balance) : "0",
-                    pendingAmount: hycontoString(pendingAmount),
-                }
-                walletList.push(tmpHwallet)
             }
             return { walletList, length: walletListResult.length }
         } catch (e) {
@@ -663,80 +717,48 @@ export class RestServer implements IRest {
 
     public async recoverWallet(Hwallet: IHyconWallet): Promise<string | boolean> {
         await Wallet.walletInit()
-        if (Hwallet.name !== undefined && Hwallet.mnemonic !== undefined && Hwallet.language !== undefined) {
-            const isValid = Wallet.validateMnemonic(Hwallet.mnemonic, Hwallet.language)
-            if (isValid) {
-                try {
-                    let password = Hwallet.password
-                    let passphrase = Hwallet.passphrase
-                    let hint = Hwallet.hint
-                    if (Hwallet.password === undefined) { password = "" }
-                    if (Hwallet.passphrase === undefined) { passphrase = "" }
-                    if (Hwallet.hint === undefined) { hint = "" }
-                    const addressString = await Wallet.recoverWallet({ name: Hwallet.name, passphrase, mnemonic: Hwallet.mnemonic, language: Hwallet.language, hint }, password)
-                    return Promise.resolve(addressString)
-                } catch (e) {
-                    return Promise.resolve(false)
-                }
-            } else {
-                return Promise.resolve(false)
-            }
-        } else {
-            return Promise.resolve(false)
+
+        if (Hwallet.name === undefined || Hwallet.mnemonic === undefined || Hwallet.language === undefined) {
+            return false
+        }
+        if (!Wallet.validateMnemonic(Hwallet.mnemonic, Hwallet.language)) {
+            return false
+        }
+        try {
+            const password = Hwallet.password === undefined ? "" : Hwallet.password
+            const passphrase = Hwallet.passphrase === undefined ? "" : Hwallet.passphrase
+            const hint = Hwallet.hint === undefined ? "" : Hwallet.hint
+            const addressString = await Wallet.recoverWallet({ name: Hwallet.name, passphrase, mnemonic: Hwallet.mnemonic, language: Hwallet.language, hint }, password)
+            return Promise.resolve(addressString)
+        } catch (e) {
+            return false
         }
     }
 
     public async sendTx(tx: { name: string, password: string, address: string, amount: string, minerFee: string, nonce?: number }, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
         tx.password === undefined ? tx.password = "" : tx.password = tx.password
-        let checkPass = false
-        let checkAddr = false
+        let status = 1
         try {
             await Wallet.walletInit()
             const wallet = await Wallet.loadKeys(tx.name, tx.password)
-            checkPass = true
+            status = 2
 
             const walletAddress = wallet.pubKey.address()
-            const address = new Address(tx.address)
-            checkAddr = true
 
-            const account = await this.consensus.getAccount(walletAddress)
-            let accountBalance = account.balance
-
-            const addressTxs = this.txPool.getTxsOfAddress(walletAddress)
-            let nonce: number
-            if (addressTxs.length > 0 && tx.nonce === undefined) {
-                nonce = addressTxs[addressTxs.length - 1].nonce + 1
-            } else if (tx.nonce !== undefined) {
-                nonce = Number(tx.nonce)
-            } else {
-                nonce = account.nonce + 1
-            }
-            const totalAmount = Long.fromNumber(0, true)
-            for (const addrTx of addressTxs) {
-                totalAmount.add(addrTx.amount).add(addrTx.fee)
-            }
-
-            accountBalance = accountBalance.sub(totalAmount)
-
-            logger.warn(`Account Balance: ${account.balance} / Pending Amount : ${totalAmount} /  Available : ${account.balance.sub(totalAmount)}`)
-            logger.warn(`TX Amount: ${tx.amount}`)
-            logger.warn(`TX Miner Fee: ${tx.minerFee}`)
-
-            const amt = hyconfromString(tx.amount).add(hyconfromString(tx.minerFee))
-
-            logger.warn(`TX Total: ${hycontoString(amt)}`)
-            if (amt.greaterThan(accountBalance)) {
-                throw new Error("insufficient wallet balance to send transaction")
-            }
+            const { address, nonce } = await this.prepareSendTx(walletAddress, tx.address, tx.amount, tx.minerFee, tx.nonce)
 
             const signedTx = wallet.send(address, hyconfromString(tx.amount), nonce, hyconfromString(tx.minerFee))
             if (queueTx) { queueTx(signedTx) } else { return Promise.reject(false) }
-            return Promise.resolve({ res: true })
+            return { res: true }
         } catch (e) {
-            logger.warn(e)
-            if (!checkPass) { return Promise.resolve({ res: false, case: 1 }) }
-            if (!checkAddr) { return Promise.resolve({ res: false, case: 2 }) }
-            return Promise.resolve({ res: false, case: 3 })
+            switch (e) {
+                case 2:
+                    return { res: false, case: 2 }
+                case 3:
+                    return { res: false, case: 3 }
+                default:
+                    return { res: false, case: status }
+            }
         }
     }
 
@@ -763,7 +785,7 @@ export class RestServer implements IRest {
 
     public async getPeerList(): Promise<IPeer[]> {
         const peerList: IPeer[] = []
-        const peers: proto.IPeer[] = await this.network.getPeerDb()
+        const peers = await this.network.getPeerDb()
         // tslint:disable-next-line:prefer-const
         let result: any
         for (const peer of peers) {
@@ -790,7 +812,7 @@ export class RestServer implements IRest {
                 lastSeen: seen,
                 failCount: peer.failCount,
                 lastAttempt: attempt,
-                active: peer.active,
+                active: peer.active !== 0,
                 location: result ? result.region_name : undefined,
                 latitude: result ? result.latitude : undefined,
                 longitude: result ? result.longitude : undefined,
@@ -803,7 +825,7 @@ export class RestServer implements IRest {
     public async getPeerConnected(index: number): Promise<{ peersInPage: IPeer[], pages: number }> {
         try {
             const peerList: IPeer[] = []
-            const peers: proto.IPeer[] = await this.network.getConnection()
+            const peers = await this.network.getConnection()
             for (const peer of peers) {
                 const lastSeen = Number(peer.lastSeen)
                 const lastAttempt = Number(peer.lastAttempt)
@@ -817,17 +839,15 @@ export class RestServer implements IRest {
                     const tp = new Date(lastAttempt)
                     attempt = tp.toLocaleString()
                 }
-                const temp: IPeer = {
+                peerList.push({
                     host: peer.host,
                     port: peer.port,
-                    currentQueue: peer.currentQueue,
-                    active: peer.active,
+                    active: peer.active !== 0,
                     failCount: peer.failCount,
-                    successCount: peer.successCount,
+                    successCount: peer.successInCount + peer.successOutCount,
                     lastSeen: seen,
                     lastAttempt: attempt,
-                }
-                peerList.push(temp)
+                })
             }
             const start = index * 20
             const end = start + 20
@@ -858,6 +878,7 @@ export class RestServer implements IRest {
                 to: result.to,
                 estimated: hycontoString(hyconfromString(result.amount).add(hyconfromString(result.fee))),
                 receiveTime: result.blocktime,
+                nonce: result.nonce,
             }
             webTxs.push(webTx)
         }
@@ -878,6 +899,7 @@ export class RestServer implements IRest {
                 to: result.to,
                 estimated: hycontoString(hyconfromString(result.amount).add(hyconfromString(result.fee))),
                 receiveTime: result.blocktime,
+                nonce: result.nonce,
             }
             webTxs.push(webTx)
         }
@@ -965,9 +987,8 @@ export class RestServer implements IRest {
         if (!await Wallet.checkDupleName(name)) {
             const result = await Wallet.addWalletFile(name, password, key)
             return result
-        } else {
-            return false
         }
+        return false
     }
 
     public async getLedgerWallet(startIndex: number, count: number): Promise<IHyconWallet[] | number> {
@@ -994,43 +1015,27 @@ export class RestServer implements IRest {
         }
     }
 
-    public async sendTxWithLedger(index: number, from: string, to: string, amount: string, fee: string, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
-        let caseNum = 0
+    public async sendTxWithLedger(index: number, from: string, to: string, amount: string, fee: string, txNonce?: number, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
+        let status = 0
         try {
             const fromAddress = new Address(from)
-            caseNum = 1
-            const toAddress = new Address(to)
-            caseNum = 2
-            const account = await this.consensus.getAccount(fromAddress)
-            let balance = account.balance
+            status = 1
+            const { address, nonce } = await this.prepareSendTx(fromAddress, to, amount, fee, txNonce)
+            status = 4
+            const signedTx = await Ledger.sign(address, hyconfromString(amount), nonce, hyconfromString(fee), index)
 
-            const pendings = this.txPool.getTxsOfAddress(fromAddress)
-            let nonce: number
-            if (pendings.length > 0) {
-                nonce = pendings[pendings.length - 1].nonce + 1
-            } else {
-                nonce = account.nonce + 1
-            }
-            caseNum = 3
+            if (queueTx) { queueTx(signedTx) } else { return { res: false, case: status } }
 
-            const totalAmount = Long.fromNumber(0, true)
-            for (const pending of pendings) {
-                totalAmount.add(pending.amount).add(pending.fee)
-            }
-            balance = balance.sub(totalAmount)
-
-            logger.warn(`${index} Ledger Wallet Balance: ${account.balance} / Pending Amount : ${totalAmount} /  Available : ${balance}`)
-            logger.warn(`TX Amount: ${amount}`)
-            logger.warn(`TX Miner Fee: ${fee}`)
-
-            const signedTx = await Ledger.sign(toAddress, hyconfromString(amount), nonce, hyconfromString(fee), index)
-            caseNum = 4
-            if (queueTx) { queueTx(signedTx) } else { return { res: false, case: caseNum } }
-            caseNum = 5
-            return { res: true, case: caseNum }
+            return { res: true, case: status }
         } catch (e) {
-            logger.warn(`Fail to sendTxWithLedger : ${e}`)
-            return { res: false, case: caseNum }
+            switch (e) {
+                case 2:
+                    return { res: false, case: 2 }
+                case 3:
+                    return { res: false, case: 3 }
+                default:
+                    return { res: false, case: status }
+            }
         }
     }
 
@@ -1038,7 +1043,71 @@ export class RestServer implements IRest {
         return Promise.resolve(true)
     }
 
-    public async getMarketCap(): Promise<{ amount: string }> {
+    public async sendTxWithHDWallet(tx: { name: string, password: string, address: string, amount: string, minerFee: string, nonce?: number }, index: number, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
+        tx.password === undefined ? tx.password = "" : tx.password = tx.password
+        let status = 1
+        try {
+            await Wallet.walletInit()
+            const hdWallet = (await Wallet.loadHDKeys(tx.name, tx.password, index, 1))[0]
+            status = 2
+
+            const walletAddress = hdWallet.pubKey.address()
+
+            const { address, nonce } = await this.prepareSendTx(walletAddress, tx.address, tx.amount, tx.minerFee, tx.nonce)
+
+            const signedTx = hdWallet.send(address, hyconfromString(tx.amount), nonce, hyconfromString(tx.minerFee))
+            if (queueTx) { queueTx(signedTx) } else { return Promise.reject(false) }
+            return { res: true }
+        } catch (e) {
+            switch (e) {
+                case 2:
+                    return { res: false, case: 2 }
+                case 3:
+                    return { res: false, case: 3 }
+                default:
+                    return { res: false, case: status }
+            }
+        }
+    }
+
+    public async generateHDWallet(Hwallet: IHyconWallet): Promise<string> {
+        try {
+            await Wallet.walletInit()
+            if (Hwallet.name !== undefined && Hwallet.mnemonic !== undefined && Hwallet.language !== undefined) {
+                const password = Hwallet.password === undefined ? "" : Hwallet.password
+                const passphrase = Hwallet.passphrase === undefined ? "" : Hwallet.passphrase
+                const hint = Hwallet.hint === undefined ? "" : Hwallet.hint
+                const wallet = Wallet.generateHDWallet({ name: Hwallet.name, passphrase, mnemonic: Hwallet.mnemonic, language: Hwallet.language, hint })
+                await wallet.save(Hwallet.name, password, hint)
+                return Hwallet.name
+            } else {
+                return Promise.reject("Information is missing.")
+            }
+        } catch (e) {
+            throw e
+        }
+    }
+
+    public async recoverHDWallet(Hwallet: IHyconWallet): Promise<string | boolean> {
+        try {
+            await Wallet.walletInit()
+            if (Hwallet.name === undefined || Hwallet.mnemonic === undefined || Hwallet.language === undefined) {
+                return false
+            }
+            if (!Wallet.validateMnemonic(Hwallet.mnemonic, Hwallet.language)) {
+                return false
+            }
+            const password = Hwallet.password === undefined ? "" : Hwallet.password
+            const passphrase = Hwallet.passphrase === undefined ? "" : Hwallet.passphrase
+            const hint = Hwallet.hint === undefined ? "" : Hwallet.hint
+            await Wallet.recoverHDWallet({ name: Hwallet.name, passphrase, mnemonic: Hwallet.mnemonic, language: Hwallet.language, hint }, password)
+            return Hwallet.name
+        } catch (e) {
+            throw false
+        }
+    }
+
+    public async getMarketCap(): Promise<{ totalSupply: string, circulatingSupply: string }> {
         const genesis = await this.consensus.getBlockByHash(Hash.decode(`G4qXusbRyXmf62c8Tsha7iZoyLsVGfka7ynkvb3Esd1d`))
         let totalAmount: Long = hyconfromString(`0`)
         for (const tx of genesis.txs) {
@@ -1051,6 +1120,155 @@ export class RestServer implements IRest {
         const blockTip = await this.consensus.getBlocksTip()
         totalAmount = totalAmount.add(hyconfromString((blockTip.height * 240).toString()))
 
-        return { amount: hycontoString(totalAmount) }
+        const airdropAddr = await this.getAddressInfo(`H3nHqmqsamhY9LLm87GKLuXfke6gg8QmM`)
+        const icoAddr = await this.getAddressInfo(`H3ynYLh9SkRCTnH59ZdU9YzrzzPVL5R1K`)
+        const corpAddr = await this.getAddressInfo(`H8coFUhRwbY9wKhi6GGXQ2PzooqdE52c`)
+        const teamAddr = await this.getAddressInfo(`H3r7mH8PVCjJF2CUj8JYu8L4umkayCC1e`)
+        const bountyAddr = await this.getAddressInfo(`H278osmYQoWP8nnrvNypWB5YfDNk6Fuqb`)
+        const developAddr = await this.getAddressInfo(`H4C2pYMHygAtSungDKmZuHhfYzjkiAdY5`)
+
+        const circulatingSupply = totalAmount.sub(hyconfromString(airdropAddr.balance)).sub(hyconfromString(icoAddr.balance)).sub(hyconfromString(corpAddr.balance)).sub(hyconfromString(teamAddr.balance)).sub(hyconfromString(bountyAddr.balance)).sub(hyconfromString(developAddr.balance))
+
+        return { totalSupply: hycontoString(totalAmount), circulatingSupply: hycontoString(circulatingSupply) }
     }
+
+    public checkPasswordBitbox(): Promise<boolean | number> {
+        try {
+            const bitbox = Bitbox.getBitbox()
+            const isSetted = bitbox.checkPasswordSetting()
+            bitbox.close()
+            return Promise.resolve(isSetted)
+        } catch (e) {
+            return e
+        }
+    }
+
+    public async checkWalletBitbox(password: string): Promise<boolean | number | { error: number, remain_attemp: string }> {
+        try {
+            const bitbox = Bitbox.getBitbox()
+            const isSetted = await bitbox.checkWalletSetting(password)
+            bitbox.close()
+            return Promise.resolve(isSetted)
+        } catch (e) {
+            return e
+        }
+    }
+
+    public async getBitboxWallet(password: string, startIndex: number, count: number): Promise<IHyconWallet[] | number> {
+        try {
+            const bitbox = Bitbox.getBitbox()
+            const addresses = await bitbox.getAddress(password, startIndex, count)
+            bitbox.close()
+            const wallets: IHyconWallet[] = []
+            for (const address of addresses) {
+                const account = await this.consensus.getAccount(address)
+                const pendings = this.txPool.getTxsOfAddress(address)
+                let pendingAmount = Long.fromNumber(0)
+                for (const pending of pendings) {
+                    pendingAmount = pendingAmount.add(pending.amount).add(pending.fee)
+                }
+                wallets.push({
+                    address: address.toString(),
+                    balance: account ? hycontoString(account.balance) : "0",
+                    pendingAmount: hycontoString(pendingAmount),
+                })
+            }
+            return wallets
+        } catch (e) {
+            return e
+        }
+    }
+
+    public async sendTxWithBitbox(tx: { from: string, password: string, address: string, amount: string, minerFee: string, nonce?: number }, index: number, queueTx?: Function): Promise<{ res: boolean, case?: (number | { error: number, remain_attemp: string }) }> {
+        let checkFrom = false
+        try {
+            const fromAddress = new Address(tx.from)
+            checkFrom = true
+            const { address, nonce } = await this.prepareSendTx(fromAddress, tx.address, tx.amount, tx.minerFee, tx.nonce)
+
+            const bitbox = Bitbox.getBitbox()
+            const signedTx = await bitbox.sign(fromAddress, index, tx.password, address, hyconfromString(tx.amount), nonce, hyconfromString(tx.minerFee))
+            bitbox.close()
+            if (queueTx) { queueTx(signedTx) } else { return Promise.reject(false) }
+            return { res: true }
+        } catch (e) {
+            if (!checkFrom) { return { res: false, case: 1 } }
+            logger.error(`sendTxWithBitbox : ${e}`)
+            return { res: false, case: e }
+        }
+    }
+
+    public setBitboxPassword(password: string): Promise<boolean | number> {
+        try {
+            const bitbox = Bitbox.getBitbox()
+            bitbox.createPassword(password)
+            const result = bitbox.checkPasswordSetting()
+            bitbox.close()
+            return Promise.resolve(result)
+        } catch (e) {
+            logger.error(`Error setBitboxPassword : ${e}`)
+            return e
+        }
+    }
+
+    public async createBitboxWallet(name: string, password: string): Promise<boolean | number> {
+        try {
+            const bitbox = Bitbox.getBitbox()
+            await bitbox.setWallet(name, password)
+            const result = await bitbox.checkWalletSetting(password)
+            bitbox.close()
+            return result
+        } catch (e) {
+            logger.error(`Error createBitboxWallet : ${e}`)
+            return e
+        }
+    }
+
+    private async prepareSendTx(fromAddress: Address, toAddress: string, amount: string, minerFee: string, txNonce?: number): Promise<{ address: Address, nonce: number }> {
+        let checkAddr = false
+        try {
+            const address = new Address(toAddress)
+            checkAddr = true
+
+            const account = await this.consensus.getAccount(fromAddress)
+            let accountBalance = account.balance
+
+            const pendings = this.txPool.getTxsOfAddress(fromAddress)
+            let nonce: number = 0
+            if (txNonce !== undefined) {
+                nonce = Number(txNonce)
+            } else if (pendings.length > 0) {
+                nonce = pendings[pendings.length - 1].nonce + 1
+            } else {
+                nonce = account.nonce + 1
+            }
+
+            let pendingAmount = hyconfromString("0")
+            for (const pendingTx of pendings) {
+                if (pendingTx.nonce === nonce) {
+                    break
+                }
+                pendingAmount = pendingAmount.add(pendingTx.amount).add(pendingTx.fee)
+            }
+
+            accountBalance = accountBalance.sub(pendingAmount)
+            logger.warn(`Account Balance: ${hycontoString(account.balance)} / Pending Amount : ${hycontoString(pendingAmount)} /  Available : ${hycontoString(accountBalance)}`)
+            logger.warn(`TX Amount: ${amount}`)
+            logger.warn(`TX Miner Fee: ${minerFee}`)
+
+            const totalSend = hyconfromString(amount).add(hyconfromString(minerFee))
+
+            logger.warn(`TX Total: ${hycontoString(totalSend)}`)
+
+            if (totalSend.greaterThan(accountBalance)) {
+                throw new Error("insufficient wallet balance to send transaction")
+            }
+            return { address, nonce }
+        } catch (e) {
+            logger.warn(e)
+            if (!checkAddr) { throw 2 }
+            throw 3
+        }
+    }
+
 }

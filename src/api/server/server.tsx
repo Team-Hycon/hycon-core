@@ -1,18 +1,11 @@
 import * as bodyParser from "body-parser"
 import * as express from "express"
-import * as jwt from "jsonwebtoken"
 import { getLogger } from "log4js"
 import opn = require("opn")
-import * as React from "react"
-import { matchPath } from "react-router"
 import { matchRoutes, renderRoutes } from "react-router-config"
 import { SignedTx } from "../../common/txSigned"
-import { IConsensus } from "../../consensus/iconsensus"
 import { globalOptions } from "../../main"
-import { IPeer } from "../../network/ipeer"
 import { RestManager } from "../../rest/restManager"
-import * as proto from "../../serialization/proto"
-import * as Hycon from "../../server"
 import { App, routes } from "../client/app"
 import { indexRender } from "./index"
 import { RestServer } from "./restServer"
@@ -62,9 +55,9 @@ export class HttpServer {
         })
 
         if (options.nonLocal || globalOptions.public_rest === true) {
-            this.app.listen(port, () => { opn(`http://localhost:${port}`).catch((e) => logger.debug(e)) })
+            this.app.listen(port, () => this.open(port))
         } else {
-            this.app.listen(port, "localhost", () => { opn(`http://localhost:${port}`).catch((e) => logger.debug(e)) })
+            this.app.listen(port, "localhost", () => this.open(port))
         }
 
         this.hyconServer = hyconServer
@@ -256,6 +249,38 @@ export class HttpServer {
                     }),
                 )
             })
+
+            router.post("/getHDWallet", async (req: express.Request, res: express.Response) => {
+                res.json(
+                    await this.rest.getHDWallet(req.body.name, req.body.password, req.body.index, req.body.count),
+                )
+            })
+
+            router.post("/generateHDWallet", async (req: express.Request, res: express.Response) => {
+                res.json(
+                    await this.rest.generateHDWallet({
+                        name: req.body.name,
+                        password: req.body.password,
+                        passphrase: req.body.passphrase,
+                        hint: req.body.hint,
+                        mnemonic: req.body.mnemonic,
+                        language: req.body.language,
+                    }),
+                )
+            })
+
+            router.post("/recoverHDWallet", async (req: express.Request, res: express.Response) => {
+                res.json(
+                    await this.rest.recoverHDWallet({
+                        name: req.body.name,
+                        password: req.body.password,
+                        passphrase: req.body.passphrase,
+                        hint: req.body.hint,
+                        mnemonic: req.body.mnemonic,
+                        language: req.body.language,
+                    }),
+                )
+            })
         }
 
         // Public, always available
@@ -305,13 +330,14 @@ export class HttpServer {
             res.json(await this.rest.getLedgerWallet(req.params.startIndex, req.params.count))
         })
 
-        router.get("/sendTxWithLedger/:index/:from/:to/:amount/:fee", async (req: express.Request, res: express.Response) => {
+        router.post("/sendTxWithLedger", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.sendTxWithLedger(
-                req.params.index,
-                req.params.from,
-                req.params.to,
-                req.params.amount,
-                req.params.fee,
+                req.body.index,
+                req.body.from,
+                req.body.to,
+                req.body.amount,
+                req.body.fee,
+                req.body.txNonce,
                 async (tx: SignedTx) => {
                     const newTxs = await this.hyconServer.txQueue.putTxs([tx])
                     this.hyconServer.broadcastTxs(newTxs)
@@ -326,10 +352,77 @@ export class HttpServer {
             res.json(await this.rest.getMarketCap())
         })
 
+        router.post("/sendTxWithHDWallet", async (req: express.Request, res: express.Response) => {
+            res.json(
+                await this.rest.sendTxWithHDWallet({
+                    name: req.body.name,
+                    password: req.body.password,
+                    address: req.body.address,
+                    amount: req.body.amount,
+                    minerFee: req.body.minerFee,
+                    nonce: req.body.nonce,
+                }, req.body.index,
+                    async (tx: SignedTx) => {
+                        const newTxs = await this.hyconServer.txQueue.putTxs([tx])
+                        this.hyconServer.broadcastTxs(newTxs)
+                    }),
+            )
+        })
+
+        router.get("/checkPasswordBitbox", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.checkPasswordBitbox())
+        })
+
+        router.post("/checkWalletBitbox", async (req: express.Request, res: express.Response) => {
+            res.json(
+                await this.rest.checkWalletBitbox(req.body.password),
+            )
+        })
+
+        router.post("/getBitboxWallet", async (req: express.Request, res: express.Response) => {
+            res.json(
+                await this.rest.getBitboxWallet(req.body.password, req.body.startIndex, req.body.count),
+            )
+        })
+        router.post("/sendTxWithBitbox", async (req: express.Request, res: express.Response) => {
+            res.json(
+                await this.rest.sendTxWithBitbox({
+                    from: req.body.from,
+                    password: req.body.password,
+                    address: req.body.address,
+                    amount: req.body.amount,
+                    minerFee: req.body.minerFee,
+                    nonce: req.body.nonce,
+                }, req.body.index,
+                    async (tx: SignedTx) => {
+                        const newTxs = await this.hyconServer.txQueue.putTxs([tx])
+                        this.hyconServer.broadcastTxs(newTxs)
+                    }),
+            )
+        })
+
+        router.post("/setBitboxPassword", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.setBitboxPassword(req.body.password))
+        })
+
+        router.post("/createBitboxWallet", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.createBitboxWallet(req.body.name, req.body.password))
+        })
+
         this.app.use(`/api/${apiVersion}`, router)
     }
 
     public config() {
         this.app.use(bodyParser.json())
+    }
+
+    private open(port: number) {
+        if (globalOptions.noGUI === true) {
+            return
+        }
+        const url = `http://localhost:${port}`
+        opn(url).catch(() => {
+            logger.warn(`Could not open UI, please visit ${url}`)
+        })
     }
 }

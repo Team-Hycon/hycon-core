@@ -36,7 +36,7 @@ export class StratumServer {
         logger.debug(`Stratum Server`)
         this.minerServer = minerServer
         this.port = port
-        this.net = new LibStratum({ settings: { port: this.port } })
+        this.net = new LibStratum({ settings: { hostname: "localhost", host: "localhost", port: this.port, toobusy: 1000 } })
         this.mapCandidateBlock = new Map<number, IJob>()
         this.jobId = 0
         this.initialize()

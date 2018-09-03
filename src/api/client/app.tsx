@@ -7,7 +7,6 @@ import { AddressInfo } from "./addressInfo"
 import { BlockView } from "./blockView"
 import { Home } from "./home"
 import { MakeTransaction } from "./makeTransaction"
-// import { PeersList } from "./peersList"
 import { PeersView } from "./peersView"
 import { IRest } from "./rest"
 import { Transaction } from "./transaction"
@@ -15,13 +14,11 @@ import { TxPoolList } from "./txPoolList"
 import { TxView } from "./txView"
 
 import { AddWallet } from "./addWallet"
-import { LedgerView } from "./ledgerView"
+import { HardwareWalletView } from "./hardwareWalletView"
 import { MinerView } from "./minerView"
 import { RecoverWallet } from "./recoverWallet"
 import { WalletDetail } from "./walletDetail"
 import { WalletView } from "./walletView"
-
-import { NotFound } from "./notFound"
 
 export const routes: RouteConfig[] = [
     { exact: true, path: "/" },
@@ -34,12 +31,18 @@ export const routes: RouteConfig[] = [
     { exact: true, path: "/wallet/recoverWallet" },
     { exact: true, path: "/wallet/detail/:name" },
     { exact: true, path: "/transaction/:name" },
-    { exact: true, path: "/maketransaction/:isLedger" },
-    { exact: true, path: "/maketransaction/:isLedger/:selectedLedger" },
+    { exact: true, path: "/transaction/:name/:nonce" },
+    { exact: true, path: "/maketransaction/:walletType" },
+    { exact: true, path: "/maketransactionIndex/:walletType/:selectedAccount" },
+    { exact: true, path: "/maketransactionIndex/:walletType/:selectedAccount/:nonce" },
+    { exact: true, path: "/maketransactionAddress/:walletType/:address/:selectedAccount" },
+    { exact: true, path: "/maketransactionAddress/:walletType/:address/:selectedAccount/:nonce" },
+    { exact: true, path: "/maketransactionHDWallet/:walletType/:name/:address/:selectedAccount" },
+    { exact: true, path: "/maketransactionHDWallet/:walletType/:name/:address/:selectedAccount/:nonce" },
     { exact: true, path: "/peersView" },
     { exact: true, path: "/minerView" },
-    { exact: true, path: "/ledgerView" },
-    { exact: true, path: "/address/:hash/:selectedLedger" },
+    { exact: true, path: "/hardwareWallet/:walletType" },
+    { exact: true, path: "/address/:hash/:walletType/:selectedAccount" },
     // { exact: true, path: "/peer/:hash" },
 ]
 
@@ -48,27 +51,23 @@ export class App extends React.Component<{ rest: IRest }, any> {
     public rest: IRest
     public blockView: ({ match }: RouteComponentProps<{ hash: string }>) => JSX.Element
     public home: ({ match }: RouteComponentProps<{}>) => JSX.Element
-    public addressInfo: (
-        { match }: RouteComponentProps<{ hash: string }>,
-    ) => JSX.Element
+    public addressInfo: ({ match }: RouteComponentProps<{ hash: string }>) => JSX.Element
     public txView: ({ match }: RouteComponentProps<{ hash: string }>) => JSX.Element
     public txPool: ({ match }: RouteComponentProps<{}>) => JSX.Element
 
-    public transaction: ({ match }: RouteComponentProps<{ name: string }>) => JSX.Element
-    public maketransaction: ({ match }: RouteComponentProps<{ isLedger: boolean }>) => JSX.Element
-    public maketransactionWithIndex: ({ match }: RouteComponentProps<{ isLedger: boolean, selectedLedger: number }>) => JSX.Element
+    public transaction: ({ match }: RouteComponentProps<{ name: string, nonce: number }>) => JSX.Element
+    public maketransaction: ({ match }: RouteComponentProps<{ walletType: string, nonce: number }>) => JSX.Element
+    public maketransactionIndex: ({ match }: RouteComponentProps<{ walletType: string, address: string, selectedAccount: string, nonce: number }>) => JSX.Element
+    public maketransactionHDWallet: ({ match }: RouteComponentProps<{ walletType: string, name: string, address: string, selectedAccount: string, nonce: number }>) => JSX.Element
     public peersView: ({ match }: RouteComponentProps<{}>) => JSX.Element
-    // public peerDetails: (
-    //     { match }: RouteComponentProps<{ hash: string }>,
-    // ) => JSX.Element
 
     public wallet: ({ match }: RouteComponentProps<{}>) => JSX.Element
     public addWallet: ({ match }: RouteComponentProps<{}>) => JSX.Element
     public recoverWallet: ({ match }: RouteComponentProps<{}>) => JSX.Element
     public walletDetail: ({ match }: RouteComponentProps<{ name: string }>) => JSX.Element
     public minerView: ({ match }: RouteComponentProps<{ name: string }>) => JSX.Element
-    public ledgerView: ({ match }: RouteComponentProps<{}>) => JSX.Element
-    public ledgerAddressView: ({ match }: RouteComponentProps<{ hash: string, selectedLedger: number }>) => JSX.Element
+    public hardwareWalletView: ({ match }: RouteComponentProps<{ walletType: string }>) => JSX.Element
+    public hardwareAddressView: ({ match }: RouteComponentProps<{ walletType: string, hash: string, selectedAccount: string }>) => JSX.Element
     public notFound: boolean
 
     constructor(props: any) {
@@ -99,14 +98,17 @@ export class App extends React.Component<{ rest: IRest }, any> {
         this.txPool = ({ match }: RouteComponentProps<{}>) => (
             <TxPoolList rest={this.rest} />
         )
-        this.transaction = ({ match }: RouteComponentProps<{ name: string }>) => (
-            <Transaction name={match.params.name} rest={this.rest} />
+        this.transaction = ({ match }: RouteComponentProps<{ name: string, nonce: number }>) => (
+            <Transaction name={match.params.name} rest={this.rest} nonce={match.params.nonce} />
         )
-        this.maketransaction = ({ match }: RouteComponentProps<{ isLedger: boolean }>) => (
-            <MakeTransaction isLedger={match.params.isLedger} rest={this.rest} />
+        this.maketransaction = ({ match }: RouteComponentProps<{ walletType: string, nonce: number }>) => (
+            <MakeTransaction walletType={match.params.walletType} rest={this.rest} nonce={match.params.nonce} />
         )
-        this.maketransactionWithIndex = ({ match }: RouteComponentProps<{ isLedger: boolean, selectedLedger: number }>) => (
-            <MakeTransaction isLedger={match.params.isLedger} rest={this.rest} selectedLedger={match.params.selectedLedger} />
+        this.maketransactionIndex = ({ match }: RouteComponentProps<{ walletType: string, address: string, selectedAccount: string, nonce: number }>) => (
+            <MakeTransaction walletType={match.params.walletType} rest={this.rest} address={match.params.address} selectedAccount={match.params.selectedAccount} nonce={match.params.nonce} />
+        )
+        this.maketransactionHDWallet = ({ match }: RouteComponentProps<{ walletType: string, name: string, address: string, selectedAccount: string, nonce: number }>) => (
+            <MakeTransaction rest={this.rest} walletType={match.params.walletType} name={match.params.name} address={match.params.address} selectedAccount={match.params.selectedAccount} nonce={match.params.nonce} />
         )
         this.peersView = ({ match }: RouteComponentProps<{}>) => (
             <PeersView rest={props.rest} />
@@ -131,11 +133,11 @@ export class App extends React.Component<{ rest: IRest }, any> {
             <MinerView rest={this.rest} />
         )
 
-        this.ledgerView = ({ match }: RouteComponentProps<{}>) => (
-            <LedgerView rest={this.rest} />
+        this.hardwareWalletView = ({ match }: RouteComponentProps<{ walletType: string }>) => (
+            <HardwareWalletView rest={this.rest} walletType={match.params.walletType} />
         )
-        this.ledgerAddressView = ({ match }: RouteComponentProps<{ hash: string, selectedLedger: number }>) => (
-            <AddressInfo hash={match.params.hash} rest={this.rest} selectedLedger={match.params.selectedLedger} />
+        this.hardwareAddressView = ({ match }: RouteComponentProps<{ walletType: string, hash: string, selectedAccount: string }>) => (
+            <AddressInfo hash={match.params.hash} walletType={match.params.walletType} rest={this.rest} selectedAccount={match.params.selectedAccount} />
         )
     }
     public render() {
@@ -166,16 +168,22 @@ export class App extends React.Component<{ rest: IRest }, any> {
                             <Route exact path="/txPool" component={this.txPool} />
                             <Route exact path="/address/:hash" component={this.addressInfo} />
                             <Route exact path="/transaction/:name" component={this.transaction} />
-                            <Route exact path="/maketransaction/:isLedger" component={this.maketransaction} />
-                            <Route exact path="/maketransaction/:isLedger/:selectedLedger" component={this.maketransactionWithIndex} />
+                            <Route exact path="/transaction/:name/:nonce" component={this.transaction} />
+                            <Route exact path="/maketransaction/:walletType" component={this.maketransaction} />
+                            <Route exact path="/maketransactionIndex/:walletType/:selectedAccount" component={this.maketransactionIndex} />
+                            <Route exact path="/maketransactionIndex/:walletType/:selectedAccount/:nonce" component={this.maketransactionIndex} />
+                            <Route exact path="/maketransactionAddress/:walletType/:address/:selectedAccount" component={this.maketransactionIndex} />
+                            <Route exact path="/maketransactionAddress/:walletType/:address/:selectedAccount/:nonce" component={this.maketransactionIndex} />
+                            <Route exact path="/maketransactionHDwallet/:walletType/:name/:address/:selectedAccount" component={this.maketransactionHDWallet} />
+                            <Route exact path="/maketransactionHDwallet/:walletType/:name/:address/:selectedAccount/:nonce" component={this.maketransactionHDWallet} />
                             <Route exact path="/wallet/addWallet" component={this.addWallet} />
                             <Route exact path="/wallet" component={this.wallet} />
                             <Route exact path="/wallet/recoverWallet" component={this.recoverWallet} />
                             <Route exact path="/wallet/detail/:name" component={this.walletDetail} />
                             <Route exact path="/peersView" component={this.peersView} />
                             <Route exact path="/minerView" component={this.minerView} />
-                            <Route exact path="/ledgerView" component={this.ledgerView} />
-                            <Route exact path="/address/:hash/:selectedLedger" component={this.ledgerAddressView} />
+                            <Route exact path="/hardwareWallet/:walletType" component={this.hardwareWalletView} />
+                            <Route exact path="/address/:hash/:walletType/:selectedAccount" component={this.hardwareAddressView} />
                         </Switch>
                     </div>
                 </main>

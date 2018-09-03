@@ -1,7 +1,4 @@
 syntax = "proto3";
-import "tx.proto";
-import "blockHeader.proto";
-import "difficulty.proto";
 
 message Block {
     BlockHeader header = 1;

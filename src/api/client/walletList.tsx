@@ -53,7 +53,7 @@ export class WalletList extends React.Component<any, any> {
                                 <WalletSummary
                                     key={idx++}
                                     wallet={wallet}
-                                    res={this.state.rest}
+                                    rest={this.state.rest}
                                 />
                             )
                         })}
@@ -72,7 +72,7 @@ export class WalletList extends React.Component<any, any> {
                             <WalletSummary
                                 key={idx++}
                                 wallet={wallet}
-                                res={this.state.rest}
+                                rest={this.state.rest}
                             />
                         )
                     })}

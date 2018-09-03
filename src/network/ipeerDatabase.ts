@@ -1,11 +1,16 @@
 import * as proto from "../serialization/proto"
+import { PeerModel } from "./peerModel"
 
 export interface IPeerDatabase {
     putPeers(peers: proto.IPeer[]): Promise<void>
-    seen(peer: proto.IPeer): Promise<proto.IPeer>
-    fail(peer: proto.IPeer): Promise<proto.IPeer>
-    deactivate(key: number): Promise<void>
-    getRandomPeer(): Promise<proto.IPeer>
-    get(key: number): Promise<proto.IPeer>
-    getKeys(): Promise<number[]>
+    connecting(host: string, port: number): Promise<void>
+    inBoundConnection(host: string, port: number): Promise<void>
+    outBoundConnection(host: string, port: number): Promise<void>
+    failedToConnect(host: string, port: number): Promise<void>
+    disconnect(host: string, port: number): Promise<void>
+    getRecentPeers(limit?: number): Promise<proto.IPeer[]>
+    getLeastRecentPeer(limit?: number): Promise<proto.IPeer[]>
+    getRandomPeer(limit?: number): Promise<proto.IPeer[]>
+    get(host: string): Promise<PeerModel>
+    getAll(): Promise<PeerModel[]>
 }

@@ -1,9 +1,8 @@
-import Long = require("long")
+
 import * as React from "react"
 import update = require("react-addons-update")
 import { NotFound } from "./notFound"
 import { IBlock, IResponseError, IRest, ITxProp } from "./rest"
-import { hyconfromString, hycontoString } from "./stringUtil"
 import { TxLine } from "./txLine"
 interface IBlockProps {
     rest: IRest
@@ -155,10 +154,8 @@ export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
                         </div>
                     )
                 })}
-                {this.state.hasMore && this.state.txs.length > 0 ?
-                    (<div><button className="btn btn-block btn-info" onClick={() => this.fetchNextTxs()}>Load more</button></div>)
-                    :
-                    (<div></div>)}
+                {this.state.hasMore && this.state.txs.length > 0
+                    ? <div><button className="btn btn-block btn-info" onClick={() => this.fetchNextTxs()}>Load more</button></div> : null}
             </div>
         )
     }
