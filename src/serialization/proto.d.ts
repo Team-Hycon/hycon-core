@@ -1,5 +1,431 @@
 import * as $protobuf from "protobufjs";
 
+/** Properties of a Peer. */
+export interface IPeer {
+
+    /** Peer host */
+    host?: string;
+
+    /** Peer port */
+    port?: number;
+}
+
+/** Represents a Peer. */
+export class Peer implements IPeer {
+
+    /**
+     * Constructs a new Peer.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IPeer);
+
+    /** Peer host. */
+    public host: string;
+
+    /** Peer port. */
+    public port: number;
+
+    /**
+     * Creates a new Peer instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns Peer instance
+     */
+    public static create(properties?: IPeer): Peer;
+
+    /**
+     * Encodes the specified Peer message. Does not implicitly {@link Peer.verify|verify} messages.
+     * @param message Peer message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IPeer, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified Peer message, length delimited. Does not implicitly {@link Peer.verify|verify} messages.
+     * @param message Peer message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IPeer, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a Peer message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns Peer
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Peer;
+
+    /**
+     * Decodes a Peer message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns Peer
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Peer;
+
+    /**
+     * Verifies a Peer message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a Peer message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns Peer
+     */
+    public static fromObject(object: { [k: string]: any }): Peer;
+
+    /**
+     * Creates a plain object from a Peer message. Also converts values to other types if specified.
+     * @param message Peer
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: Peer, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this Peer to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a Block. */
+export interface IBlock {
+
+    /** Block header */
+    header?: IBlockHeader;
+
+    /** Block txs */
+    txs?: ITx[];
+}
+
+/** Represents a Block. */
+export class Block implements IBlock {
+
+    /**
+     * Constructs a new Block.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IBlock);
+
+    /** Block header. */
+    public header?: IBlockHeader;
+
+    /** Block txs. */
+    public txs: ITx[];
+
+    /**
+     * Creates a new Block instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns Block instance
+     */
+    public static create(properties?: IBlock): Block;
+
+    /**
+     * Encodes the specified Block message. Does not implicitly {@link Block.verify|verify} messages.
+     * @param message Block message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IBlock, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified Block message, length delimited. Does not implicitly {@link Block.verify|verify} messages.
+     * @param message Block message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IBlock, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a Block message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns Block
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Block;
+
+    /**
+     * Decodes a Block message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns Block
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Block;
+
+    /**
+     * Verifies a Block message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a Block message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns Block
+     */
+    public static fromObject(object: { [k: string]: any }): Block;
+
+    /**
+     * Creates a plain object from a Block message. Also converts values to other types if specified.
+     * @param message Block
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: Block, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this Block to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a GenesisBlock. */
+export interface IGenesisBlock {
+
+    /** GenesisBlock header */
+    header?: IGenesisBlockHeader;
+
+    /** GenesisBlock txs */
+    txs?: ITx[];
+}
+
+/** Represents a GenesisBlock. */
+export class GenesisBlock implements IGenesisBlock {
+
+    /**
+     * Constructs a new GenesisBlock.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IGenesisBlock);
+
+    /** GenesisBlock header. */
+    public header?: IGenesisBlockHeader;
+
+    /** GenesisBlock txs. */
+    public txs: ITx[];
+
+    /**
+     * Creates a new GenesisBlock instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns GenesisBlock instance
+     */
+    public static create(properties?: IGenesisBlock): GenesisBlock;
+
+    /**
+     * Encodes the specified GenesisBlock message. Does not implicitly {@link GenesisBlock.verify|verify} messages.
+     * @param message GenesisBlock message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IGenesisBlock, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified GenesisBlock message, length delimited. Does not implicitly {@link GenesisBlock.verify|verify} messages.
+     * @param message GenesisBlock message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IGenesisBlock, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a GenesisBlock message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns GenesisBlock
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): GenesisBlock;
+
+    /**
+     * Decodes a GenesisBlock message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns GenesisBlock
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): GenesisBlock;
+
+    /**
+     * Verifies a GenesisBlock message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a GenesisBlock message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns GenesisBlock
+     */
+    public static fromObject(object: { [k: string]: any }): GenesisBlock;
+
+    /**
+     * Creates a plain object from a GenesisBlock message. Also converts values to other types if specified.
+     * @param message GenesisBlock
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: GenesisBlock, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this GenesisBlock to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a BlockDB. */
+export interface IBlockDB {
+
+    /** BlockDB height */
+    height?: number;
+
+    /** BlockDB header */
+    header?: IBlockHeader;
+
+    /** BlockDB fileNumber */
+    fileNumber?: number;
+
+    /** BlockDB offset */
+    offset?: number;
+
+    /** BlockDB length */
+    length?: number;
+
+    /** BlockDB tEMA */
+    tEMA?: number;
+
+    /** BlockDB pEMA */
+    pEMA?: number;
+
+    /** BlockDB nextDifficulty */
+    nextDifficulty?: number;
+
+    /** BlockDB totalWork */
+    totalWork?: number;
+}
+
+/** Represents a BlockDB. */
+export class BlockDB implements IBlockDB {
+
+    /**
+     * Constructs a new BlockDB.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IBlockDB);
+
+    /** BlockDB height. */
+    public height: number;
+
+    /** BlockDB header. */
+    public header?: IBlockHeader;
+
+    /** BlockDB fileNumber. */
+    public fileNumber: number;
+
+    /** BlockDB offset. */
+    public offset: number;
+
+    /** BlockDB length. */
+    public length: number;
+
+    /** BlockDB tEMA. */
+    public tEMA: number;
+
+    /** BlockDB pEMA. */
+    public pEMA: number;
+
+    /** BlockDB nextDifficulty. */
+    public nextDifficulty: number;
+
+    /** BlockDB totalWork. */
+    public totalWork: number;
+
+    /**
+     * Creates a new BlockDB instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns BlockDB instance
+     */
+    public static create(properties?: IBlockDB): BlockDB;
+
+    /**
+     * Encodes the specified BlockDB message. Does not implicitly {@link BlockDB.verify|verify} messages.
+     * @param message BlockDB message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IBlockDB, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified BlockDB message, length delimited. Does not implicitly {@link BlockDB.verify|verify} messages.
+     * @param message BlockDB message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IBlockDB, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a BlockDB message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns BlockDB
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): BlockDB;
+
+    /**
+     * Decodes a BlockDB message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns BlockDB
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): BlockDB;
+
+    /**
+     * Verifies a BlockDB message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a BlockDB message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns BlockDB
+     */
+    public static fromObject(object: { [k: string]: any }): BlockDB;
+
+    /**
+     * Creates a plain object from a BlockDB message. Also converts values to other types if specified.
+     * @param message BlockDB
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: BlockDB, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this BlockDB to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
 /** Properties of a Network. */
 export interface INetwork {
 
@@ -3255,331 +3681,253 @@ export class StatusChange implements IStatusChange {
     public toJSON(): { [k: string]: any };
 }
 
-/** Properties of a Block. */
-export interface IBlock {
+/** Properties of a GenesisBlockHeader. */
+export interface IGenesisBlockHeader {
 
-    /** Block header */
-    header?: IBlockHeader;
+    /** GenesisBlockHeader previousHash */
+    previousHash?: Uint8Array[];
 
-    /** Block txs */
-    txs?: ITx[];
+    /** GenesisBlockHeader merkleRoot */
+    merkleRoot?: Uint8Array;
+
+    /** GenesisBlockHeader stateRoot */
+    stateRoot?: Uint8Array;
+
+    /** GenesisBlockHeader difficulty */
+    difficulty?: number;
+
+    /** GenesisBlockHeader timeStamp */
+    timeStamp?: number|Long;
+
+    /** GenesisBlockHeader nonce */
+    nonce?: number|Long;
+
+    /** GenesisBlockHeader miner */
+    miner?: Uint8Array;
 }
 
-/** Represents a Block. */
-export class Block implements IBlock {
+/** Represents a GenesisBlockHeader. */
+export class GenesisBlockHeader implements IGenesisBlockHeader {
 
     /**
-     * Constructs a new Block.
+     * Constructs a new GenesisBlockHeader.
      * @param [properties] Properties to set
      */
-    constructor(properties?: IBlock);
+    constructor(properties?: IGenesisBlockHeader);
 
-    /** Block header. */
-    public header?: IBlockHeader;
+    /** GenesisBlockHeader previousHash. */
+    public previousHash: Uint8Array[];
 
-    /** Block txs. */
-    public txs: ITx[];
+    /** GenesisBlockHeader merkleRoot. */
+    public merkleRoot: Uint8Array;
+
+    /** GenesisBlockHeader stateRoot. */
+    public stateRoot: Uint8Array;
+
+    /** GenesisBlockHeader difficulty. */
+    public difficulty: number;
+
+    /** GenesisBlockHeader timeStamp. */
+    public timeStamp: (number|Long);
+
+    /** GenesisBlockHeader nonce. */
+    public nonce: (number|Long);
+
+    /** GenesisBlockHeader miner. */
+    public miner: Uint8Array;
 
     /**
-     * Creates a new Block instance using the specified properties.
+     * Creates a new GenesisBlockHeader instance using the specified properties.
      * @param [properties] Properties to set
-     * @returns Block instance
+     * @returns GenesisBlockHeader instance
      */
-    public static create(properties?: IBlock): Block;
+    public static create(properties?: IGenesisBlockHeader): GenesisBlockHeader;
 
     /**
-     * Encodes the specified Block message. Does not implicitly {@link Block.verify|verify} messages.
-     * @param message Block message or plain object to encode
+     * Encodes the specified GenesisBlockHeader message. Does not implicitly {@link GenesisBlockHeader.verify|verify} messages.
+     * @param message GenesisBlockHeader message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
      */
-    public static encode(message: IBlock, writer?: $protobuf.Writer): $protobuf.Writer;
+    public static encode(message: IGenesisBlockHeader, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Encodes the specified Block message, length delimited. Does not implicitly {@link Block.verify|verify} messages.
-     * @param message Block message or plain object to encode
+     * Encodes the specified GenesisBlockHeader message, length delimited. Does not implicitly {@link GenesisBlockHeader.verify|verify} messages.
+     * @param message GenesisBlockHeader message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
      */
-    public static encodeDelimited(message: IBlock, writer?: $protobuf.Writer): $protobuf.Writer;
+    public static encodeDelimited(message: IGenesisBlockHeader, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Decodes a Block message from the specified reader or buffer.
+     * Decodes a GenesisBlockHeader message from the specified reader or buffer.
      * @param reader Reader or buffer to decode from
      * @param [length] Message length if known beforehand
-     * @returns Block
+     * @returns GenesisBlockHeader
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Block;
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): GenesisBlockHeader;
 
     /**
-     * Decodes a Block message from the specified reader or buffer, length delimited.
+     * Decodes a GenesisBlockHeader message from the specified reader or buffer, length delimited.
      * @param reader Reader or buffer to decode from
-     * @returns Block
+     * @returns GenesisBlockHeader
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Block;
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): GenesisBlockHeader;
 
     /**
-     * Verifies a Block message.
+     * Verifies a GenesisBlockHeader message.
      * @param message Plain object to verify
      * @returns `null` if valid, otherwise the reason why it is not
      */
     public static verify(message: { [k: string]: any }): (string|null);
 
     /**
-     * Creates a Block message from a plain object. Also converts values to their respective internal types.
+     * Creates a GenesisBlockHeader message from a plain object. Also converts values to their respective internal types.
      * @param object Plain object
-     * @returns Block
+     * @returns GenesisBlockHeader
      */
-    public static fromObject(object: { [k: string]: any }): Block;
+    public static fromObject(object: { [k: string]: any }): GenesisBlockHeader;
 
     /**
-     * Creates a plain object from a Block message. Also converts values to other types if specified.
-     * @param message Block
+     * Creates a plain object from a GenesisBlockHeader message. Also converts values to other types if specified.
+     * @param message GenesisBlockHeader
      * @param [options] Conversion options
      * @returns Plain object
      */
-    public static toObject(message: Block, options?: $protobuf.IConversionOptions): { [k: string]: any };
+    public static toObject(message: GenesisBlockHeader, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
     /**
-     * Converts this Block to JSON.
+     * Converts this GenesisBlockHeader to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
 }
 
-/** Properties of a GenesisBlock. */
-export interface IGenesisBlock {
+/** Properties of a BlockHeader. */
+export interface IBlockHeader {
 
-    /** GenesisBlock header */
-    header?: IGenesisBlockHeader;
+    /** BlockHeader previousHash */
+    previousHash?: Uint8Array[];
 
-    /** GenesisBlock txs */
-    txs?: ITx[];
+    /** BlockHeader merkleRoot */
+    merkleRoot?: Uint8Array;
+
+    /** BlockHeader stateRoot */
+    stateRoot?: Uint8Array;
+
+    /** BlockHeader difficulty */
+    difficulty?: number;
+
+    /** BlockHeader timeStamp */
+    timeStamp?: number|Long;
+
+    /** BlockHeader nonce */
+    nonce?: number|Long;
+
+    /** BlockHeader miner */
+    miner?: Uint8Array;
 }
 
-/** Represents a GenesisBlock. */
-export class GenesisBlock implements IGenesisBlock {
+/** Represents a BlockHeader. */
+export class BlockHeader implements IBlockHeader {
 
     /**
-     * Constructs a new GenesisBlock.
+     * Constructs a new BlockHeader.
      * @param [properties] Properties to set
      */
-    constructor(properties?: IGenesisBlock);
+    constructor(properties?: IBlockHeader);
 
-    /** GenesisBlock header. */
-    public header?: IGenesisBlockHeader;
+    /** BlockHeader previousHash. */
+    public previousHash: Uint8Array[];
 
-    /** GenesisBlock txs. */
-    public txs: ITx[];
+    /** BlockHeader merkleRoot. */
+    public merkleRoot: Uint8Array;
+
+    /** BlockHeader stateRoot. */
+    public stateRoot: Uint8Array;
+
+    /** BlockHeader difficulty. */
+    public difficulty: number;
+
+    /** BlockHeader timeStamp. */
+    public timeStamp: (number|Long);
+
+    /** BlockHeader nonce. */
+    public nonce: (number|Long);
+
+    /** BlockHeader miner. */
+    public miner: Uint8Array;
 
     /**
-     * Creates a new GenesisBlock instance using the specified properties.
+     * Creates a new BlockHeader instance using the specified properties.
      * @param [properties] Properties to set
-     * @returns GenesisBlock instance
+     * @returns BlockHeader instance
      */
-    public static create(properties?: IGenesisBlock): GenesisBlock;
+    public static create(properties?: IBlockHeader): BlockHeader;
 
     /**
-     * Encodes the specified GenesisBlock message. Does not implicitly {@link GenesisBlock.verify|verify} messages.
-     * @param message GenesisBlock message or plain object to encode
+     * Encodes the specified BlockHeader message. Does not implicitly {@link BlockHeader.verify|verify} messages.
+     * @param message BlockHeader message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
      */
-    public static encode(message: IGenesisBlock, writer?: $protobuf.Writer): $protobuf.Writer;
+    public static encode(message: IBlockHeader, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Encodes the specified GenesisBlock message, length delimited. Does not implicitly {@link GenesisBlock.verify|verify} messages.
-     * @param message GenesisBlock message or plain object to encode
+     * Encodes the specified BlockHeader message, length delimited. Does not implicitly {@link BlockHeader.verify|verify} messages.
+     * @param message BlockHeader message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
      */
-    public static encodeDelimited(message: IGenesisBlock, writer?: $protobuf.Writer): $protobuf.Writer;
+    public static encodeDelimited(message: IBlockHeader, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Decodes a GenesisBlock message from the specified reader or buffer.
+     * Decodes a BlockHeader message from the specified reader or buffer.
      * @param reader Reader or buffer to decode from
      * @param [length] Message length if known beforehand
-     * @returns GenesisBlock
+     * @returns BlockHeader
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): GenesisBlock;
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): BlockHeader;
 
     /**
-     * Decodes a GenesisBlock message from the specified reader or buffer, length delimited.
+     * Decodes a BlockHeader message from the specified reader or buffer, length delimited.
      * @param reader Reader or buffer to decode from
-     * @returns GenesisBlock
+     * @returns BlockHeader
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): GenesisBlock;
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): BlockHeader;
 
     /**
-     * Verifies a GenesisBlock message.
+     * Verifies a BlockHeader message.
      * @param message Plain object to verify
      * @returns `null` if valid, otherwise the reason why it is not
      */
     public static verify(message: { [k: string]: any }): (string|null);
 
     /**
-     * Creates a GenesisBlock message from a plain object. Also converts values to their respective internal types.
+     * Creates a BlockHeader message from a plain object. Also converts values to their respective internal types.
      * @param object Plain object
-     * @returns GenesisBlock
+     * @returns BlockHeader
      */
-    public static fromObject(object: { [k: string]: any }): GenesisBlock;
+    public static fromObject(object: { [k: string]: any }): BlockHeader;
 
     /**
-     * Creates a plain object from a GenesisBlock message. Also converts values to other types if specified.
-     * @param message GenesisBlock
+     * Creates a plain object from a BlockHeader message. Also converts values to other types if specified.
+     * @param message BlockHeader
      * @param [options] Conversion options
      * @returns Plain object
      */
-    public static toObject(message: GenesisBlock, options?: $protobuf.IConversionOptions): { [k: string]: any };
+    public static toObject(message: BlockHeader, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
     /**
-     * Converts this GenesisBlock to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-/** Properties of a BlockDB. */
-export interface IBlockDB {
-
-    /** BlockDB height */
-    height?: number;
-
-    /** BlockDB header */
-    header?: IBlockHeader;
-
-    /** BlockDB fileNumber */
-    fileNumber?: number;
-
-    /** BlockDB offset */
-    offset?: number;
-
-    /** BlockDB length */
-    length?: number;
-
-    /** BlockDB tEMA */
-    tEMA?: number;
-
-    /** BlockDB pEMA */
-    pEMA?: number;
-
-    /** BlockDB nextDifficulty */
-    nextDifficulty?: number;
-
-    /** BlockDB totalWork */
-    totalWork?: number;
-}
-
-/** Represents a BlockDB. */
-export class BlockDB implements IBlockDB {
-
-    /**
-     * Constructs a new BlockDB.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: IBlockDB);
-
-    /** BlockDB height. */
-    public height: number;
-
-    /** BlockDB header. */
-    public header?: IBlockHeader;
-
-    /** BlockDB fileNumber. */
-    public fileNumber: number;
-
-    /** BlockDB offset. */
-    public offset: number;
-
-    /** BlockDB length. */
-    public length: number;
-
-    /** BlockDB tEMA. */
-    public tEMA: number;
-
-    /** BlockDB pEMA. */
-    public pEMA: number;
-
-    /** BlockDB nextDifficulty. */
-    public nextDifficulty: number;
-
-    /** BlockDB totalWork. */
-    public totalWork: number;
-
-    /**
-     * Creates a new BlockDB instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns BlockDB instance
-     */
-    public static create(properties?: IBlockDB): BlockDB;
-
-    /**
-     * Encodes the specified BlockDB message. Does not implicitly {@link BlockDB.verify|verify} messages.
-     * @param message BlockDB message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: IBlockDB, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified BlockDB message, length delimited. Does not implicitly {@link BlockDB.verify|verify} messages.
-     * @param message BlockDB message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: IBlockDB, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a BlockDB message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns BlockDB
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): BlockDB;
-
-    /**
-     * Decodes a BlockDB message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns BlockDB
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): BlockDB;
-
-    /**
-     * Verifies a BlockDB message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a BlockDB message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns BlockDB
-     */
-    public static fromObject(object: { [k: string]: any }): BlockDB;
-
-    /**
-     * Creates a plain object from a BlockDB message. Also converts values to other types if specified.
-     * @param message BlockDB
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: BlockDB, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this BlockDB to JSON.
+     * Converts this BlockHeader to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
@@ -3904,390 +4252,6 @@ export class TxDB implements ITxDB {
 
     /**
      * Converts this TxDB to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-/** Properties of a GenesisBlockHeader. */
-export interface IGenesisBlockHeader {
-
-    /** GenesisBlockHeader previousHash */
-    previousHash?: Uint8Array[];
-
-    /** GenesisBlockHeader merkleRoot */
-    merkleRoot?: Uint8Array;
-
-    /** GenesisBlockHeader stateRoot */
-    stateRoot?: Uint8Array;
-
-    /** GenesisBlockHeader difficulty */
-    difficulty?: number;
-
-    /** GenesisBlockHeader timeStamp */
-    timeStamp?: number|Long;
-
-    /** GenesisBlockHeader nonce */
-    nonce?: number|Long;
-
-    /** GenesisBlockHeader miner */
-    miner?: Uint8Array;
-}
-
-/** Represents a GenesisBlockHeader. */
-export class GenesisBlockHeader implements IGenesisBlockHeader {
-
-    /**
-     * Constructs a new GenesisBlockHeader.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: IGenesisBlockHeader);
-
-    /** GenesisBlockHeader previousHash. */
-    public previousHash: Uint8Array[];
-
-    /** GenesisBlockHeader merkleRoot. */
-    public merkleRoot: Uint8Array;
-
-    /** GenesisBlockHeader stateRoot. */
-    public stateRoot: Uint8Array;
-
-    /** GenesisBlockHeader difficulty. */
-    public difficulty: number;
-
-    /** GenesisBlockHeader timeStamp. */
-    public timeStamp: (number|Long);
-
-    /** GenesisBlockHeader nonce. */
-    public nonce: (number|Long);
-
-    /** GenesisBlockHeader miner. */
-    public miner: Uint8Array;
-
-    /**
-     * Creates a new GenesisBlockHeader instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns GenesisBlockHeader instance
-     */
-    public static create(properties?: IGenesisBlockHeader): GenesisBlockHeader;
-
-    /**
-     * Encodes the specified GenesisBlockHeader message. Does not implicitly {@link GenesisBlockHeader.verify|verify} messages.
-     * @param message GenesisBlockHeader message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: IGenesisBlockHeader, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified GenesisBlockHeader message, length delimited. Does not implicitly {@link GenesisBlockHeader.verify|verify} messages.
-     * @param message GenesisBlockHeader message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: IGenesisBlockHeader, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a GenesisBlockHeader message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns GenesisBlockHeader
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): GenesisBlockHeader;
-
-    /**
-     * Decodes a GenesisBlockHeader message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns GenesisBlockHeader
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): GenesisBlockHeader;
-
-    /**
-     * Verifies a GenesisBlockHeader message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a GenesisBlockHeader message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns GenesisBlockHeader
-     */
-    public static fromObject(object: { [k: string]: any }): GenesisBlockHeader;
-
-    /**
-     * Creates a plain object from a GenesisBlockHeader message. Also converts values to other types if specified.
-     * @param message GenesisBlockHeader
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: GenesisBlockHeader, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this GenesisBlockHeader to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-/** Properties of a BlockHeader. */
-export interface IBlockHeader {
-
-    /** BlockHeader previousHash */
-    previousHash?: Uint8Array[];
-
-    /** BlockHeader merkleRoot */
-    merkleRoot?: Uint8Array;
-
-    /** BlockHeader stateRoot */
-    stateRoot?: Uint8Array;
-
-    /** BlockHeader difficulty */
-    difficulty?: number;
-
-    /** BlockHeader timeStamp */
-    timeStamp?: number|Long;
-
-    /** BlockHeader nonce */
-    nonce?: number|Long;
-
-    /** BlockHeader miner */
-    miner?: Uint8Array;
-}
-
-/** Represents a BlockHeader. */
-export class BlockHeader implements IBlockHeader {
-
-    /**
-     * Constructs a new BlockHeader.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: IBlockHeader);
-
-    /** BlockHeader previousHash. */
-    public previousHash: Uint8Array[];
-
-    /** BlockHeader merkleRoot. */
-    public merkleRoot: Uint8Array;
-
-    /** BlockHeader stateRoot. */
-    public stateRoot: Uint8Array;
-
-    /** BlockHeader difficulty. */
-    public difficulty: number;
-
-    /** BlockHeader timeStamp. */
-    public timeStamp: (number|Long);
-
-    /** BlockHeader nonce. */
-    public nonce: (number|Long);
-
-    /** BlockHeader miner. */
-    public miner: Uint8Array;
-
-    /**
-     * Creates a new BlockHeader instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns BlockHeader instance
-     */
-    public static create(properties?: IBlockHeader): BlockHeader;
-
-    /**
-     * Encodes the specified BlockHeader message. Does not implicitly {@link BlockHeader.verify|verify} messages.
-     * @param message BlockHeader message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: IBlockHeader, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified BlockHeader message, length delimited. Does not implicitly {@link BlockHeader.verify|verify} messages.
-     * @param message BlockHeader message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: IBlockHeader, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a BlockHeader message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns BlockHeader
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): BlockHeader;
-
-    /**
-     * Decodes a BlockHeader message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns BlockHeader
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): BlockHeader;
-
-    /**
-     * Verifies a BlockHeader message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a BlockHeader message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns BlockHeader
-     */
-    public static fromObject(object: { [k: string]: any }): BlockHeader;
-
-    /**
-     * Creates a plain object from a BlockHeader message. Also converts values to other types if specified.
-     * @param message BlockHeader
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: BlockHeader, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this BlockHeader to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-/** Properties of a Peer. */
-export interface IPeer {
-
-    /** Peer host */
-    host?: string;
-
-    /** Peer port */
-    port?: number;
-
-    /** Peer lastSeen */
-    lastSeen?: number|Long;
-
-    /** Peer failCount */
-    failCount?: number;
-
-    /** Peer lastAttempt */
-    lastAttempt?: number|Long;
-
-    /** Peer active */
-    active?: boolean;
-
-    /** Peer currentQueue */
-    currentQueue?: number;
-
-    /** Peer successCount */
-    successCount?: number;
-}
-
-/** Represents a Peer. */
-export class Peer implements IPeer {
-
-    /**
-     * Constructs a new Peer.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: IPeer);
-
-    /** Peer host. */
-    public host: string;
-
-    /** Peer port. */
-    public port: number;
-
-    /** Peer lastSeen. */
-    public lastSeen: (number|Long);
-
-    /** Peer failCount. */
-    public failCount: number;
-
-    /** Peer lastAttempt. */
-    public lastAttempt: (number|Long);
-
-    /** Peer active. */
-    public active: boolean;
-
-    /** Peer currentQueue. */
-    public currentQueue: number;
-
-    /** Peer successCount. */
-    public successCount: number;
-
-    /**
-     * Creates a new Peer instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns Peer instance
-     */
-    public static create(properties?: IPeer): Peer;
-
-    /**
-     * Encodes the specified Peer message. Does not implicitly {@link Peer.verify|verify} messages.
-     * @param message Peer message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: IPeer, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified Peer message, length delimited. Does not implicitly {@link Peer.verify|verify} messages.
-     * @param message Peer message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: IPeer, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a Peer message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns Peer
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Peer;
-
-    /**
-     * Decodes a Peer message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns Peer
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Peer;
-
-    /**
-     * Verifies a Peer message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a Peer message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns Peer
-     */
-    public static fromObject(object: { [k: string]: any }): Peer;
-
-    /**
-     * Creates a plain object from a Peer message. Also converts values to other types if specified.
-     * @param message Peer
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: Peer, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this Peer to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };

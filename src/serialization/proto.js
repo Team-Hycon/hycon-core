@@ -9,6 +9,1057 @@ var $Reader = $protobuf.Reader, $Writer = $protobuf.Writer, $util = $protobuf.ut
 // Exported root namespace
 var $root = $protobuf.roots["default"] || ($protobuf.roots["default"] = {});
 
+$root.Peer = (function() {
+
+    /**
+     * Properties of a Peer.
+     * @exports IPeer
+     * @interface IPeer
+     * @property {string|null} [host] Peer host
+     * @property {number|null} [port] Peer port
+     */
+
+    /**
+     * Constructs a new Peer.
+     * @exports Peer
+     * @classdesc Represents a Peer.
+     * @implements IPeer
+     * @constructor
+     * @param {IPeer=} [properties] Properties to set
+     */
+    function Peer(properties) {
+        if (properties)
+            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * Peer host.
+     * @member {string} host
+     * @memberof Peer
+     * @instance
+     */
+    Peer.prototype.host = "";
+
+    /**
+     * Peer port.
+     * @member {number} port
+     * @memberof Peer
+     * @instance
+     */
+    Peer.prototype.port = 0;
+
+    /**
+     * Creates a new Peer instance using the specified properties.
+     * @function create
+     * @memberof Peer
+     * @static
+     * @param {IPeer=} [properties] Properties to set
+     * @returns {Peer} Peer instance
+     */
+    Peer.create = function create(properties) {
+        return new Peer(properties);
+    };
+
+    /**
+     * Encodes the specified Peer message. Does not implicitly {@link Peer.verify|verify} messages.
+     * @function encode
+     * @memberof Peer
+     * @static
+     * @param {IPeer} message Peer message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Peer.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.host != null && message.hasOwnProperty("host"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.host);
+        if (message.port != null && message.hasOwnProperty("port"))
+            writer.uint32(/* id 2, wireType 0 =*/16).uint32(message.port);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified Peer message, length delimited. Does not implicitly {@link Peer.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof Peer
+     * @static
+     * @param {IPeer} message Peer message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Peer.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a Peer message from the specified reader or buffer.
+     * @function decode
+     * @memberof Peer
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {Peer} Peer
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Peer.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.Peer();
+        while (reader.pos < end) {
+            var tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.host = reader.string();
+                break;
+            case 2:
+                message.port = reader.uint32();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a Peer message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof Peer
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {Peer} Peer
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Peer.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a Peer message.
+     * @function verify
+     * @memberof Peer
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    Peer.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.host != null && message.hasOwnProperty("host"))
+            if (!$util.isString(message.host))
+                return "host: string expected";
+        if (message.port != null && message.hasOwnProperty("port"))
+            if (!$util.isInteger(message.port))
+                return "port: integer expected";
+        return null;
+    };
+
+    /**
+     * Creates a Peer message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof Peer
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {Peer} Peer
+     */
+    Peer.fromObject = function fromObject(object) {
+        if (object instanceof $root.Peer)
+            return object;
+        var message = new $root.Peer();
+        if (object.host != null)
+            message.host = String(object.host);
+        if (object.port != null)
+            message.port = object.port >>> 0;
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a Peer message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof Peer
+     * @static
+     * @param {Peer} message Peer
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    Peer.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        var object = {};
+        if (options.defaults) {
+            object.host = "";
+            object.port = 0;
+        }
+        if (message.host != null && message.hasOwnProperty("host"))
+            object.host = message.host;
+        if (message.port != null && message.hasOwnProperty("port"))
+            object.port = message.port;
+        return object;
+    };
+
+    /**
+     * Converts this Peer to JSON.
+     * @function toJSON
+     * @memberof Peer
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    Peer.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return Peer;
+})();
+
+$root.Block = (function() {
+
+    /**
+     * Properties of a Block.
+     * @exports IBlock
+     * @interface IBlock
+     * @property {IBlockHeader|null} [header] Block header
+     * @property {Array.<ITx>|null} [txs] Block txs
+     */
+
+    /**
+     * Constructs a new Block.
+     * @exports Block
+     * @classdesc Represents a Block.
+     * @implements IBlock
+     * @constructor
+     * @param {IBlock=} [properties] Properties to set
+     */
+    function Block(properties) {
+        this.txs = [];
+        if (properties)
+            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * Block header.
+     * @member {IBlockHeader|null|undefined} header
+     * @memberof Block
+     * @instance
+     */
+    Block.prototype.header = null;
+
+    /**
+     * Block txs.
+     * @member {Array.<ITx>} txs
+     * @memberof Block
+     * @instance
+     */
+    Block.prototype.txs = $util.emptyArray;
+
+    /**
+     * Creates a new Block instance using the specified properties.
+     * @function create
+     * @memberof Block
+     * @static
+     * @param {IBlock=} [properties] Properties to set
+     * @returns {Block} Block instance
+     */
+    Block.create = function create(properties) {
+        return new Block(properties);
+    };
+
+    /**
+     * Encodes the specified Block message. Does not implicitly {@link Block.verify|verify} messages.
+     * @function encode
+     * @memberof Block
+     * @static
+     * @param {IBlock} message Block message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Block.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.header != null && message.hasOwnProperty("header"))
+            $root.BlockHeader.encode(message.header, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+        if (message.txs != null && message.txs.length)
+            for (var i = 0; i < message.txs.length; ++i)
+                $root.Tx.encode(message.txs[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified Block message, length delimited. Does not implicitly {@link Block.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof Block
+     * @static
+     * @param {IBlock} message Block message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Block.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a Block message from the specified reader or buffer.
+     * @function decode
+     * @memberof Block
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {Block} Block
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Block.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.Block();
+        while (reader.pos < end) {
+            var tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.header = $root.BlockHeader.decode(reader, reader.uint32());
+                break;
+            case 2:
+                if (!(message.txs && message.txs.length))
+                    message.txs = [];
+                message.txs.push($root.Tx.decode(reader, reader.uint32()));
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a Block message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof Block
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {Block} Block
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Block.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a Block message.
+     * @function verify
+     * @memberof Block
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    Block.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.header != null && message.hasOwnProperty("header")) {
+            var error = $root.BlockHeader.verify(message.header);
+            if (error)
+                return "header." + error;
+        }
+        if (message.txs != null && message.hasOwnProperty("txs")) {
+            if (!Array.isArray(message.txs))
+                return "txs: array expected";
+            for (var i = 0; i < message.txs.length; ++i) {
+                var error = $root.Tx.verify(message.txs[i]);
+                if (error)
+                    return "txs." + error;
+            }
+        }
+        return null;
+    };
+
+    /**
+     * Creates a Block message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof Block
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {Block} Block
+     */
+    Block.fromObject = function fromObject(object) {
+        if (object instanceof $root.Block)
+            return object;
+        var message = new $root.Block();
+        if (object.header != null) {
+            if (typeof object.header !== "object")
+                throw TypeError(".Block.header: object expected");
+            message.header = $root.BlockHeader.fromObject(object.header);
+        }
+        if (object.txs) {
+            if (!Array.isArray(object.txs))
+                throw TypeError(".Block.txs: array expected");
+            message.txs = [];
+            for (var i = 0; i < object.txs.length; ++i) {
+                if (typeof object.txs[i] !== "object")
+                    throw TypeError(".Block.txs: object expected");
+                message.txs[i] = $root.Tx.fromObject(object.txs[i]);
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a Block message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof Block
+     * @static
+     * @param {Block} message Block
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    Block.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        var object = {};
+        if (options.arrays || options.defaults)
+            object.txs = [];
+        if (options.defaults)
+            object.header = null;
+        if (message.header != null && message.hasOwnProperty("header"))
+            object.header = $root.BlockHeader.toObject(message.header, options);
+        if (message.txs && message.txs.length) {
+            object.txs = [];
+            for (var j = 0; j < message.txs.length; ++j)
+                object.txs[j] = $root.Tx.toObject(message.txs[j], options);
+        }
+        return object;
+    };
+
+    /**
+     * Converts this Block to JSON.
+     * @function toJSON
+     * @memberof Block
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    Block.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return Block;
+})();
+
+$root.GenesisBlock = (function() {
+
+    /**
+     * Properties of a GenesisBlock.
+     * @exports IGenesisBlock
+     * @interface IGenesisBlock
+     * @property {IGenesisBlockHeader|null} [header] GenesisBlock header
+     * @property {Array.<ITx>|null} [txs] GenesisBlock txs
+     */
+
+    /**
+     * Constructs a new GenesisBlock.
+     * @exports GenesisBlock
+     * @classdesc Represents a GenesisBlock.
+     * @implements IGenesisBlock
+     * @constructor
+     * @param {IGenesisBlock=} [properties] Properties to set
+     */
+    function GenesisBlock(properties) {
+        this.txs = [];
+        if (properties)
+            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * GenesisBlock header.
+     * @member {IGenesisBlockHeader|null|undefined} header
+     * @memberof GenesisBlock
+     * @instance
+     */
+    GenesisBlock.prototype.header = null;
+
+    /**
+     * GenesisBlock txs.
+     * @member {Array.<ITx>} txs
+     * @memberof GenesisBlock
+     * @instance
+     */
+    GenesisBlock.prototype.txs = $util.emptyArray;
+
+    /**
+     * Creates a new GenesisBlock instance using the specified properties.
+     * @function create
+     * @memberof GenesisBlock
+     * @static
+     * @param {IGenesisBlock=} [properties] Properties to set
+     * @returns {GenesisBlock} GenesisBlock instance
+     */
+    GenesisBlock.create = function create(properties) {
+        return new GenesisBlock(properties);
+    };
+
+    /**
+     * Encodes the specified GenesisBlock message. Does not implicitly {@link GenesisBlock.verify|verify} messages.
+     * @function encode
+     * @memberof GenesisBlock
+     * @static
+     * @param {IGenesisBlock} message GenesisBlock message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    GenesisBlock.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.header != null && message.hasOwnProperty("header"))
+            $root.GenesisBlockHeader.encode(message.header, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+        if (message.txs != null && message.txs.length)
+            for (var i = 0; i < message.txs.length; ++i)
+                $root.Tx.encode(message.txs[i], writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified GenesisBlock message, length delimited. Does not implicitly {@link GenesisBlock.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof GenesisBlock
+     * @static
+     * @param {IGenesisBlock} message GenesisBlock message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    GenesisBlock.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a GenesisBlock message from the specified reader or buffer.
+     * @function decode
+     * @memberof GenesisBlock
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {GenesisBlock} GenesisBlock
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    GenesisBlock.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.GenesisBlock();
+        while (reader.pos < end) {
+            var tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.header = $root.GenesisBlockHeader.decode(reader, reader.uint32());
+                break;
+            case 3:
+                if (!(message.txs && message.txs.length))
+                    message.txs = [];
+                message.txs.push($root.Tx.decode(reader, reader.uint32()));
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a GenesisBlock message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof GenesisBlock
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {GenesisBlock} GenesisBlock
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    GenesisBlock.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a GenesisBlock message.
+     * @function verify
+     * @memberof GenesisBlock
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    GenesisBlock.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.header != null && message.hasOwnProperty("header")) {
+            var error = $root.GenesisBlockHeader.verify(message.header);
+            if (error)
+                return "header." + error;
+        }
+        if (message.txs != null && message.hasOwnProperty("txs")) {
+            if (!Array.isArray(message.txs))
+                return "txs: array expected";
+            for (var i = 0; i < message.txs.length; ++i) {
+                var error = $root.Tx.verify(message.txs[i]);
+                if (error)
+                    return "txs." + error;
+            }
+        }
+        return null;
+    };
+
+    /**
+     * Creates a GenesisBlock message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof GenesisBlock
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {GenesisBlock} GenesisBlock
+     */
+    GenesisBlock.fromObject = function fromObject(object) {
+        if (object instanceof $root.GenesisBlock)
+            return object;
+        var message = new $root.GenesisBlock();
+        if (object.header != null) {
+            if (typeof object.header !== "object")
+                throw TypeError(".GenesisBlock.header: object expected");
+            message.header = $root.GenesisBlockHeader.fromObject(object.header);
+        }
+        if (object.txs) {
+            if (!Array.isArray(object.txs))
+                throw TypeError(".GenesisBlock.txs: array expected");
+            message.txs = [];
+            for (var i = 0; i < object.txs.length; ++i) {
+                if (typeof object.txs[i] !== "object")
+                    throw TypeError(".GenesisBlock.txs: object expected");
+                message.txs[i] = $root.Tx.fromObject(object.txs[i]);
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a GenesisBlock message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof GenesisBlock
+     * @static
+     * @param {GenesisBlock} message GenesisBlock
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    GenesisBlock.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        var object = {};
+        if (options.arrays || options.defaults)
+            object.txs = [];
+        if (options.defaults)
+            object.header = null;
+        if (message.header != null && message.hasOwnProperty("header"))
+            object.header = $root.GenesisBlockHeader.toObject(message.header, options);
+        if (message.txs && message.txs.length) {
+            object.txs = [];
+            for (var j = 0; j < message.txs.length; ++j)
+                object.txs[j] = $root.Tx.toObject(message.txs[j], options);
+        }
+        return object;
+    };
+
+    /**
+     * Converts this GenesisBlock to JSON.
+     * @function toJSON
+     * @memberof GenesisBlock
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    GenesisBlock.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return GenesisBlock;
+})();
+
+$root.BlockDB = (function() {
+
+    /**
+     * Properties of a BlockDB.
+     * @exports IBlockDB
+     * @interface IBlockDB
+     * @property {number|null} [height] BlockDB height
+     * @property {IBlockHeader|null} [header] BlockDB header
+     * @property {number|null} [fileNumber] BlockDB fileNumber
+     * @property {number|null} [offset] BlockDB offset
+     * @property {number|null} [length] BlockDB length
+     * @property {number|null} [tEMA] BlockDB tEMA
+     * @property {number|null} [pEMA] BlockDB pEMA
+     * @property {number|null} [nextDifficulty] BlockDB nextDifficulty
+     * @property {number|null} [totalWork] BlockDB totalWork
+     */
+
+    /**
+     * Constructs a new BlockDB.
+     * @exports BlockDB
+     * @classdesc Represents a BlockDB.
+     * @implements IBlockDB
+     * @constructor
+     * @param {IBlockDB=} [properties] Properties to set
+     */
+    function BlockDB(properties) {
+        if (properties)
+            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * BlockDB height.
+     * @member {number} height
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.height = 0;
+
+    /**
+     * BlockDB header.
+     * @member {IBlockHeader|null|undefined} header
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.header = null;
+
+    /**
+     * BlockDB fileNumber.
+     * @member {number} fileNumber
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.fileNumber = 0;
+
+    /**
+     * BlockDB offset.
+     * @member {number} offset
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.offset = 0;
+
+    /**
+     * BlockDB length.
+     * @member {number} length
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.length = 0;
+
+    /**
+     * BlockDB tEMA.
+     * @member {number} tEMA
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.tEMA = 0;
+
+    /**
+     * BlockDB pEMA.
+     * @member {number} pEMA
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.pEMA = 0;
+
+    /**
+     * BlockDB nextDifficulty.
+     * @member {number} nextDifficulty
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.nextDifficulty = 0;
+
+    /**
+     * BlockDB totalWork.
+     * @member {number} totalWork
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.totalWork = 0;
+
+    /**
+     * Creates a new BlockDB instance using the specified properties.
+     * @function create
+     * @memberof BlockDB
+     * @static
+     * @param {IBlockDB=} [properties] Properties to set
+     * @returns {BlockDB} BlockDB instance
+     */
+    BlockDB.create = function create(properties) {
+        return new BlockDB(properties);
+    };
+
+    /**
+     * Encodes the specified BlockDB message. Does not implicitly {@link BlockDB.verify|verify} messages.
+     * @function encode
+     * @memberof BlockDB
+     * @static
+     * @param {IBlockDB} message BlockDB message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    BlockDB.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.height != null && message.hasOwnProperty("height"))
+            writer.uint32(/* id 1, wireType 0 =*/8).uint32(message.height);
+        if (message.header != null && message.hasOwnProperty("header"))
+            $root.BlockHeader.encode(message.header, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+        if (message.fileNumber != null && message.hasOwnProperty("fileNumber"))
+            writer.uint32(/* id 3, wireType 0 =*/24).uint32(message.fileNumber);
+        if (message.offset != null && message.hasOwnProperty("offset"))
+            writer.uint32(/* id 4, wireType 0 =*/32).uint32(message.offset);
+        if (message.length != null && message.hasOwnProperty("length"))
+            writer.uint32(/* id 5, wireType 0 =*/40).uint32(message.length);
+        if (message.tEMA != null && message.hasOwnProperty("tEMA"))
+            writer.uint32(/* id 6, wireType 1 =*/49).double(message.tEMA);
+        if (message.pEMA != null && message.hasOwnProperty("pEMA"))
+            writer.uint32(/* id 7, wireType 1 =*/57).double(message.pEMA);
+        if (message.nextDifficulty != null && message.hasOwnProperty("nextDifficulty"))
+            writer.uint32(/* id 8, wireType 1 =*/65).double(message.nextDifficulty);
+        if (message.totalWork != null && message.hasOwnProperty("totalWork"))
+            writer.uint32(/* id 9, wireType 1 =*/73).double(message.totalWork);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified BlockDB message, length delimited. Does not implicitly {@link BlockDB.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof BlockDB
+     * @static
+     * @param {IBlockDB} message BlockDB message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    BlockDB.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a BlockDB message from the specified reader or buffer.
+     * @function decode
+     * @memberof BlockDB
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {BlockDB} BlockDB
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    BlockDB.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.BlockDB();
+        while (reader.pos < end) {
+            var tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.height = reader.uint32();
+                break;
+            case 2:
+                message.header = $root.BlockHeader.decode(reader, reader.uint32());
+                break;
+            case 3:
+                message.fileNumber = reader.uint32();
+                break;
+            case 4:
+                message.offset = reader.uint32();
+                break;
+            case 5:
+                message.length = reader.uint32();
+                break;
+            case 6:
+                message.tEMA = reader.double();
+                break;
+            case 7:
+                message.pEMA = reader.double();
+                break;
+            case 8:
+                message.nextDifficulty = reader.double();
+                break;
+            case 9:
+                message.totalWork = reader.double();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a BlockDB message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof BlockDB
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {BlockDB} BlockDB
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    BlockDB.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a BlockDB message.
+     * @function verify
+     * @memberof BlockDB
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    BlockDB.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.height != null && message.hasOwnProperty("height"))
+            if (!$util.isInteger(message.height))
+                return "height: integer expected";
+        if (message.header != null && message.hasOwnProperty("header")) {
+            var error = $root.BlockHeader.verify(message.header);
+            if (error)
+                return "header." + error;
+        }
+        if (message.fileNumber != null && message.hasOwnProperty("fileNumber"))
+            if (!$util.isInteger(message.fileNumber))
+                return "fileNumber: integer expected";
+        if (message.offset != null && message.hasOwnProperty("offset"))
+            if (!$util.isInteger(message.offset))
+                return "offset: integer expected";
+        if (message.length != null && message.hasOwnProperty("length"))
+            if (!$util.isInteger(message.length))
+                return "length: integer expected";
+        if (message.tEMA != null && message.hasOwnProperty("tEMA"))
+            if (typeof message.tEMA !== "number")
+                return "tEMA: number expected";
+        if (message.pEMA != null && message.hasOwnProperty("pEMA"))
+            if (typeof message.pEMA !== "number")
+                return "pEMA: number expected";
+        if (message.nextDifficulty != null && message.hasOwnProperty("nextDifficulty"))
+            if (typeof message.nextDifficulty !== "number")
+                return "nextDifficulty: number expected";
+        if (message.totalWork != null && message.hasOwnProperty("totalWork"))
+            if (typeof message.totalWork !== "number")
+                return "totalWork: number expected";
+        return null;
+    };
+
+    /**
+     * Creates a BlockDB message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof BlockDB
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {BlockDB} BlockDB
+     */
+    BlockDB.fromObject = function fromObject(object) {
+        if (object instanceof $root.BlockDB)
+            return object;
+        var message = new $root.BlockDB();
+        if (object.height != null)
+            message.height = object.height >>> 0;
+        if (object.header != null) {
+            if (typeof object.header !== "object")
+                throw TypeError(".BlockDB.header: object expected");
+            message.header = $root.BlockHeader.fromObject(object.header);
+        }
+        if (object.fileNumber != null)
+            message.fileNumber = object.fileNumber >>> 0;
+        if (object.offset != null)
+            message.offset = object.offset >>> 0;
+        if (object.length != null)
+            message.length = object.length >>> 0;
+        if (object.tEMA != null)
+            message.tEMA = Number(object.tEMA);
+        if (object.pEMA != null)
+            message.pEMA = Number(object.pEMA);
+        if (object.nextDifficulty != null)
+            message.nextDifficulty = Number(object.nextDifficulty);
+        if (object.totalWork != null)
+            message.totalWork = Number(object.totalWork);
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a BlockDB message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof BlockDB
+     * @static
+     * @param {BlockDB} message BlockDB
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    BlockDB.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        var object = {};
+        if (options.defaults) {
+            object.height = 0;
+            object.header = null;
+            object.fileNumber = 0;
+            object.offset = 0;
+            object.length = 0;
+            object.tEMA = 0;
+            object.pEMA = 0;
+            object.nextDifficulty = 0;
+            object.totalWork = 0;
+        }
+        if (message.height != null && message.hasOwnProperty("height"))
+            object.height = message.height;
+        if (message.header != null && message.hasOwnProperty("header"))
+            object.header = $root.BlockHeader.toObject(message.header, options);
+        if (message.fileNumber != null && message.hasOwnProperty("fileNumber"))
+            object.fileNumber = message.fileNumber;
+        if (message.offset != null && message.hasOwnProperty("offset"))
+            object.offset = message.offset;
+        if (message.length != null && message.hasOwnProperty("length"))
+            object.length = message.length;
+        if (message.tEMA != null && message.hasOwnProperty("tEMA"))
+            object.tEMA = options.json && !isFinite(message.tEMA) ? String(message.tEMA) : message.tEMA;
+        if (message.pEMA != null && message.hasOwnProperty("pEMA"))
+            object.pEMA = options.json && !isFinite(message.pEMA) ? String(message.pEMA) : message.pEMA;
+        if (message.nextDifficulty != null && message.hasOwnProperty("nextDifficulty"))
+            object.nextDifficulty = options.json && !isFinite(message.nextDifficulty) ? String(message.nextDifficulty) : message.nextDifficulty;
+        if (message.totalWork != null && message.hasOwnProperty("totalWork"))
+            object.totalWork = options.json && !isFinite(message.totalWork) ? String(message.totalWork) : message.totalWork;
+        return object;
+    };
+
+    /**
+     * Converts this BlockDB to JSON.
+     * @function toJSON
+     * @memberof BlockDB
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    BlockDB.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return BlockDB;
+})();
+
 $root.Network = (function() {
 
     /**
@@ -8103,26 +9154,31 @@ $root.StatusChange = (function() {
     return StatusChange;
 })();
 
-$root.Block = (function() {
+$root.GenesisBlockHeader = (function() {
 
     /**
-     * Properties of a Block.
-     * @exports IBlock
-     * @interface IBlock
-     * @property {IBlockHeader|null} [header] Block header
-     * @property {Array.<ITx>|null} [txs] Block txs
+     * Properties of a GenesisBlockHeader.
+     * @exports IGenesisBlockHeader
+     * @interface IGenesisBlockHeader
+     * @property {Array.<Uint8Array>|null} [previousHash] GenesisBlockHeader previousHash
+     * @property {Uint8Array|null} [merkleRoot] GenesisBlockHeader merkleRoot
+     * @property {Uint8Array|null} [stateRoot] GenesisBlockHeader stateRoot
+     * @property {number|null} [difficulty] GenesisBlockHeader difficulty
+     * @property {number|Long|null} [timeStamp] GenesisBlockHeader timeStamp
+     * @property {number|Long|null} [nonce] GenesisBlockHeader nonce
+     * @property {Uint8Array|null} [miner] GenesisBlockHeader miner
      */
 
     /**
-     * Constructs a new Block.
-     * @exports Block
-     * @classdesc Represents a Block.
-     * @implements IBlock
+     * Constructs a new GenesisBlockHeader.
+     * @exports GenesisBlockHeader
+     * @classdesc Represents a GenesisBlockHeader.
+     * @implements IGenesisBlockHeader
      * @constructor
-     * @param {IBlock=} [properties] Properties to set
+     * @param {IGenesisBlockHeader=} [properties] Properties to set
      */
-    function Block(properties) {
-        this.txs = [];
+    function GenesisBlockHeader(properties) {
+        this.previousHash = [];
         if (properties)
             for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                 if (properties[keys[i]] != null)
@@ -8130,657 +9186,156 @@ $root.Block = (function() {
     }
 
     /**
-     * Block header.
-     * @member {IBlockHeader|null|undefined} header
-     * @memberof Block
+     * GenesisBlockHeader previousHash.
+     * @member {Array.<Uint8Array>} previousHash
+     * @memberof GenesisBlockHeader
      * @instance
      */
-    Block.prototype.header = null;
+    GenesisBlockHeader.prototype.previousHash = $util.emptyArray;
 
     /**
-     * Block txs.
-     * @member {Array.<ITx>} txs
-     * @memberof Block
+     * GenesisBlockHeader merkleRoot.
+     * @member {Uint8Array} merkleRoot
+     * @memberof GenesisBlockHeader
      * @instance
      */
-    Block.prototype.txs = $util.emptyArray;
+    GenesisBlockHeader.prototype.merkleRoot = $util.newBuffer([]);
 
     /**
-     * Creates a new Block instance using the specified properties.
+     * GenesisBlockHeader stateRoot.
+     * @member {Uint8Array} stateRoot
+     * @memberof GenesisBlockHeader
+     * @instance
+     */
+    GenesisBlockHeader.prototype.stateRoot = $util.newBuffer([]);
+
+    /**
+     * GenesisBlockHeader difficulty.
+     * @member {number} difficulty
+     * @memberof GenesisBlockHeader
+     * @instance
+     */
+    GenesisBlockHeader.prototype.difficulty = 0;
+
+    /**
+     * GenesisBlockHeader timeStamp.
+     * @member {number|Long} timeStamp
+     * @memberof GenesisBlockHeader
+     * @instance
+     */
+    GenesisBlockHeader.prototype.timeStamp = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+    /**
+     * GenesisBlockHeader nonce.
+     * @member {number|Long} nonce
+     * @memberof GenesisBlockHeader
+     * @instance
+     */
+    GenesisBlockHeader.prototype.nonce = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+    /**
+     * GenesisBlockHeader miner.
+     * @member {Uint8Array} miner
+     * @memberof GenesisBlockHeader
+     * @instance
+     */
+    GenesisBlockHeader.prototype.miner = $util.newBuffer([]);
+
+    /**
+     * Creates a new GenesisBlockHeader instance using the specified properties.
      * @function create
-     * @memberof Block
+     * @memberof GenesisBlockHeader
      * @static
-     * @param {IBlock=} [properties] Properties to set
-     * @returns {Block} Block instance
+     * @param {IGenesisBlockHeader=} [properties] Properties to set
+     * @returns {GenesisBlockHeader} GenesisBlockHeader instance
      */
-    Block.create = function create(properties) {
-        return new Block(properties);
+    GenesisBlockHeader.create = function create(properties) {
+        return new GenesisBlockHeader(properties);
     };
 
     /**
-     * Encodes the specified Block message. Does not implicitly {@link Block.verify|verify} messages.
+     * Encodes the specified GenesisBlockHeader message. Does not implicitly {@link GenesisBlockHeader.verify|verify} messages.
      * @function encode
-     * @memberof Block
+     * @memberof GenesisBlockHeader
      * @static
-     * @param {IBlock} message Block message or plain object to encode
+     * @param {IGenesisBlockHeader} message GenesisBlockHeader message or plain object to encode
      * @param {$protobuf.Writer} [writer] Writer to encode to
      * @returns {$protobuf.Writer} Writer
      */
-    Block.encode = function encode(message, writer) {
+    GenesisBlockHeader.encode = function encode(message, writer) {
         if (!writer)
             writer = $Writer.create();
-        if (message.header != null && message.hasOwnProperty("header"))
-            $root.BlockHeader.encode(message.header, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-        if (message.txs != null && message.txs.length)
-            for (var i = 0; i < message.txs.length; ++i)
-                $root.Tx.encode(message.txs[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+        if (message.previousHash != null && message.previousHash.length)
+            for (var i = 0; i < message.previousHash.length; ++i)
+                writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.previousHash[i]);
+        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
+            writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.merkleRoot);
+        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
+            writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.stateRoot);
+        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
+            writer.uint32(/* id 4, wireType 0 =*/32).uint32(message.difficulty);
+        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
+            writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.timeStamp);
+        if (message.nonce != null && message.hasOwnProperty("nonce"))
+            writer.uint32(/* id 6, wireType 0 =*/48).uint64(message.nonce);
+        if (message.miner != null && message.hasOwnProperty("miner"))
+            writer.uint32(/* id 7, wireType 2 =*/58).bytes(message.miner);
         return writer;
     };
 
     /**
-     * Encodes the specified Block message, length delimited. Does not implicitly {@link Block.verify|verify} messages.
+     * Encodes the specified GenesisBlockHeader message, length delimited. Does not implicitly {@link GenesisBlockHeader.verify|verify} messages.
      * @function encodeDelimited
-     * @memberof Block
+     * @memberof GenesisBlockHeader
      * @static
-     * @param {IBlock} message Block message or plain object to encode
+     * @param {IGenesisBlockHeader} message GenesisBlockHeader message or plain object to encode
      * @param {$protobuf.Writer} [writer] Writer to encode to
      * @returns {$protobuf.Writer} Writer
      */
-    Block.encodeDelimited = function encodeDelimited(message, writer) {
+    GenesisBlockHeader.encodeDelimited = function encodeDelimited(message, writer) {
         return this.encode(message, writer).ldelim();
     };
 
     /**
-     * Decodes a Block message from the specified reader or buffer.
+     * Decodes a GenesisBlockHeader message from the specified reader or buffer.
      * @function decode
-     * @memberof Block
+     * @memberof GenesisBlockHeader
      * @static
      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
      * @param {number} [length] Message length if known beforehand
-     * @returns {Block} Block
+     * @returns {GenesisBlockHeader} GenesisBlockHeader
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    Block.decode = function decode(reader, length) {
+    GenesisBlockHeader.decode = function decode(reader, length) {
         if (!(reader instanceof $Reader))
             reader = $Reader.create(reader);
-        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.Block();
+        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.GenesisBlockHeader();
         while (reader.pos < end) {
             var tag = reader.uint32();
             switch (tag >>> 3) {
             case 1:
-                message.header = $root.BlockHeader.decode(reader, reader.uint32());
+                if (!(message.previousHash && message.previousHash.length))
+                    message.previousHash = [];
+                message.previousHash.push(reader.bytes());
                 break;
             case 2:
-                if (!(message.txs && message.txs.length))
-                    message.txs = [];
-                message.txs.push($root.Tx.decode(reader, reader.uint32()));
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a Block message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof Block
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {Block} Block
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    Block.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a Block message.
-     * @function verify
-     * @memberof Block
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    Block.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.header != null && message.hasOwnProperty("header")) {
-            var error = $root.BlockHeader.verify(message.header);
-            if (error)
-                return "header." + error;
-        }
-        if (message.txs != null && message.hasOwnProperty("txs")) {
-            if (!Array.isArray(message.txs))
-                return "txs: array expected";
-            for (var i = 0; i < message.txs.length; ++i) {
-                var error = $root.Tx.verify(message.txs[i]);
-                if (error)
-                    return "txs." + error;
-            }
-        }
-        return null;
-    };
-
-    /**
-     * Creates a Block message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof Block
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {Block} Block
-     */
-    Block.fromObject = function fromObject(object) {
-        if (object instanceof $root.Block)
-            return object;
-        var message = new $root.Block();
-        if (object.header != null) {
-            if (typeof object.header !== "object")
-                throw TypeError(".Block.header: object expected");
-            message.header = $root.BlockHeader.fromObject(object.header);
-        }
-        if (object.txs) {
-            if (!Array.isArray(object.txs))
-                throw TypeError(".Block.txs: array expected");
-            message.txs = [];
-            for (var i = 0; i < object.txs.length; ++i) {
-                if (typeof object.txs[i] !== "object")
-                    throw TypeError(".Block.txs: object expected");
-                message.txs[i] = $root.Tx.fromObject(object.txs[i]);
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a Block message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof Block
-     * @static
-     * @param {Block} message Block
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    Block.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        var object = {};
-        if (options.arrays || options.defaults)
-            object.txs = [];
-        if (options.defaults)
-            object.header = null;
-        if (message.header != null && message.hasOwnProperty("header"))
-            object.header = $root.BlockHeader.toObject(message.header, options);
-        if (message.txs && message.txs.length) {
-            object.txs = [];
-            for (var j = 0; j < message.txs.length; ++j)
-                object.txs[j] = $root.Tx.toObject(message.txs[j], options);
-        }
-        return object;
-    };
-
-    /**
-     * Converts this Block to JSON.
-     * @function toJSON
-     * @memberof Block
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    Block.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return Block;
-})();
-
-$root.GenesisBlock = (function() {
-
-    /**
-     * Properties of a GenesisBlock.
-     * @exports IGenesisBlock
-     * @interface IGenesisBlock
-     * @property {IGenesisBlockHeader|null} [header] GenesisBlock header
-     * @property {Array.<ITx>|null} [txs] GenesisBlock txs
-     */
-
-    /**
-     * Constructs a new GenesisBlock.
-     * @exports GenesisBlock
-     * @classdesc Represents a GenesisBlock.
-     * @implements IGenesisBlock
-     * @constructor
-     * @param {IGenesisBlock=} [properties] Properties to set
-     */
-    function GenesisBlock(properties) {
-        this.txs = [];
-        if (properties)
-            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * GenesisBlock header.
-     * @member {IGenesisBlockHeader|null|undefined} header
-     * @memberof GenesisBlock
-     * @instance
-     */
-    GenesisBlock.prototype.header = null;
-
-    /**
-     * GenesisBlock txs.
-     * @member {Array.<ITx>} txs
-     * @memberof GenesisBlock
-     * @instance
-     */
-    GenesisBlock.prototype.txs = $util.emptyArray;
-
-    /**
-     * Creates a new GenesisBlock instance using the specified properties.
-     * @function create
-     * @memberof GenesisBlock
-     * @static
-     * @param {IGenesisBlock=} [properties] Properties to set
-     * @returns {GenesisBlock} GenesisBlock instance
-     */
-    GenesisBlock.create = function create(properties) {
-        return new GenesisBlock(properties);
-    };
-
-    /**
-     * Encodes the specified GenesisBlock message. Does not implicitly {@link GenesisBlock.verify|verify} messages.
-     * @function encode
-     * @memberof GenesisBlock
-     * @static
-     * @param {IGenesisBlock} message GenesisBlock message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    GenesisBlock.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.header != null && message.hasOwnProperty("header"))
-            $root.GenesisBlockHeader.encode(message.header, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-        if (message.txs != null && message.txs.length)
-            for (var i = 0; i < message.txs.length; ++i)
-                $root.Tx.encode(message.txs[i], writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
-        return writer;
-    };
-
-    /**
-     * Encodes the specified GenesisBlock message, length delimited. Does not implicitly {@link GenesisBlock.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof GenesisBlock
-     * @static
-     * @param {IGenesisBlock} message GenesisBlock message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    GenesisBlock.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a GenesisBlock message from the specified reader or buffer.
-     * @function decode
-     * @memberof GenesisBlock
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {GenesisBlock} GenesisBlock
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    GenesisBlock.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.GenesisBlock();
-        while (reader.pos < end) {
-            var tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.header = $root.GenesisBlockHeader.decode(reader, reader.uint32());
+                message.merkleRoot = reader.bytes();
                 break;
             case 3:
-                if (!(message.txs && message.txs.length))
-                    message.txs = [];
-                message.txs.push($root.Tx.decode(reader, reader.uint32()));
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a GenesisBlock message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof GenesisBlock
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {GenesisBlock} GenesisBlock
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    GenesisBlock.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a GenesisBlock message.
-     * @function verify
-     * @memberof GenesisBlock
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    GenesisBlock.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.header != null && message.hasOwnProperty("header")) {
-            var error = $root.GenesisBlockHeader.verify(message.header);
-            if (error)
-                return "header." + error;
-        }
-        if (message.txs != null && message.hasOwnProperty("txs")) {
-            if (!Array.isArray(message.txs))
-                return "txs: array expected";
-            for (var i = 0; i < message.txs.length; ++i) {
-                var error = $root.Tx.verify(message.txs[i]);
-                if (error)
-                    return "txs." + error;
-            }
-        }
-        return null;
-    };
-
-    /**
-     * Creates a GenesisBlock message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof GenesisBlock
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {GenesisBlock} GenesisBlock
-     */
-    GenesisBlock.fromObject = function fromObject(object) {
-        if (object instanceof $root.GenesisBlock)
-            return object;
-        var message = new $root.GenesisBlock();
-        if (object.header != null) {
-            if (typeof object.header !== "object")
-                throw TypeError(".GenesisBlock.header: object expected");
-            message.header = $root.GenesisBlockHeader.fromObject(object.header);
-        }
-        if (object.txs) {
-            if (!Array.isArray(object.txs))
-                throw TypeError(".GenesisBlock.txs: array expected");
-            message.txs = [];
-            for (var i = 0; i < object.txs.length; ++i) {
-                if (typeof object.txs[i] !== "object")
-                    throw TypeError(".GenesisBlock.txs: object expected");
-                message.txs[i] = $root.Tx.fromObject(object.txs[i]);
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a GenesisBlock message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof GenesisBlock
-     * @static
-     * @param {GenesisBlock} message GenesisBlock
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    GenesisBlock.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        var object = {};
-        if (options.arrays || options.defaults)
-            object.txs = [];
-        if (options.defaults)
-            object.header = null;
-        if (message.header != null && message.hasOwnProperty("header"))
-            object.header = $root.GenesisBlockHeader.toObject(message.header, options);
-        if (message.txs && message.txs.length) {
-            object.txs = [];
-            for (var j = 0; j < message.txs.length; ++j)
-                object.txs[j] = $root.Tx.toObject(message.txs[j], options);
-        }
-        return object;
-    };
-
-    /**
-     * Converts this GenesisBlock to JSON.
-     * @function toJSON
-     * @memberof GenesisBlock
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    GenesisBlock.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return GenesisBlock;
-})();
-
-$root.BlockDB = (function() {
-
-    /**
-     * Properties of a BlockDB.
-     * @exports IBlockDB
-     * @interface IBlockDB
-     * @property {number|null} [height] BlockDB height
-     * @property {IBlockHeader|null} [header] BlockDB header
-     * @property {number|null} [fileNumber] BlockDB fileNumber
-     * @property {number|null} [offset] BlockDB offset
-     * @property {number|null} [length] BlockDB length
-     * @property {number|null} [tEMA] BlockDB tEMA
-     * @property {number|null} [pEMA] BlockDB pEMA
-     * @property {number|null} [nextDifficulty] BlockDB nextDifficulty
-     * @property {number|null} [totalWork] BlockDB totalWork
-     */
-
-    /**
-     * Constructs a new BlockDB.
-     * @exports BlockDB
-     * @classdesc Represents a BlockDB.
-     * @implements IBlockDB
-     * @constructor
-     * @param {IBlockDB=} [properties] Properties to set
-     */
-    function BlockDB(properties) {
-        if (properties)
-            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * BlockDB height.
-     * @member {number} height
-     * @memberof BlockDB
-     * @instance
-     */
-    BlockDB.prototype.height = 0;
-
-    /**
-     * BlockDB header.
-     * @member {IBlockHeader|null|undefined} header
-     * @memberof BlockDB
-     * @instance
-     */
-    BlockDB.prototype.header = null;
-
-    /**
-     * BlockDB fileNumber.
-     * @member {number} fileNumber
-     * @memberof BlockDB
-     * @instance
-     */
-    BlockDB.prototype.fileNumber = 0;
-
-    /**
-     * BlockDB offset.
-     * @member {number} offset
-     * @memberof BlockDB
-     * @instance
-     */
-    BlockDB.prototype.offset = 0;
-
-    /**
-     * BlockDB length.
-     * @member {number} length
-     * @memberof BlockDB
-     * @instance
-     */
-    BlockDB.prototype.length = 0;
-
-    /**
-     * BlockDB tEMA.
-     * @member {number} tEMA
-     * @memberof BlockDB
-     * @instance
-     */
-    BlockDB.prototype.tEMA = 0;
-
-    /**
-     * BlockDB pEMA.
-     * @member {number} pEMA
-     * @memberof BlockDB
-     * @instance
-     */
-    BlockDB.prototype.pEMA = 0;
-
-    /**
-     * BlockDB nextDifficulty.
-     * @member {number} nextDifficulty
-     * @memberof BlockDB
-     * @instance
-     */
-    BlockDB.prototype.nextDifficulty = 0;
-
-    /**
-     * BlockDB totalWork.
-     * @member {number} totalWork
-     * @memberof BlockDB
-     * @instance
-     */
-    BlockDB.prototype.totalWork = 0;
-
-    /**
-     * Creates a new BlockDB instance using the specified properties.
-     * @function create
-     * @memberof BlockDB
-     * @static
-     * @param {IBlockDB=} [properties] Properties to set
-     * @returns {BlockDB} BlockDB instance
-     */
-    BlockDB.create = function create(properties) {
-        return new BlockDB(properties);
-    };
-
-    /**
-     * Encodes the specified BlockDB message. Does not implicitly {@link BlockDB.verify|verify} messages.
-     * @function encode
-     * @memberof BlockDB
-     * @static
-     * @param {IBlockDB} message BlockDB message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    BlockDB.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.height != null && message.hasOwnProperty("height"))
-            writer.uint32(/* id 1, wireType 0 =*/8).uint32(message.height);
-        if (message.header != null && message.hasOwnProperty("header"))
-            $root.BlockHeader.encode(message.header, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
-        if (message.fileNumber != null && message.hasOwnProperty("fileNumber"))
-            writer.uint32(/* id 3, wireType 0 =*/24).uint32(message.fileNumber);
-        if (message.offset != null && message.hasOwnProperty("offset"))
-            writer.uint32(/* id 4, wireType 0 =*/32).uint32(message.offset);
-        if (message.length != null && message.hasOwnProperty("length"))
-            writer.uint32(/* id 5, wireType 0 =*/40).uint32(message.length);
-        if (message.tEMA != null && message.hasOwnProperty("tEMA"))
-            writer.uint32(/* id 6, wireType 1 =*/49).double(message.tEMA);
-        if (message.pEMA != null && message.hasOwnProperty("pEMA"))
-            writer.uint32(/* id 7, wireType 1 =*/57).double(message.pEMA);
-        if (message.nextDifficulty != null && message.hasOwnProperty("nextDifficulty"))
-            writer.uint32(/* id 8, wireType 1 =*/65).double(message.nextDifficulty);
-        if (message.totalWork != null && message.hasOwnProperty("totalWork"))
-            writer.uint32(/* id 9, wireType 1 =*/73).double(message.totalWork);
-        return writer;
-    };
-
-    /**
-     * Encodes the specified BlockDB message, length delimited. Does not implicitly {@link BlockDB.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof BlockDB
-     * @static
-     * @param {IBlockDB} message BlockDB message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    BlockDB.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a BlockDB message from the specified reader or buffer.
-     * @function decode
-     * @memberof BlockDB
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {BlockDB} BlockDB
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    BlockDB.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.BlockDB();
-        while (reader.pos < end) {
-            var tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.height = reader.uint32();
-                break;
-            case 2:
-                message.header = $root.BlockHeader.decode(reader, reader.uint32());
-                break;
-            case 3:
-                message.fileNumber = reader.uint32();
+                message.stateRoot = reader.bytes();
                 break;
             case 4:
-                message.offset = reader.uint32();
+                message.difficulty = reader.uint32();
                 break;
             case 5:
-                message.length = reader.uint32();
+                message.timeStamp = reader.uint64();
                 break;
             case 6:
-                message.tEMA = reader.double();
+                message.nonce = reader.uint64();
                 break;
             case 7:
-                message.pEMA = reader.double();
-                break;
-            case 8:
-                message.nextDifficulty = reader.double();
-                break;
-            case 9:
-                message.totalWork = reader.double();
+                message.miner = reader.bytes();
                 break;
             default:
                 reader.skipType(tag & 7);
@@ -8791,157 +9346,566 @@ $root.BlockDB = (function() {
     };
 
     /**
-     * Decodes a BlockDB message from the specified reader or buffer, length delimited.
+     * Decodes a GenesisBlockHeader message from the specified reader or buffer, length delimited.
      * @function decodeDelimited
-     * @memberof BlockDB
+     * @memberof GenesisBlockHeader
      * @static
      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {BlockDB} BlockDB
+     * @returns {GenesisBlockHeader} GenesisBlockHeader
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    BlockDB.decodeDelimited = function decodeDelimited(reader) {
+    GenesisBlockHeader.decodeDelimited = function decodeDelimited(reader) {
         if (!(reader instanceof $Reader))
             reader = new $Reader(reader);
         return this.decode(reader, reader.uint32());
     };
 
     /**
-     * Verifies a BlockDB message.
+     * Verifies a GenesisBlockHeader message.
      * @function verify
-     * @memberof BlockDB
+     * @memberof GenesisBlockHeader
      * @static
      * @param {Object.<string,*>} message Plain object to verify
      * @returns {string|null} `null` if valid, otherwise the reason why it is not
      */
-    BlockDB.verify = function verify(message) {
+    GenesisBlockHeader.verify = function verify(message) {
         if (typeof message !== "object" || message === null)
             return "object expected";
-        if (message.height != null && message.hasOwnProperty("height"))
-            if (!$util.isInteger(message.height))
-                return "height: integer expected";
-        if (message.header != null && message.hasOwnProperty("header")) {
-            var error = $root.BlockHeader.verify(message.header);
-            if (error)
-                return "header." + error;
+        if (message.previousHash != null && message.hasOwnProperty("previousHash")) {
+            if (!Array.isArray(message.previousHash))
+                return "previousHash: array expected";
+            for (var i = 0; i < message.previousHash.length; ++i)
+                if (!(message.previousHash[i] && typeof message.previousHash[i].length === "number" || $util.isString(message.previousHash[i])))
+                    return "previousHash: buffer[] expected";
         }
-        if (message.fileNumber != null && message.hasOwnProperty("fileNumber"))
-            if (!$util.isInteger(message.fileNumber))
-                return "fileNumber: integer expected";
-        if (message.offset != null && message.hasOwnProperty("offset"))
-            if (!$util.isInteger(message.offset))
-                return "offset: integer expected";
-        if (message.length != null && message.hasOwnProperty("length"))
-            if (!$util.isInteger(message.length))
-                return "length: integer expected";
-        if (message.tEMA != null && message.hasOwnProperty("tEMA"))
-            if (typeof message.tEMA !== "number")
-                return "tEMA: number expected";
-        if (message.pEMA != null && message.hasOwnProperty("pEMA"))
-            if (typeof message.pEMA !== "number")
-                return "pEMA: number expected";
-        if (message.nextDifficulty != null && message.hasOwnProperty("nextDifficulty"))
-            if (typeof message.nextDifficulty !== "number")
-                return "nextDifficulty: number expected";
-        if (message.totalWork != null && message.hasOwnProperty("totalWork"))
-            if (typeof message.totalWork !== "number")
-                return "totalWork: number expected";
+        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
+            if (!(message.merkleRoot && typeof message.merkleRoot.length === "number" || $util.isString(message.merkleRoot)))
+                return "merkleRoot: buffer expected";
+        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
+            if (!(message.stateRoot && typeof message.stateRoot.length === "number" || $util.isString(message.stateRoot)))
+                return "stateRoot: buffer expected";
+        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
+            if (!$util.isInteger(message.difficulty))
+                return "difficulty: integer expected";
+        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
+            if (!$util.isInteger(message.timeStamp) && !(message.timeStamp && $util.isInteger(message.timeStamp.low) && $util.isInteger(message.timeStamp.high)))
+                return "timeStamp: integer|Long expected";
+        if (message.nonce != null && message.hasOwnProperty("nonce"))
+            if (!$util.isInteger(message.nonce) && !(message.nonce && $util.isInteger(message.nonce.low) && $util.isInteger(message.nonce.high)))
+                return "nonce: integer|Long expected";
+        if (message.miner != null && message.hasOwnProperty("miner"))
+            if (!(message.miner && typeof message.miner.length === "number" || $util.isString(message.miner)))
+                return "miner: buffer expected";
         return null;
     };
 
     /**
-     * Creates a BlockDB message from a plain object. Also converts values to their respective internal types.
+     * Creates a GenesisBlockHeader message from a plain object. Also converts values to their respective internal types.
      * @function fromObject
-     * @memberof BlockDB
+     * @memberof GenesisBlockHeader
      * @static
      * @param {Object.<string,*>} object Plain object
-     * @returns {BlockDB} BlockDB
+     * @returns {GenesisBlockHeader} GenesisBlockHeader
      */
-    BlockDB.fromObject = function fromObject(object) {
-        if (object instanceof $root.BlockDB)
+    GenesisBlockHeader.fromObject = function fromObject(object) {
+        if (object instanceof $root.GenesisBlockHeader)
             return object;
-        var message = new $root.BlockDB();
-        if (object.height != null)
-            message.height = object.height >>> 0;
-        if (object.header != null) {
-            if (typeof object.header !== "object")
-                throw TypeError(".BlockDB.header: object expected");
-            message.header = $root.BlockHeader.fromObject(object.header);
+        var message = new $root.GenesisBlockHeader();
+        if (object.previousHash) {
+            if (!Array.isArray(object.previousHash))
+                throw TypeError(".GenesisBlockHeader.previousHash: array expected");
+            message.previousHash = [];
+            for (var i = 0; i < object.previousHash.length; ++i)
+                if (typeof object.previousHash[i] === "string")
+                    $util.base64.decode(object.previousHash[i], message.previousHash[i] = $util.newBuffer($util.base64.length(object.previousHash[i])), 0);
+                else if (object.previousHash[i].length)
+                    message.previousHash[i] = object.previousHash[i];
         }
-        if (object.fileNumber != null)
-            message.fileNumber = object.fileNumber >>> 0;
-        if (object.offset != null)
-            message.offset = object.offset >>> 0;
-        if (object.length != null)
-            message.length = object.length >>> 0;
-        if (object.tEMA != null)
-            message.tEMA = Number(object.tEMA);
-        if (object.pEMA != null)
-            message.pEMA = Number(object.pEMA);
-        if (object.nextDifficulty != null)
-            message.nextDifficulty = Number(object.nextDifficulty);
-        if (object.totalWork != null)
-            message.totalWork = Number(object.totalWork);
+        if (object.merkleRoot != null)
+            if (typeof object.merkleRoot === "string")
+                $util.base64.decode(object.merkleRoot, message.merkleRoot = $util.newBuffer($util.base64.length(object.merkleRoot)), 0);
+            else if (object.merkleRoot.length)
+                message.merkleRoot = object.merkleRoot;
+        if (object.stateRoot != null)
+            if (typeof object.stateRoot === "string")
+                $util.base64.decode(object.stateRoot, message.stateRoot = $util.newBuffer($util.base64.length(object.stateRoot)), 0);
+            else if (object.stateRoot.length)
+                message.stateRoot = object.stateRoot;
+        if (object.difficulty != null)
+            message.difficulty = object.difficulty >>> 0;
+        if (object.timeStamp != null)
+            if ($util.Long)
+                (message.timeStamp = $util.Long.fromValue(object.timeStamp)).unsigned = true;
+            else if (typeof object.timeStamp === "string")
+                message.timeStamp = parseInt(object.timeStamp, 10);
+            else if (typeof object.timeStamp === "number")
+                message.timeStamp = object.timeStamp;
+            else if (typeof object.timeStamp === "object")
+                message.timeStamp = new $util.LongBits(object.timeStamp.low >>> 0, object.timeStamp.high >>> 0).toNumber(true);
+        if (object.nonce != null)
+            if ($util.Long)
+                (message.nonce = $util.Long.fromValue(object.nonce)).unsigned = true;
+            else if (typeof object.nonce === "string")
+                message.nonce = parseInt(object.nonce, 10);
+            else if (typeof object.nonce === "number")
+                message.nonce = object.nonce;
+            else if (typeof object.nonce === "object")
+                message.nonce = new $util.LongBits(object.nonce.low >>> 0, object.nonce.high >>> 0).toNumber(true);
+        if (object.miner != null)
+            if (typeof object.miner === "string")
+                $util.base64.decode(object.miner, message.miner = $util.newBuffer($util.base64.length(object.miner)), 0);
+            else if (object.miner.length)
+                message.miner = object.miner;
         return message;
     };
 
     /**
-     * Creates a plain object from a BlockDB message. Also converts values to other types if specified.
+     * Creates a plain object from a GenesisBlockHeader message. Also converts values to other types if specified.
      * @function toObject
-     * @memberof BlockDB
+     * @memberof GenesisBlockHeader
      * @static
-     * @param {BlockDB} message BlockDB
+     * @param {GenesisBlockHeader} message GenesisBlockHeader
      * @param {$protobuf.IConversionOptions} [options] Conversion options
      * @returns {Object.<string,*>} Plain object
      */
-    BlockDB.toObject = function toObject(message, options) {
+    GenesisBlockHeader.toObject = function toObject(message, options) {
         if (!options)
             options = {};
         var object = {};
+        if (options.arrays || options.defaults)
+            object.previousHash = [];
         if (options.defaults) {
-            object.height = 0;
-            object.header = null;
-            object.fileNumber = 0;
-            object.offset = 0;
-            object.length = 0;
-            object.tEMA = 0;
-            object.pEMA = 0;
-            object.nextDifficulty = 0;
-            object.totalWork = 0;
+            object.merkleRoot = options.bytes === String ? "" : [];
+            object.stateRoot = options.bytes === String ? "" : [];
+            object.difficulty = 0;
+            if ($util.Long) {
+                var long = new $util.Long(0, 0, true);
+                object.timeStamp = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+            } else
+                object.timeStamp = options.longs === String ? "0" : 0;
+            if ($util.Long) {
+                var long = new $util.Long(0, 0, true);
+                object.nonce = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+            } else
+                object.nonce = options.longs === String ? "0" : 0;
+            object.miner = options.bytes === String ? "" : [];
         }
-        if (message.height != null && message.hasOwnProperty("height"))
-            object.height = message.height;
-        if (message.header != null && message.hasOwnProperty("header"))
-            object.header = $root.BlockHeader.toObject(message.header, options);
-        if (message.fileNumber != null && message.hasOwnProperty("fileNumber"))
-            object.fileNumber = message.fileNumber;
-        if (message.offset != null && message.hasOwnProperty("offset"))
-            object.offset = message.offset;
-        if (message.length != null && message.hasOwnProperty("length"))
-            object.length = message.length;
-        if (message.tEMA != null && message.hasOwnProperty("tEMA"))
-            object.tEMA = options.json && !isFinite(message.tEMA) ? String(message.tEMA) : message.tEMA;
-        if (message.pEMA != null && message.hasOwnProperty("pEMA"))
-            object.pEMA = options.json && !isFinite(message.pEMA) ? String(message.pEMA) : message.pEMA;
-        if (message.nextDifficulty != null && message.hasOwnProperty("nextDifficulty"))
-            object.nextDifficulty = options.json && !isFinite(message.nextDifficulty) ? String(message.nextDifficulty) : message.nextDifficulty;
-        if (message.totalWork != null && message.hasOwnProperty("totalWork"))
-            object.totalWork = options.json && !isFinite(message.totalWork) ? String(message.totalWork) : message.totalWork;
+        if (message.previousHash && message.previousHash.length) {
+            object.previousHash = [];
+            for (var j = 0; j < message.previousHash.length; ++j)
+                object.previousHash[j] = options.bytes === String ? $util.base64.encode(message.previousHash[j], 0, message.previousHash[j].length) : options.bytes === Array ? Array.prototype.slice.call(message.previousHash[j]) : message.previousHash[j];
+        }
+        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
+            object.merkleRoot = options.bytes === String ? $util.base64.encode(message.merkleRoot, 0, message.merkleRoot.length) : options.bytes === Array ? Array.prototype.slice.call(message.merkleRoot) : message.merkleRoot;
+        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
+            object.stateRoot = options.bytes === String ? $util.base64.encode(message.stateRoot, 0, message.stateRoot.length) : options.bytes === Array ? Array.prototype.slice.call(message.stateRoot) : message.stateRoot;
+        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
+            object.difficulty = message.difficulty;
+        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
+            if (typeof message.timeStamp === "number")
+                object.timeStamp = options.longs === String ? String(message.timeStamp) : message.timeStamp;
+            else
+                object.timeStamp = options.longs === String ? $util.Long.prototype.toString.call(message.timeStamp) : options.longs === Number ? new $util.LongBits(message.timeStamp.low >>> 0, message.timeStamp.high >>> 0).toNumber(true) : message.timeStamp;
+        if (message.nonce != null && message.hasOwnProperty("nonce"))
+            if (typeof message.nonce === "number")
+                object.nonce = options.longs === String ? String(message.nonce) : message.nonce;
+            else
+                object.nonce = options.longs === String ? $util.Long.prototype.toString.call(message.nonce) : options.longs === Number ? new $util.LongBits(message.nonce.low >>> 0, message.nonce.high >>> 0).toNumber(true) : message.nonce;
+        if (message.miner != null && message.hasOwnProperty("miner"))
+            object.miner = options.bytes === String ? $util.base64.encode(message.miner, 0, message.miner.length) : options.bytes === Array ? Array.prototype.slice.call(message.miner) : message.miner;
         return object;
     };
 
     /**
-     * Converts this BlockDB to JSON.
+     * Converts this GenesisBlockHeader to JSON.
      * @function toJSON
-     * @memberof BlockDB
+     * @memberof GenesisBlockHeader
      * @instance
      * @returns {Object.<string,*>} JSON object
      */
-    BlockDB.prototype.toJSON = function toJSON() {
+    GenesisBlockHeader.prototype.toJSON = function toJSON() {
         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
     };
 
-    return BlockDB;
+    return GenesisBlockHeader;
+})();
+
+$root.BlockHeader = (function() {
+
+    /**
+     * Properties of a BlockHeader.
+     * @exports IBlockHeader
+     * @interface IBlockHeader
+     * @property {Array.<Uint8Array>|null} [previousHash] BlockHeader previousHash
+     * @property {Uint8Array|null} [merkleRoot] BlockHeader merkleRoot
+     * @property {Uint8Array|null} [stateRoot] BlockHeader stateRoot
+     * @property {number|null} [difficulty] BlockHeader difficulty
+     * @property {number|Long|null} [timeStamp] BlockHeader timeStamp
+     * @property {number|Long|null} [nonce] BlockHeader nonce
+     * @property {Uint8Array|null} [miner] BlockHeader miner
+     */
+
+    /**
+     * Constructs a new BlockHeader.
+     * @exports BlockHeader
+     * @classdesc Represents a BlockHeader.
+     * @implements IBlockHeader
+     * @constructor
+     * @param {IBlockHeader=} [properties] Properties to set
+     */
+    function BlockHeader(properties) {
+        this.previousHash = [];
+        if (properties)
+            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * BlockHeader previousHash.
+     * @member {Array.<Uint8Array>} previousHash
+     * @memberof BlockHeader
+     * @instance
+     */
+    BlockHeader.prototype.previousHash = $util.emptyArray;
+
+    /**
+     * BlockHeader merkleRoot.
+     * @member {Uint8Array} merkleRoot
+     * @memberof BlockHeader
+     * @instance
+     */
+    BlockHeader.prototype.merkleRoot = $util.newBuffer([]);
+
+    /**
+     * BlockHeader stateRoot.
+     * @member {Uint8Array} stateRoot
+     * @memberof BlockHeader
+     * @instance
+     */
+    BlockHeader.prototype.stateRoot = $util.newBuffer([]);
+
+    /**
+     * BlockHeader difficulty.
+     * @member {number} difficulty
+     * @memberof BlockHeader
+     * @instance
+     */
+    BlockHeader.prototype.difficulty = 0;
+
+    /**
+     * BlockHeader timeStamp.
+     * @member {number|Long} timeStamp
+     * @memberof BlockHeader
+     * @instance
+     */
+    BlockHeader.prototype.timeStamp = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+    /**
+     * BlockHeader nonce.
+     * @member {number|Long} nonce
+     * @memberof BlockHeader
+     * @instance
+     */
+    BlockHeader.prototype.nonce = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+    /**
+     * BlockHeader miner.
+     * @member {Uint8Array} miner
+     * @memberof BlockHeader
+     * @instance
+     */
+    BlockHeader.prototype.miner = $util.newBuffer([]);
+
+    /**
+     * Creates a new BlockHeader instance using the specified properties.
+     * @function create
+     * @memberof BlockHeader
+     * @static
+     * @param {IBlockHeader=} [properties] Properties to set
+     * @returns {BlockHeader} BlockHeader instance
+     */
+    BlockHeader.create = function create(properties) {
+        return new BlockHeader(properties);
+    };
+
+    /**
+     * Encodes the specified BlockHeader message. Does not implicitly {@link BlockHeader.verify|verify} messages.
+     * @function encode
+     * @memberof BlockHeader
+     * @static
+     * @param {IBlockHeader} message BlockHeader message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    BlockHeader.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.previousHash != null && message.previousHash.length)
+            for (var i = 0; i < message.previousHash.length; ++i)
+                writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.previousHash[i]);
+        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
+            writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.merkleRoot);
+        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
+            writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.stateRoot);
+        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
+            writer.uint32(/* id 4, wireType 1 =*/33).double(message.difficulty);
+        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
+            writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.timeStamp);
+        if (message.nonce != null && message.hasOwnProperty("nonce"))
+            writer.uint32(/* id 6, wireType 0 =*/48).uint64(message.nonce);
+        if (message.miner != null && message.hasOwnProperty("miner"))
+            writer.uint32(/* id 7, wireType 2 =*/58).bytes(message.miner);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified BlockHeader message, length delimited. Does not implicitly {@link BlockHeader.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof BlockHeader
+     * @static
+     * @param {IBlockHeader} message BlockHeader message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    BlockHeader.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a BlockHeader message from the specified reader or buffer.
+     * @function decode
+     * @memberof BlockHeader
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {BlockHeader} BlockHeader
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    BlockHeader.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.BlockHeader();
+        while (reader.pos < end) {
+            var tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                if (!(message.previousHash && message.previousHash.length))
+                    message.previousHash = [];
+                message.previousHash.push(reader.bytes());
+                break;
+            case 2:
+                message.merkleRoot = reader.bytes();
+                break;
+            case 3:
+                message.stateRoot = reader.bytes();
+                break;
+            case 4:
+                message.difficulty = reader.double();
+                break;
+            case 5:
+                message.timeStamp = reader.uint64();
+                break;
+            case 6:
+                message.nonce = reader.uint64();
+                break;
+            case 7:
+                message.miner = reader.bytes();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a BlockHeader message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof BlockHeader
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {BlockHeader} BlockHeader
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    BlockHeader.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a BlockHeader message.
+     * @function verify
+     * @memberof BlockHeader
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    BlockHeader.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.previousHash != null && message.hasOwnProperty("previousHash")) {
+            if (!Array.isArray(message.previousHash))
+                return "previousHash: array expected";
+            for (var i = 0; i < message.previousHash.length; ++i)
+                if (!(message.previousHash[i] && typeof message.previousHash[i].length === "number" || $util.isString(message.previousHash[i])))
+                    return "previousHash: buffer[] expected";
+        }
+        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
+            if (!(message.merkleRoot && typeof message.merkleRoot.length === "number" || $util.isString(message.merkleRoot)))
+                return "merkleRoot: buffer expected";
+        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
+            if (!(message.stateRoot && typeof message.stateRoot.length === "number" || $util.isString(message.stateRoot)))
+                return "stateRoot: buffer expected";
+        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
+            if (typeof message.difficulty !== "number")
+                return "difficulty: number expected";
+        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
+            if (!$util.isInteger(message.timeStamp) && !(message.timeStamp && $util.isInteger(message.timeStamp.low) && $util.isInteger(message.timeStamp.high)))
+                return "timeStamp: integer|Long expected";
+        if (message.nonce != null && message.hasOwnProperty("nonce"))
+            if (!$util.isInteger(message.nonce) && !(message.nonce && $util.isInteger(message.nonce.low) && $util.isInteger(message.nonce.high)))
+                return "nonce: integer|Long expected";
+        if (message.miner != null && message.hasOwnProperty("miner"))
+            if (!(message.miner && typeof message.miner.length === "number" || $util.isString(message.miner)))
+                return "miner: buffer expected";
+        return null;
+    };
+
+    /**
+     * Creates a BlockHeader message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof BlockHeader
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {BlockHeader} BlockHeader
+     */
+    BlockHeader.fromObject = function fromObject(object) {
+        if (object instanceof $root.BlockHeader)
+            return object;
+        var message = new $root.BlockHeader();
+        if (object.previousHash) {
+            if (!Array.isArray(object.previousHash))
+                throw TypeError(".BlockHeader.previousHash: array expected");
+            message.previousHash = [];
+            for (var i = 0; i < object.previousHash.length; ++i)
+                if (typeof object.previousHash[i] === "string")
+                    $util.base64.decode(object.previousHash[i], message.previousHash[i] = $util.newBuffer($util.base64.length(object.previousHash[i])), 0);
+                else if (object.previousHash[i].length)
+                    message.previousHash[i] = object.previousHash[i];
+        }
+        if (object.merkleRoot != null)
+            if (typeof object.merkleRoot === "string")
+                $util.base64.decode(object.merkleRoot, message.merkleRoot = $util.newBuffer($util.base64.length(object.merkleRoot)), 0);
+            else if (object.merkleRoot.length)
+                message.merkleRoot = object.merkleRoot;
+        if (object.stateRoot != null)
+            if (typeof object.stateRoot === "string")
+                $util.base64.decode(object.stateRoot, message.stateRoot = $util.newBuffer($util.base64.length(object.stateRoot)), 0);
+            else if (object.stateRoot.length)
+                message.stateRoot = object.stateRoot;
+        if (object.difficulty != null)
+            message.difficulty = Number(object.difficulty);
+        if (object.timeStamp != null)
+            if ($util.Long)
+                (message.timeStamp = $util.Long.fromValue(object.timeStamp)).unsigned = true;
+            else if (typeof object.timeStamp === "string")
+                message.timeStamp = parseInt(object.timeStamp, 10);
+            else if (typeof object.timeStamp === "number")
+                message.timeStamp = object.timeStamp;
+            else if (typeof object.timeStamp === "object")
+                message.timeStamp = new $util.LongBits(object.timeStamp.low >>> 0, object.timeStamp.high >>> 0).toNumber(true);
+        if (object.nonce != null)
+            if ($util.Long)
+                (message.nonce = $util.Long.fromValue(object.nonce)).unsigned = true;
+            else if (typeof object.nonce === "string")
+                message.nonce = parseInt(object.nonce, 10);
+            else if (typeof object.nonce === "number")
+                message.nonce = object.nonce;
+            else if (typeof object.nonce === "object")
+                message.nonce = new $util.LongBits(object.nonce.low >>> 0, object.nonce.high >>> 0).toNumber(true);
+        if (object.miner != null)
+            if (typeof object.miner === "string")
+                $util.base64.decode(object.miner, message.miner = $util.newBuffer($util.base64.length(object.miner)), 0);
+            else if (object.miner.length)
+                message.miner = object.miner;
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a BlockHeader message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof BlockHeader
+     * @static
+     * @param {BlockHeader} message BlockHeader
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    BlockHeader.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        var object = {};
+        if (options.arrays || options.defaults)
+            object.previousHash = [];
+        if (options.defaults) {
+            object.merkleRoot = options.bytes === String ? "" : [];
+            object.stateRoot = options.bytes === String ? "" : [];
+            object.difficulty = 0;
+            if ($util.Long) {
+                var long = new $util.Long(0, 0, true);
+                object.timeStamp = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+            } else
+                object.timeStamp = options.longs === String ? "0" : 0;
+            if ($util.Long) {
+                var long = new $util.Long(0, 0, true);
+                object.nonce = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+            } else
+                object.nonce = options.longs === String ? "0" : 0;
+            object.miner = options.bytes === String ? "" : [];
+        }
+        if (message.previousHash && message.previousHash.length) {
+            object.previousHash = [];
+            for (var j = 0; j < message.previousHash.length; ++j)
+                object.previousHash[j] = options.bytes === String ? $util.base64.encode(message.previousHash[j], 0, message.previousHash[j].length) : options.bytes === Array ? Array.prototype.slice.call(message.previousHash[j]) : message.previousHash[j];
+        }
+        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
+            object.merkleRoot = options.bytes === String ? $util.base64.encode(message.merkleRoot, 0, message.merkleRoot.length) : options.bytes === Array ? Array.prototype.slice.call(message.merkleRoot) : message.merkleRoot;
+        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
+            object.stateRoot = options.bytes === String ? $util.base64.encode(message.stateRoot, 0, message.stateRoot.length) : options.bytes === Array ? Array.prototype.slice.call(message.stateRoot) : message.stateRoot;
+        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
+            object.difficulty = options.json && !isFinite(message.difficulty) ? String(message.difficulty) : message.difficulty;
+        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
+            if (typeof message.timeStamp === "number")
+                object.timeStamp = options.longs === String ? String(message.timeStamp) : message.timeStamp;
+            else
+                object.timeStamp = options.longs === String ? $util.Long.prototype.toString.call(message.timeStamp) : options.longs === Number ? new $util.LongBits(message.timeStamp.low >>> 0, message.timeStamp.high >>> 0).toNumber(true) : message.timeStamp;
+        if (message.nonce != null && message.hasOwnProperty("nonce"))
+            if (typeof message.nonce === "number")
+                object.nonce = options.longs === String ? String(message.nonce) : message.nonce;
+            else
+                object.nonce = options.longs === String ? $util.Long.prototype.toString.call(message.nonce) : options.longs === Number ? new $util.LongBits(message.nonce.low >>> 0, message.nonce.high >>> 0).toNumber(true) : message.nonce;
+        if (message.miner != null && message.hasOwnProperty("miner"))
+            object.miner = options.bytes === String ? $util.base64.encode(message.miner, 0, message.miner.length) : options.bytes === Array ? Array.prototype.slice.call(message.miner) : message.miner;
+        return object;
+    };
+
+    /**
+     * Converts this BlockHeader to JSON.
+     * @function toJSON
+     * @memberof BlockHeader
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    BlockHeader.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return BlockHeader;
 })();
 
 $root.Txs = (function() {
@@ -9767,1130 +10731,6 @@ $root.TxDB = (function() {
     };
 
     return TxDB;
-})();
-
-$root.GenesisBlockHeader = (function() {
-
-    /**
-     * Properties of a GenesisBlockHeader.
-     * @exports IGenesisBlockHeader
-     * @interface IGenesisBlockHeader
-     * @property {Array.<Uint8Array>|null} [previousHash] GenesisBlockHeader previousHash
-     * @property {Uint8Array|null} [merkleRoot] GenesisBlockHeader merkleRoot
-     * @property {Uint8Array|null} [stateRoot] GenesisBlockHeader stateRoot
-     * @property {number|null} [difficulty] GenesisBlockHeader difficulty
-     * @property {number|Long|null} [timeStamp] GenesisBlockHeader timeStamp
-     * @property {number|Long|null} [nonce] GenesisBlockHeader nonce
-     * @property {Uint8Array|null} [miner] GenesisBlockHeader miner
-     */
-
-    /**
-     * Constructs a new GenesisBlockHeader.
-     * @exports GenesisBlockHeader
-     * @classdesc Represents a GenesisBlockHeader.
-     * @implements IGenesisBlockHeader
-     * @constructor
-     * @param {IGenesisBlockHeader=} [properties] Properties to set
-     */
-    function GenesisBlockHeader(properties) {
-        this.previousHash = [];
-        if (properties)
-            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * GenesisBlockHeader previousHash.
-     * @member {Array.<Uint8Array>} previousHash
-     * @memberof GenesisBlockHeader
-     * @instance
-     */
-    GenesisBlockHeader.prototype.previousHash = $util.emptyArray;
-
-    /**
-     * GenesisBlockHeader merkleRoot.
-     * @member {Uint8Array} merkleRoot
-     * @memberof GenesisBlockHeader
-     * @instance
-     */
-    GenesisBlockHeader.prototype.merkleRoot = $util.newBuffer([]);
-
-    /**
-     * GenesisBlockHeader stateRoot.
-     * @member {Uint8Array} stateRoot
-     * @memberof GenesisBlockHeader
-     * @instance
-     */
-    GenesisBlockHeader.prototype.stateRoot = $util.newBuffer([]);
-
-    /**
-     * GenesisBlockHeader difficulty.
-     * @member {number} difficulty
-     * @memberof GenesisBlockHeader
-     * @instance
-     */
-    GenesisBlockHeader.prototype.difficulty = 0;
-
-    /**
-     * GenesisBlockHeader timeStamp.
-     * @member {number|Long} timeStamp
-     * @memberof GenesisBlockHeader
-     * @instance
-     */
-    GenesisBlockHeader.prototype.timeStamp = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
-
-    /**
-     * GenesisBlockHeader nonce.
-     * @member {number|Long} nonce
-     * @memberof GenesisBlockHeader
-     * @instance
-     */
-    GenesisBlockHeader.prototype.nonce = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
-
-    /**
-     * GenesisBlockHeader miner.
-     * @member {Uint8Array} miner
-     * @memberof GenesisBlockHeader
-     * @instance
-     */
-    GenesisBlockHeader.prototype.miner = $util.newBuffer([]);
-
-    /**
-     * Creates a new GenesisBlockHeader instance using the specified properties.
-     * @function create
-     * @memberof GenesisBlockHeader
-     * @static
-     * @param {IGenesisBlockHeader=} [properties] Properties to set
-     * @returns {GenesisBlockHeader} GenesisBlockHeader instance
-     */
-    GenesisBlockHeader.create = function create(properties) {
-        return new GenesisBlockHeader(properties);
-    };
-
-    /**
-     * Encodes the specified GenesisBlockHeader message. Does not implicitly {@link GenesisBlockHeader.verify|verify} messages.
-     * @function encode
-     * @memberof GenesisBlockHeader
-     * @static
-     * @param {IGenesisBlockHeader} message GenesisBlockHeader message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    GenesisBlockHeader.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.previousHash != null && message.previousHash.length)
-            for (var i = 0; i < message.previousHash.length; ++i)
-                writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.previousHash[i]);
-        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
-            writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.merkleRoot);
-        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
-            writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.stateRoot);
-        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
-            writer.uint32(/* id 4, wireType 0 =*/32).uint32(message.difficulty);
-        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
-            writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.timeStamp);
-        if (message.nonce != null && message.hasOwnProperty("nonce"))
-            writer.uint32(/* id 6, wireType 0 =*/48).uint64(message.nonce);
-        if (message.miner != null && message.hasOwnProperty("miner"))
-            writer.uint32(/* id 7, wireType 2 =*/58).bytes(message.miner);
-        return writer;
-    };
-
-    /**
-     * Encodes the specified GenesisBlockHeader message, length delimited. Does not implicitly {@link GenesisBlockHeader.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof GenesisBlockHeader
-     * @static
-     * @param {IGenesisBlockHeader} message GenesisBlockHeader message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    GenesisBlockHeader.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a GenesisBlockHeader message from the specified reader or buffer.
-     * @function decode
-     * @memberof GenesisBlockHeader
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {GenesisBlockHeader} GenesisBlockHeader
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    GenesisBlockHeader.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.GenesisBlockHeader();
-        while (reader.pos < end) {
-            var tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                if (!(message.previousHash && message.previousHash.length))
-                    message.previousHash = [];
-                message.previousHash.push(reader.bytes());
-                break;
-            case 2:
-                message.merkleRoot = reader.bytes();
-                break;
-            case 3:
-                message.stateRoot = reader.bytes();
-                break;
-            case 4:
-                message.difficulty = reader.uint32();
-                break;
-            case 5:
-                message.timeStamp = reader.uint64();
-                break;
-            case 6:
-                message.nonce = reader.uint64();
-                break;
-            case 7:
-                message.miner = reader.bytes();
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a GenesisBlockHeader message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof GenesisBlockHeader
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {GenesisBlockHeader} GenesisBlockHeader
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    GenesisBlockHeader.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a GenesisBlockHeader message.
-     * @function verify
-     * @memberof GenesisBlockHeader
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    GenesisBlockHeader.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.previousHash != null && message.hasOwnProperty("previousHash")) {
-            if (!Array.isArray(message.previousHash))
-                return "previousHash: array expected";
-            for (var i = 0; i < message.previousHash.length; ++i)
-                if (!(message.previousHash[i] && typeof message.previousHash[i].length === "number" || $util.isString(message.previousHash[i])))
-                    return "previousHash: buffer[] expected";
-        }
-        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
-            if (!(message.merkleRoot && typeof message.merkleRoot.length === "number" || $util.isString(message.merkleRoot)))
-                return "merkleRoot: buffer expected";
-        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
-            if (!(message.stateRoot && typeof message.stateRoot.length === "number" || $util.isString(message.stateRoot)))
-                return "stateRoot: buffer expected";
-        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
-            if (!$util.isInteger(message.difficulty))
-                return "difficulty: integer expected";
-        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
-            if (!$util.isInteger(message.timeStamp) && !(message.timeStamp && $util.isInteger(message.timeStamp.low) && $util.isInteger(message.timeStamp.high)))
-                return "timeStamp: integer|Long expected";
-        if (message.nonce != null && message.hasOwnProperty("nonce"))
-            if (!$util.isInteger(message.nonce) && !(message.nonce && $util.isInteger(message.nonce.low) && $util.isInteger(message.nonce.high)))
-                return "nonce: integer|Long expected";
-        if (message.miner != null && message.hasOwnProperty("miner"))
-            if (!(message.miner && typeof message.miner.length === "number" || $util.isString(message.miner)))
-                return "miner: buffer expected";
-        return null;
-    };
-
-    /**
-     * Creates a GenesisBlockHeader message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof GenesisBlockHeader
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {GenesisBlockHeader} GenesisBlockHeader
-     */
-    GenesisBlockHeader.fromObject = function fromObject(object) {
-        if (object instanceof $root.GenesisBlockHeader)
-            return object;
-        var message = new $root.GenesisBlockHeader();
-        if (object.previousHash) {
-            if (!Array.isArray(object.previousHash))
-                throw TypeError(".GenesisBlockHeader.previousHash: array expected");
-            message.previousHash = [];
-            for (var i = 0; i < object.previousHash.length; ++i)
-                if (typeof object.previousHash[i] === "string")
-                    $util.base64.decode(object.previousHash[i], message.previousHash[i] = $util.newBuffer($util.base64.length(object.previousHash[i])), 0);
-                else if (object.previousHash[i].length)
-                    message.previousHash[i] = object.previousHash[i];
-        }
-        if (object.merkleRoot != null)
-            if (typeof object.merkleRoot === "string")
-                $util.base64.decode(object.merkleRoot, message.merkleRoot = $util.newBuffer($util.base64.length(object.merkleRoot)), 0);
-            else if (object.merkleRoot.length)
-                message.merkleRoot = object.merkleRoot;
-        if (object.stateRoot != null)
-            if (typeof object.stateRoot === "string")
-                $util.base64.decode(object.stateRoot, message.stateRoot = $util.newBuffer($util.base64.length(object.stateRoot)), 0);
-            else if (object.stateRoot.length)
-                message.stateRoot = object.stateRoot;
-        if (object.difficulty != null)
-            message.difficulty = object.difficulty >>> 0;
-        if (object.timeStamp != null)
-            if ($util.Long)
-                (message.timeStamp = $util.Long.fromValue(object.timeStamp)).unsigned = true;
-            else if (typeof object.timeStamp === "string")
-                message.timeStamp = parseInt(object.timeStamp, 10);
-            else if (typeof object.timeStamp === "number")
-                message.timeStamp = object.timeStamp;
-            else if (typeof object.timeStamp === "object")
-                message.timeStamp = new $util.LongBits(object.timeStamp.low >>> 0, object.timeStamp.high >>> 0).toNumber(true);
-        if (object.nonce != null)
-            if ($util.Long)
-                (message.nonce = $util.Long.fromValue(object.nonce)).unsigned = true;
-            else if (typeof object.nonce === "string")
-                message.nonce = parseInt(object.nonce, 10);
-            else if (typeof object.nonce === "number")
-                message.nonce = object.nonce;
-            else if (typeof object.nonce === "object")
-                message.nonce = new $util.LongBits(object.nonce.low >>> 0, object.nonce.high >>> 0).toNumber(true);
-        if (object.miner != null)
-            if (typeof object.miner === "string")
-                $util.base64.decode(object.miner, message.miner = $util.newBuffer($util.base64.length(object.miner)), 0);
-            else if (object.miner.length)
-                message.miner = object.miner;
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a GenesisBlockHeader message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof GenesisBlockHeader
-     * @static
-     * @param {GenesisBlockHeader} message GenesisBlockHeader
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    GenesisBlockHeader.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        var object = {};
-        if (options.arrays || options.defaults)
-            object.previousHash = [];
-        if (options.defaults) {
-            object.merkleRoot = options.bytes === String ? "" : [];
-            object.stateRoot = options.bytes === String ? "" : [];
-            object.difficulty = 0;
-            if ($util.Long) {
-                var long = new $util.Long(0, 0, true);
-                object.timeStamp = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-            } else
-                object.timeStamp = options.longs === String ? "0" : 0;
-            if ($util.Long) {
-                var long = new $util.Long(0, 0, true);
-                object.nonce = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-            } else
-                object.nonce = options.longs === String ? "0" : 0;
-            object.miner = options.bytes === String ? "" : [];
-        }
-        if (message.previousHash && message.previousHash.length) {
-            object.previousHash = [];
-            for (var j = 0; j < message.previousHash.length; ++j)
-                object.previousHash[j] = options.bytes === String ? $util.base64.encode(message.previousHash[j], 0, message.previousHash[j].length) : options.bytes === Array ? Array.prototype.slice.call(message.previousHash[j]) : message.previousHash[j];
-        }
-        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
-            object.merkleRoot = options.bytes === String ? $util.base64.encode(message.merkleRoot, 0, message.merkleRoot.length) : options.bytes === Array ? Array.prototype.slice.call(message.merkleRoot) : message.merkleRoot;
-        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
-            object.stateRoot = options.bytes === String ? $util.base64.encode(message.stateRoot, 0, message.stateRoot.length) : options.bytes === Array ? Array.prototype.slice.call(message.stateRoot) : message.stateRoot;
-        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
-            object.difficulty = message.difficulty;
-        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
-            if (typeof message.timeStamp === "number")
-                object.timeStamp = options.longs === String ? String(message.timeStamp) : message.timeStamp;
-            else
-                object.timeStamp = options.longs === String ? $util.Long.prototype.toString.call(message.timeStamp) : options.longs === Number ? new $util.LongBits(message.timeStamp.low >>> 0, message.timeStamp.high >>> 0).toNumber(true) : message.timeStamp;
-        if (message.nonce != null && message.hasOwnProperty("nonce"))
-            if (typeof message.nonce === "number")
-                object.nonce = options.longs === String ? String(message.nonce) : message.nonce;
-            else
-                object.nonce = options.longs === String ? $util.Long.prototype.toString.call(message.nonce) : options.longs === Number ? new $util.LongBits(message.nonce.low >>> 0, message.nonce.high >>> 0).toNumber(true) : message.nonce;
-        if (message.miner != null && message.hasOwnProperty("miner"))
-            object.miner = options.bytes === String ? $util.base64.encode(message.miner, 0, message.miner.length) : options.bytes === Array ? Array.prototype.slice.call(message.miner) : message.miner;
-        return object;
-    };
-
-    /**
-     * Converts this GenesisBlockHeader to JSON.
-     * @function toJSON
-     * @memberof GenesisBlockHeader
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    GenesisBlockHeader.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return GenesisBlockHeader;
-})();
-
-$root.BlockHeader = (function() {
-
-    /**
-     * Properties of a BlockHeader.
-     * @exports IBlockHeader
-     * @interface IBlockHeader
-     * @property {Array.<Uint8Array>|null} [previousHash] BlockHeader previousHash
-     * @property {Uint8Array|null} [merkleRoot] BlockHeader merkleRoot
-     * @property {Uint8Array|null} [stateRoot] BlockHeader stateRoot
-     * @property {number|null} [difficulty] BlockHeader difficulty
-     * @property {number|Long|null} [timeStamp] BlockHeader timeStamp
-     * @property {number|Long|null} [nonce] BlockHeader nonce
-     * @property {Uint8Array|null} [miner] BlockHeader miner
-     */
-
-    /**
-     * Constructs a new BlockHeader.
-     * @exports BlockHeader
-     * @classdesc Represents a BlockHeader.
-     * @implements IBlockHeader
-     * @constructor
-     * @param {IBlockHeader=} [properties] Properties to set
-     */
-    function BlockHeader(properties) {
-        this.previousHash = [];
-        if (properties)
-            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * BlockHeader previousHash.
-     * @member {Array.<Uint8Array>} previousHash
-     * @memberof BlockHeader
-     * @instance
-     */
-    BlockHeader.prototype.previousHash = $util.emptyArray;
-
-    /**
-     * BlockHeader merkleRoot.
-     * @member {Uint8Array} merkleRoot
-     * @memberof BlockHeader
-     * @instance
-     */
-    BlockHeader.prototype.merkleRoot = $util.newBuffer([]);
-
-    /**
-     * BlockHeader stateRoot.
-     * @member {Uint8Array} stateRoot
-     * @memberof BlockHeader
-     * @instance
-     */
-    BlockHeader.prototype.stateRoot = $util.newBuffer([]);
-
-    /**
-     * BlockHeader difficulty.
-     * @member {number} difficulty
-     * @memberof BlockHeader
-     * @instance
-     */
-    BlockHeader.prototype.difficulty = 0;
-
-    /**
-     * BlockHeader timeStamp.
-     * @member {number|Long} timeStamp
-     * @memberof BlockHeader
-     * @instance
-     */
-    BlockHeader.prototype.timeStamp = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
-
-    /**
-     * BlockHeader nonce.
-     * @member {number|Long} nonce
-     * @memberof BlockHeader
-     * @instance
-     */
-    BlockHeader.prototype.nonce = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
-
-    /**
-     * BlockHeader miner.
-     * @member {Uint8Array} miner
-     * @memberof BlockHeader
-     * @instance
-     */
-    BlockHeader.prototype.miner = $util.newBuffer([]);
-
-    /**
-     * Creates a new BlockHeader instance using the specified properties.
-     * @function create
-     * @memberof BlockHeader
-     * @static
-     * @param {IBlockHeader=} [properties] Properties to set
-     * @returns {BlockHeader} BlockHeader instance
-     */
-    BlockHeader.create = function create(properties) {
-        return new BlockHeader(properties);
-    };
-
-    /**
-     * Encodes the specified BlockHeader message. Does not implicitly {@link BlockHeader.verify|verify} messages.
-     * @function encode
-     * @memberof BlockHeader
-     * @static
-     * @param {IBlockHeader} message BlockHeader message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    BlockHeader.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.previousHash != null && message.previousHash.length)
-            for (var i = 0; i < message.previousHash.length; ++i)
-                writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.previousHash[i]);
-        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
-            writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.merkleRoot);
-        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
-            writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.stateRoot);
-        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
-            writer.uint32(/* id 4, wireType 1 =*/33).double(message.difficulty);
-        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
-            writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.timeStamp);
-        if (message.nonce != null && message.hasOwnProperty("nonce"))
-            writer.uint32(/* id 6, wireType 0 =*/48).uint64(message.nonce);
-        if (message.miner != null && message.hasOwnProperty("miner"))
-            writer.uint32(/* id 7, wireType 2 =*/58).bytes(message.miner);
-        return writer;
-    };
-
-    /**
-     * Encodes the specified BlockHeader message, length delimited. Does not implicitly {@link BlockHeader.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof BlockHeader
-     * @static
-     * @param {IBlockHeader} message BlockHeader message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    BlockHeader.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a BlockHeader message from the specified reader or buffer.
-     * @function decode
-     * @memberof BlockHeader
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {BlockHeader} BlockHeader
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    BlockHeader.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.BlockHeader();
-        while (reader.pos < end) {
-            var tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                if (!(message.previousHash && message.previousHash.length))
-                    message.previousHash = [];
-                message.previousHash.push(reader.bytes());
-                break;
-            case 2:
-                message.merkleRoot = reader.bytes();
-                break;
-            case 3:
-                message.stateRoot = reader.bytes();
-                break;
-            case 4:
-                message.difficulty = reader.double();
-                break;
-            case 5:
-                message.timeStamp = reader.uint64();
-                break;
-            case 6:
-                message.nonce = reader.uint64();
-                break;
-            case 7:
-                message.miner = reader.bytes();
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a BlockHeader message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof BlockHeader
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {BlockHeader} BlockHeader
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    BlockHeader.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a BlockHeader message.
-     * @function verify
-     * @memberof BlockHeader
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    BlockHeader.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.previousHash != null && message.hasOwnProperty("previousHash")) {
-            if (!Array.isArray(message.previousHash))
-                return "previousHash: array expected";
-            for (var i = 0; i < message.previousHash.length; ++i)
-                if (!(message.previousHash[i] && typeof message.previousHash[i].length === "number" || $util.isString(message.previousHash[i])))
-                    return "previousHash: buffer[] expected";
-        }
-        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
-            if (!(message.merkleRoot && typeof message.merkleRoot.length === "number" || $util.isString(message.merkleRoot)))
-                return "merkleRoot: buffer expected";
-        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
-            if (!(message.stateRoot && typeof message.stateRoot.length === "number" || $util.isString(message.stateRoot)))
-                return "stateRoot: buffer expected";
-        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
-            if (typeof message.difficulty !== "number")
-                return "difficulty: number expected";
-        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
-            if (!$util.isInteger(message.timeStamp) && !(message.timeStamp && $util.isInteger(message.timeStamp.low) && $util.isInteger(message.timeStamp.high)))
-                return "timeStamp: integer|Long expected";
-        if (message.nonce != null && message.hasOwnProperty("nonce"))
-            if (!$util.isInteger(message.nonce) && !(message.nonce && $util.isInteger(message.nonce.low) && $util.isInteger(message.nonce.high)))
-                return "nonce: integer|Long expected";
-        if (message.miner != null && message.hasOwnProperty("miner"))
-            if (!(message.miner && typeof message.miner.length === "number" || $util.isString(message.miner)))
-                return "miner: buffer expected";
-        return null;
-    };
-
-    /**
-     * Creates a BlockHeader message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof BlockHeader
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {BlockHeader} BlockHeader
-     */
-    BlockHeader.fromObject = function fromObject(object) {
-        if (object instanceof $root.BlockHeader)
-            return object;
-        var message = new $root.BlockHeader();
-        if (object.previousHash) {
-            if (!Array.isArray(object.previousHash))
-                throw TypeError(".BlockHeader.previousHash: array expected");
-            message.previousHash = [];
-            for (var i = 0; i < object.previousHash.length; ++i)
-                if (typeof object.previousHash[i] === "string")
-                    $util.base64.decode(object.previousHash[i], message.previousHash[i] = $util.newBuffer($util.base64.length(object.previousHash[i])), 0);
-                else if (object.previousHash[i].length)
-                    message.previousHash[i] = object.previousHash[i];
-        }
-        if (object.merkleRoot != null)
-            if (typeof object.merkleRoot === "string")
-                $util.base64.decode(object.merkleRoot, message.merkleRoot = $util.newBuffer($util.base64.length(object.merkleRoot)), 0);
-            else if (object.merkleRoot.length)
-                message.merkleRoot = object.merkleRoot;
-        if (object.stateRoot != null)
-            if (typeof object.stateRoot === "string")
-                $util.base64.decode(object.stateRoot, message.stateRoot = $util.newBuffer($util.base64.length(object.stateRoot)), 0);
-            else if (object.stateRoot.length)
-                message.stateRoot = object.stateRoot;
-        if (object.difficulty != null)
-            message.difficulty = Number(object.difficulty);
-        if (object.timeStamp != null)
-            if ($util.Long)
-                (message.timeStamp = $util.Long.fromValue(object.timeStamp)).unsigned = true;
-            else if (typeof object.timeStamp === "string")
-                message.timeStamp = parseInt(object.timeStamp, 10);
-            else if (typeof object.timeStamp === "number")
-                message.timeStamp = object.timeStamp;
-            else if (typeof object.timeStamp === "object")
-                message.timeStamp = new $util.LongBits(object.timeStamp.low >>> 0, object.timeStamp.high >>> 0).toNumber(true);
-        if (object.nonce != null)
-            if ($util.Long)
-                (message.nonce = $util.Long.fromValue(object.nonce)).unsigned = true;
-            else if (typeof object.nonce === "string")
-                message.nonce = parseInt(object.nonce, 10);
-            else if (typeof object.nonce === "number")
-                message.nonce = object.nonce;
-            else if (typeof object.nonce === "object")
-                message.nonce = new $util.LongBits(object.nonce.low >>> 0, object.nonce.high >>> 0).toNumber(true);
-        if (object.miner != null)
-            if (typeof object.miner === "string")
-                $util.base64.decode(object.miner, message.miner = $util.newBuffer($util.base64.length(object.miner)), 0);
-            else if (object.miner.length)
-                message.miner = object.miner;
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a BlockHeader message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof BlockHeader
-     * @static
-     * @param {BlockHeader} message BlockHeader
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    BlockHeader.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        var object = {};
-        if (options.arrays || options.defaults)
-            object.previousHash = [];
-        if (options.defaults) {
-            object.merkleRoot = options.bytes === String ? "" : [];
-            object.stateRoot = options.bytes === String ? "" : [];
-            object.difficulty = 0;
-            if ($util.Long) {
-                var long = new $util.Long(0, 0, true);
-                object.timeStamp = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-            } else
-                object.timeStamp = options.longs === String ? "0" : 0;
-            if ($util.Long) {
-                var long = new $util.Long(0, 0, true);
-                object.nonce = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-            } else
-                object.nonce = options.longs === String ? "0" : 0;
-            object.miner = options.bytes === String ? "" : [];
-        }
-        if (message.previousHash && message.previousHash.length) {
-            object.previousHash = [];
-            for (var j = 0; j < message.previousHash.length; ++j)
-                object.previousHash[j] = options.bytes === String ? $util.base64.encode(message.previousHash[j], 0, message.previousHash[j].length) : options.bytes === Array ? Array.prototype.slice.call(message.previousHash[j]) : message.previousHash[j];
-        }
-        if (message.merkleRoot != null && message.hasOwnProperty("merkleRoot"))
-            object.merkleRoot = options.bytes === String ? $util.base64.encode(message.merkleRoot, 0, message.merkleRoot.length) : options.bytes === Array ? Array.prototype.slice.call(message.merkleRoot) : message.merkleRoot;
-        if (message.stateRoot != null && message.hasOwnProperty("stateRoot"))
-            object.stateRoot = options.bytes === String ? $util.base64.encode(message.stateRoot, 0, message.stateRoot.length) : options.bytes === Array ? Array.prototype.slice.call(message.stateRoot) : message.stateRoot;
-        if (message.difficulty != null && message.hasOwnProperty("difficulty"))
-            object.difficulty = options.json && !isFinite(message.difficulty) ? String(message.difficulty) : message.difficulty;
-        if (message.timeStamp != null && message.hasOwnProperty("timeStamp"))
-            if (typeof message.timeStamp === "number")
-                object.timeStamp = options.longs === String ? String(message.timeStamp) : message.timeStamp;
-            else
-                object.timeStamp = options.longs === String ? $util.Long.prototype.toString.call(message.timeStamp) : options.longs === Number ? new $util.LongBits(message.timeStamp.low >>> 0, message.timeStamp.high >>> 0).toNumber(true) : message.timeStamp;
-        if (message.nonce != null && message.hasOwnProperty("nonce"))
-            if (typeof message.nonce === "number")
-                object.nonce = options.longs === String ? String(message.nonce) : message.nonce;
-            else
-                object.nonce = options.longs === String ? $util.Long.prototype.toString.call(message.nonce) : options.longs === Number ? new $util.LongBits(message.nonce.low >>> 0, message.nonce.high >>> 0).toNumber(true) : message.nonce;
-        if (message.miner != null && message.hasOwnProperty("miner"))
-            object.miner = options.bytes === String ? $util.base64.encode(message.miner, 0, message.miner.length) : options.bytes === Array ? Array.prototype.slice.call(message.miner) : message.miner;
-        return object;
-    };
-
-    /**
-     * Converts this BlockHeader to JSON.
-     * @function toJSON
-     * @memberof BlockHeader
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    BlockHeader.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return BlockHeader;
-})();
-
-$root.Peer = (function() {
-
-    /**
-     * Properties of a Peer.
-     * @exports IPeer
-     * @interface IPeer
-     * @property {string|null} [host] Peer host
-     * @property {number|null} [port] Peer port
-     * @property {number|Long|null} [lastSeen] Peer lastSeen
-     * @property {number|null} [failCount] Peer failCount
-     * @property {number|Long|null} [lastAttempt] Peer lastAttempt
-     * @property {boolean|null} [active] Peer active
-     * @property {number|null} [currentQueue] Peer currentQueue
-     * @property {number|null} [successCount] Peer successCount
-     */
-
-    /**
-     * Constructs a new Peer.
-     * @exports Peer
-     * @classdesc Represents a Peer.
-     * @implements IPeer
-     * @constructor
-     * @param {IPeer=} [properties] Properties to set
-     */
-    function Peer(properties) {
-        if (properties)
-            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * Peer host.
-     * @member {string} host
-     * @memberof Peer
-     * @instance
-     */
-    Peer.prototype.host = "";
-
-    /**
-     * Peer port.
-     * @member {number} port
-     * @memberof Peer
-     * @instance
-     */
-    Peer.prototype.port = 0;
-
-    /**
-     * Peer lastSeen.
-     * @member {number|Long} lastSeen
-     * @memberof Peer
-     * @instance
-     */
-    Peer.prototype.lastSeen = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
-
-    /**
-     * Peer failCount.
-     * @member {number} failCount
-     * @memberof Peer
-     * @instance
-     */
-    Peer.prototype.failCount = 0;
-
-    /**
-     * Peer lastAttempt.
-     * @member {number|Long} lastAttempt
-     * @memberof Peer
-     * @instance
-     */
-    Peer.prototype.lastAttempt = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
-
-    /**
-     * Peer active.
-     * @member {boolean} active
-     * @memberof Peer
-     * @instance
-     */
-    Peer.prototype.active = false;
-
-    /**
-     * Peer currentQueue.
-     * @member {number} currentQueue
-     * @memberof Peer
-     * @instance
-     */
-    Peer.prototype.currentQueue = 0;
-
-    /**
-     * Peer successCount.
-     * @member {number} successCount
-     * @memberof Peer
-     * @instance
-     */
-    Peer.prototype.successCount = 0;
-
-    /**
-     * Creates a new Peer instance using the specified properties.
-     * @function create
-     * @memberof Peer
-     * @static
-     * @param {IPeer=} [properties] Properties to set
-     * @returns {Peer} Peer instance
-     */
-    Peer.create = function create(properties) {
-        return new Peer(properties);
-    };
-
-    /**
-     * Encodes the specified Peer message. Does not implicitly {@link Peer.verify|verify} messages.
-     * @function encode
-     * @memberof Peer
-     * @static
-     * @param {IPeer} message Peer message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    Peer.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.host != null && message.hasOwnProperty("host"))
-            writer.uint32(/* id 1, wireType 2 =*/10).string(message.host);
-        if (message.port != null && message.hasOwnProperty("port"))
-            writer.uint32(/* id 2, wireType 0 =*/16).uint32(message.port);
-        if (message.lastSeen != null && message.hasOwnProperty("lastSeen"))
-            writer.uint32(/* id 3, wireType 0 =*/24).uint64(message.lastSeen);
-        if (message.failCount != null && message.hasOwnProperty("failCount"))
-            writer.uint32(/* id 4, wireType 0 =*/32).uint32(message.failCount);
-        if (message.lastAttempt != null && message.hasOwnProperty("lastAttempt"))
-            writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.lastAttempt);
-        if (message.active != null && message.hasOwnProperty("active"))
-            writer.uint32(/* id 6, wireType 0 =*/48).bool(message.active);
-        if (message.currentQueue != null && message.hasOwnProperty("currentQueue"))
-            writer.uint32(/* id 7, wireType 0 =*/56).int32(message.currentQueue);
-        if (message.successCount != null && message.hasOwnProperty("successCount"))
-            writer.uint32(/* id 8, wireType 0 =*/64).int32(message.successCount);
-        return writer;
-    };
-
-    /**
-     * Encodes the specified Peer message, length delimited. Does not implicitly {@link Peer.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof Peer
-     * @static
-     * @param {IPeer} message Peer message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    Peer.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a Peer message from the specified reader or buffer.
-     * @function decode
-     * @memberof Peer
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {Peer} Peer
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    Peer.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.Peer();
-        while (reader.pos < end) {
-            var tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.host = reader.string();
-                break;
-            case 2:
-                message.port = reader.uint32();
-                break;
-            case 3:
-                message.lastSeen = reader.uint64();
-                break;
-            case 4:
-                message.failCount = reader.uint32();
-                break;
-            case 5:
-                message.lastAttempt = reader.uint64();
-                break;
-            case 6:
-                message.active = reader.bool();
-                break;
-            case 7:
-                message.currentQueue = reader.int32();
-                break;
-            case 8:
-                message.successCount = reader.int32();
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a Peer message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof Peer
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {Peer} Peer
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    Peer.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a Peer message.
-     * @function verify
-     * @memberof Peer
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    Peer.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.host != null && message.hasOwnProperty("host"))
-            if (!$util.isString(message.host))
-                return "host: string expected";
-        if (message.port != null && message.hasOwnProperty("port"))
-            if (!$util.isInteger(message.port))
-                return "port: integer expected";
-        if (message.lastSeen != null && message.hasOwnProperty("lastSeen"))
-            if (!$util.isInteger(message.lastSeen) && !(message.lastSeen && $util.isInteger(message.lastSeen.low) && $util.isInteger(message.lastSeen.high)))
-                return "lastSeen: integer|Long expected";
-        if (message.failCount != null && message.hasOwnProperty("failCount"))
-            if (!$util.isInteger(message.failCount))
-                return "failCount: integer expected";
-        if (message.lastAttempt != null && message.hasOwnProperty("lastAttempt"))
-            if (!$util.isInteger(message.lastAttempt) && !(message.lastAttempt && $util.isInteger(message.lastAttempt.low) && $util.isInteger(message.lastAttempt.high)))
-                return "lastAttempt: integer|Long expected";
-        if (message.active != null && message.hasOwnProperty("active"))
-            if (typeof message.active !== "boolean")
-                return "active: boolean expected";
-        if (message.currentQueue != null && message.hasOwnProperty("currentQueue"))
-            if (!$util.isInteger(message.currentQueue))
-                return "currentQueue: integer expected";
-        if (message.successCount != null && message.hasOwnProperty("successCount"))
-            if (!$util.isInteger(message.successCount))
-                return "successCount: integer expected";
-        return null;
-    };
-
-    /**
-     * Creates a Peer message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof Peer
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {Peer} Peer
-     */
-    Peer.fromObject = function fromObject(object) {
-        if (object instanceof $root.Peer)
-            return object;
-        var message = new $root.Peer();
-        if (object.host != null)
-            message.host = String(object.host);
-        if (object.port != null)
-            message.port = object.port >>> 0;
-        if (object.lastSeen != null)
-            if ($util.Long)
-                (message.lastSeen = $util.Long.fromValue(object.lastSeen)).unsigned = true;
-            else if (typeof object.lastSeen === "string")
-                message.lastSeen = parseInt(object.lastSeen, 10);
-            else if (typeof object.lastSeen === "number")
-                message.lastSeen = object.lastSeen;
-            else if (typeof object.lastSeen === "object")
-                message.lastSeen = new $util.LongBits(object.lastSeen.low >>> 0, object.lastSeen.high >>> 0).toNumber(true);
-        if (object.failCount != null)
-            message.failCount = object.failCount >>> 0;
-        if (object.lastAttempt != null)
-            if ($util.Long)
-                (message.lastAttempt = $util.Long.fromValue(object.lastAttempt)).unsigned = true;
-            else if (typeof object.lastAttempt === "string")
-                message.lastAttempt = parseInt(object.lastAttempt, 10);
-            else if (typeof object.lastAttempt === "number")
-                message.lastAttempt = object.lastAttempt;
-            else if (typeof object.lastAttempt === "object")
-                message.lastAttempt = new $util.LongBits(object.lastAttempt.low >>> 0, object.lastAttempt.high >>> 0).toNumber(true);
-        if (object.active != null)
-            message.active = Boolean(object.active);
-        if (object.currentQueue != null)
-            message.currentQueue = object.currentQueue | 0;
-        if (object.successCount != null)
-            message.successCount = object.successCount | 0;
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a Peer message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof Peer
-     * @static
-     * @param {Peer} message Peer
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    Peer.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        var object = {};
-        if (options.defaults) {
-            object.host = "";
-            object.port = 0;
-            if ($util.Long) {
-                var long = new $util.Long(0, 0, true);
-                object.lastSeen = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-            } else
-                object.lastSeen = options.longs === String ? "0" : 0;
-            object.failCount = 0;
-            if ($util.Long) {
-                var long = new $util.Long(0, 0, true);
-                object.lastAttempt = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-            } else
-                object.lastAttempt = options.longs === String ? "0" : 0;
-            object.active = false;
-            object.currentQueue = 0;
-            object.successCount = 0;
-        }
-        if (message.host != null && message.hasOwnProperty("host"))
-            object.host = message.host;
-        if (message.port != null && message.hasOwnProperty("port"))
-            object.port = message.port;
-        if (message.lastSeen != null && message.hasOwnProperty("lastSeen"))
-            if (typeof message.lastSeen === "number")
-                object.lastSeen = options.longs === String ? String(message.lastSeen) : message.lastSeen;
-            else
-                object.lastSeen = options.longs === String ? $util.Long.prototype.toString.call(message.lastSeen) : options.longs === Number ? new $util.LongBits(message.lastSeen.low >>> 0, message.lastSeen.high >>> 0).toNumber(true) : message.lastSeen;
-        if (message.failCount != null && message.hasOwnProperty("failCount"))
-            object.failCount = message.failCount;
-        if (message.lastAttempt != null && message.hasOwnProperty("lastAttempt"))
-            if (typeof message.lastAttempt === "number")
-                object.lastAttempt = options.longs === String ? String(message.lastAttempt) : message.lastAttempt;
-            else
-                object.lastAttempt = options.longs === String ? $util.Long.prototype.toString.call(message.lastAttempt) : options.longs === Number ? new $util.LongBits(message.lastAttempt.low >>> 0, message.lastAttempt.high >>> 0).toNumber(true) : message.lastAttempt;
-        if (message.active != null && message.hasOwnProperty("active"))
-            object.active = message.active;
-        if (message.currentQueue != null && message.hasOwnProperty("currentQueue"))
-            object.currentQueue = message.currentQueue;
-        if (message.successCount != null && message.hasOwnProperty("successCount"))
-            object.successCount = message.successCount;
-        return object;
-    };
-
-    /**
-     * Converts this Peer to JSON.
-     * @function toJSON
-     * @memberof Peer
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    Peer.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return Peer;
 })();
 
 $root.DBState = (function() {

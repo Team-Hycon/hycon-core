@@ -1,8 +1,4 @@
 syntax = "proto3";
-import "block.proto";
-import "blockHeader.proto";
-import "tx.proto";
-import "peer.proto";
 
 message Network { 
     oneof request {

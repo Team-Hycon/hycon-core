@@ -1,14 +1,14 @@
 import * as proto from "../serialization/proto"
 import { IPeer } from "./ipeer"
+import { PeerModel } from "./peerModel"
 import { RabbitPeer } from "./rabbit/rabbitPeer"
 export interface INetwork {
     version: number
     start(): Promise<boolean>
     getRandomPeer(): IPeer
-    getRandomPeers(count: number): IPeer[]
     connect(ip: string, port: number): Promise<IPeer>
-    getPeerDb(): Promise<proto.IPeer[]>
-    getConnection(): Promise<proto.IPeer[]>
+    getPeerDb(): Promise<PeerModel[]>
+    getConnection(): Promise<PeerModel[]>
     getConnectionCount(): number
     getIPeers(exempt: RabbitPeer): proto.IPeer[]
     getPeers(): IPeer[]

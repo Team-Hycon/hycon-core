@@ -20,7 +20,7 @@ export type AnySignedTx = (GenesisSignedTx | SignedTx)
 export type NewBlockCallback = (block: AnyBlock) => void
 export interface IConsensus extends EventEmitter {
     init(): Promise<void>
-    putBlock(block: Block): Promise<IStatusChange>
+    putBlock(block: Block, rebroadcast?: () => void, ip?: string): Promise<IStatusChange>
     putHeader(header: BlockHeader): Promise<IStatusChange>
     putTxBlocks(txBlocks: Array<{ hash: Hash, txs: SignedTx[] }>): Promise<IStatusChange[]>
     getBlockTxs(hash: Hash): Promise<{ hash: Hash, txs: SignedTx[] }>

@@ -153,24 +153,47 @@ export class AddWallet extends React.Component<any, any> {
     public createWallet() {
         if (this.state.typedMnemonic === "") {
             alert(this.errMsg5)
-        } else {
-            const mnemonicString = encodingMnemonic(this.state.mnemonic)
-            const typedMnemonicString = encodingMnemonic(this.state.typedMnemonic)
-            if (mnemonicString === typedMnemonicString) {
-                this.state.rest.generateWallet({
-                    hint: this.state.hint,
-                    language: this.state.language,
-                    mnemonic: this.state.mnemonic,
-                    name: this.state.name,
-                    passphrase: this.state.passphrase1,
-                    password: this.state.password1,
-                }).then((data: string) => {
-                    this.setState({ walletViewRedirect: true, address: data })
-                })
-            } else {
-                alert(this.errMsg4)
-            }
+            return
         }
+        const mnemonicString = encodingMnemonic(this.state.mnemonic)
+        const typedMnemonicString = encodingMnemonic(this.state.typedMnemonic)
+        if (mnemonicString !== typedMnemonicString) {
+            alert(this.errMsg4)
+            return
+        }
+        this.state.rest.generateWallet({
+            hint: this.state.hint,
+            language: this.state.language,
+            mnemonic: this.state.mnemonic,
+            name: this.state.name,
+            passphrase: this.state.passphrase1,
+            password: this.state.password1,
+        }).then((data: string) => {
+            this.setState({ walletViewRedirect: true, address: data })
+        })
+    }
+
+    public createHDWallet() {
+        if (this.state.typedMnemonic === "") {
+            alert(this.errMsg5)
+            return
+        }
+        const mnemonicString = encodingMnemonic(this.state.mnemonic)
+        const typedMnemonicString = encodingMnemonic(this.state.typedMnemonic)
+        if (mnemonicString !== typedMnemonicString) {
+            alert(this.errMsg4)
+            return
+        }
+        this.state.rest.generateHDWallet({
+            hint: this.state.hint,
+            language: this.state.language,
+            mnemonic: this.state.mnemonic,
+            name: this.state.name,
+            passphrase: this.state.passphrase1,
+            password: this.state.password1,
+        }).then(() => {
+            this.setState({ redirect: true })
+        })
     }
     public cancelWallet() {
         this.setState({ redirect: true })
@@ -265,11 +288,12 @@ export class AddWallet extends React.Component<any, any> {
                 </Card>
                 <br /><br />
                 <Grid container direction={"row"} justify={"center"} alignItems={"center"} style={{ display: "inline-block", width: "80%" }}>
-                    <Button onClick={this.cancelWallet}>Cancel <Icon style={{ fontSize: "17px" }}>close</Icon></Button>
+                    <Button onClick={this.cancelWallet}>Cancel</Button>
                     <Button onClick={this.handleNext} >
-                        {this.state.activeStep === steps.length - 1 ? "Finish " : "Next "}
-                        {this.state.activeStep === steps.length - 1 ? (<Icon style={{ fontSize: "20px" }}>check</Icon>) : (<Icon style={{ fontSize: "20px" }}>chevron_right</Icon>)}
+                        {this.state.activeStep === steps.length - 1 ? "Create " : "Next "}
                     </Button>
+                    <Button onClick={this.createHDWallet.bind(this)} style={{ display: `${this.state.activeStep === steps.length - 1 ? "unset" : "none"}` }}>
+                        Create HDWallet</Button>
                 </Grid>
 
                 {/* HELP - ADVANCED OPTIONS */}

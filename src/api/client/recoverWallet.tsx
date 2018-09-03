@@ -77,19 +77,24 @@ export class RecoverWallet extends React.Component<any, any> {
         if (event.target.checked === false) { this.setState({ passphrase: "" }) }
         this.setState({ advanced: event.target.checked })
     }
-    public recoverWallet() {
+
+    public checkParam(): boolean {
         if (this.state.name === "") {
             alert(this.errMsg1)
-            return
+            return false
         }
         if (this.state.name.search(/\s/) !== -1 || !this.pattern1.test(this.state.name)) {
             alert(this.errMsg2)
-            return
+            return false
         }
         if (this.state.password1 !== this.state.password2) {
             alert(this.errMsg3)
-            return
+            return false
         }
+        return true
+    }
+    public recoverWallet() {
+        if (!this.checkParam()) { return }
 
         const mnemonic = encodingMnemonic(this.state.mnemonic)
         this.state.rest.recoverWallet({
@@ -105,8 +110,27 @@ export class RecoverWallet extends React.Component<any, any> {
                 this.setState({ redirect: true })
             }
         })
-
     }
+
+    public recoverHDWallet() {
+        if (!this.checkParam()) { return }
+
+        const mnemonic = encodingMnemonic(this.state.mnemonic)
+        this.state.rest.recoverHDWallet({
+            language: this.state.language,
+            mnemonic,
+            name: this.state.name,
+            passphrase: this.state.passphrase,
+            password: this.state.password1,
+        }).then((data: string | boolean) => {
+            if (typeof data !== "string") {
+                alert(this.errMsg4)
+            } else {
+                this.setState({ redirect: true })
+            }
+        })
+    }
+
     public cancelWallet() {
         this.setState({ redirect: true })
     }
@@ -171,6 +195,9 @@ export class RecoverWallet extends React.Component<any, any> {
                         <Button variant="raised" style={{ backgroundColor: "#50aaff", color: "white", margin: "0 10px" }}
                             onClick={() => { this.recoverWallet() }}
                         >Recover</Button>
+                        <Button variant="raised" style={{ backgroundColor: "#50aaff", color: "white", margin: "0 10px" }}
+                            onClick={() => { this.recoverHDWallet() }}
+                        >Recover HDWallet</Button>
                     </Grid>
                 </CardContent></Card>
 

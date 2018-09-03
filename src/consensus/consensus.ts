@@ -9,6 +9,7 @@ import { DelayQueue } from "../common/delayQueue"
 import { ITxPool } from "../common/itxPool"
 import { SignedTx } from "../common/txSigned"
 import { globalOptions } from "../main"
+import { MinerServer } from "../miner/minerServer"
 import { MAX_HEADER_SIZE } from "../network/rabbit/networkConstants"
 import { Hash } from "../util/hash"
 import { Account } from "./database/account"
@@ -26,6 +27,7 @@ import { BlockStatus } from "./sync"
 import { Verify } from "./verify"
 const logger = getLogger("Consensus")
 
+const REBROADCAST_DIFFICULTY_TOLERANCE = 0.05
 export const TIMESTAMP_TOLERANCE = 120000
 
 export interface IPutResult {
@@ -43,8 +45,14 @@ export class Consensus extends EventEmitter implements IConsensus {
     private blockTip: DBBlock
     private headerTip: DBBlock
     private lock: AsyncLock
-
     private futureBlockQueue: DelayQueue
+
+    private seenBlocksSet: Set<string> = new Set<string>()
+    private seenBlocks: string[] = []
+    private blockBroadcastLock: AsyncLock = new AsyncLock()
+    private pendingBlocksPreviousMap: Map<string, Array<{ hash: string, block: Block }>>
+    private pendingBlocksHashes: Set<string>
+    private pendingBlocks: Array<{ hash: string, previousHash: string }>
 
     constructor(txPool: ITxPool, worldState: WorldState, dbPath: string, filePath: string, txPath?: string, minedDBPath?: string) {
         super()
@@ -54,6 +62,9 @@ export class Consensus extends EventEmitter implements IConsensus {
         if (txPath) { this.txdb = new TxDatabase(txPath) }
         if (minedDBPath) { this.minedDatabase = new MinedDatabase(minedDBPath) }
         this.futureBlockQueue = new DelayQueue(10)
+        this.pendingBlocksPreviousMap = new Map<string, Array<{ hash: string, block: Block }>>()
+        this.pendingBlocksHashes = new Set<string>()
+        this.pendingBlocks = []
     }
     public async init(): Promise<void> {
         if (this.lock !== undefined) {
@@ -81,6 +92,7 @@ export class Consensus extends EventEmitter implements IConsensus {
             }
 
             logger.info(`Initialization of consensus is over.`)
+            this.syncStatus()
         } catch (e) {
             logger.error(`Initialization failure in consensus: ${e}`)
             process.exit(1)
@@ -89,8 +101,58 @@ export class Consensus extends EventEmitter implements IConsensus {
         }
     }
 
-    public putBlock(block: Block): Promise<IStatusChange> {
-        return this.put(block.header, block)
+    public async putBlock(block: Block, rebroadcast?: () => void, ip?: string): Promise<IStatusChange> {
+        const status = await this.put(block.header, block, rebroadcast, ip)
+        if (status.status === undefined || status.status < BlockStatus.Nothing) {
+            return status
+        }
+
+        const hash = new Hash(block.header).toString()
+        const previousHash = block.header.previousHash.toString()
+
+        if (status.status < BlockStatus.Block && !this.pendingBlocksHashes.has(hash)) {
+            logger.debug(`PENDING: Block(${hash}) pended due to status(${status.status})`)
+            this.pendingBlocks.push({ hash, previousHash })
+            this.pendingBlocksHashes.add(hash)
+            const previousHashString = block.header.previousHash.toString()
+            if (this.pendingBlocksPreviousMap.has(previousHashString)) {
+                const pendings = this.pendingBlocksPreviousMap.get(previousHashString)
+                pendings.push({ hash, block })
+                logger.debug(`PENDING: Block(${hash}) appended to pendingBlocksPreviousMap(${pendings.length})`)
+            } else {
+                this.pendingBlocksPreviousMap.set(previousHashString, [{ hash, block }])
+                logger.debug(`PENDING: Block(${hash}) created entry in pendingBlocksPreviousMap`)
+            }
+
+            while (this.pendingBlocks.length > 50) {
+                const [old] = this.pendingBlocks.splice(0, 1)
+                logger.debug(`PENDING: Removing old pending Block(${old.hash})`)
+                this.pendingBlocksHashes.delete(old.hash)
+                const pendings = this.pendingBlocksPreviousMap.get(old.previousHash)
+                if (pendings !== undefined && pendings.length > 1) {
+                    const newPendings = pendings.filter((pending) => pending.hash !== hash)
+                    logger.debug(`PENDING: Filtering pending map(${pendings.length}) from Block(${old.previousHash}) to Block(${old.hash}), new length is ${newPendings.length} map size is ${this.pendingBlocksPreviousMap.size}`)
+                    this.pendingBlocksPreviousMap.set(previousHash, newPendings)
+                } else {
+                    this.pendingBlocksPreviousMap.delete(previousHash)
+                    logger.debug(`PENDING: Removing previousMap entry from Block(${old.previousHash}) to Block(${old.hash}), map size is ${this.pendingBlocksPreviousMap.size}`)
+
+                }
+            }
+        }
+
+        if (status.status >= BlockStatus.Block) {
+            const pendings = this.pendingBlocksPreviousMap.get(hash)
+            if (pendings !== undefined) {
+                for (const pending of pendings) {
+                    logger.debug(`PENDING: Will attempt to proccess Block(${pending.hash}) which was waiting for Block(${hash})`)
+                    setImmediate(() => this.putBlock(pending.block))
+                }
+                this.pendingBlocksPreviousMap.delete(hash)
+            }
+        }
+
+        return status
     }
 
     public putHeader(header: BlockHeader): Promise<IStatusChange> {
@@ -285,18 +347,33 @@ export class Consensus extends EventEmitter implements IConsensus {
     public async getBurnAmount(): Promise<{ amount: Long }> {
         return this.txdb.getBurnAmount()
     }
-    private async put(header: BlockHeader, block?: Block): Promise<IStatusChange> {
-        if (header.timeStamp > Date.now() + TIMESTAMP_TOLERANCE) {
-            await this.futureBlockQueue.waitUntil(header.timeStamp - TIMESTAMP_TOLERANCE)
-        }
-
+    private async put(header: BlockHeader, block?: Block, rebroadcast?: () => void, ip?: string): Promise<IStatusChange> {
+        const hash = new Hash(header)
         if (header.merkleRoot.equals(Hash.emptyHash)) {
             // Block contains no transactions, create a new empty block
             block = new Block({ header, txs: [] })
         }
 
+        if (block !== undefined) {
+            if (await this.blockBroadcastCondition(block, hash)) {
+                if (rebroadcast === undefined) {
+                    this.emit("blockBroadcast", block)
+                    logger.info(`Broadcasting Block(${new Hash(block.header).toString()})`)
+                } else {
+                    rebroadcast()
+                    logger.info(`Rebroadcasting Block(${new Hash(block.header).toString()}) from ${ip}`)
+                }
+            }
+        }
+
+        if (header.timeStamp > Date.now() + TIMESTAMP_TOLERANCE) {
+            if (this.futureBlockQueue.size() >= 10) {
+                logger.warn(`Please check your system clock`)
+            }
+            await this.futureBlockQueue.waitUntil(header.timeStamp - TIMESTAMP_TOLERANCE)
+        }
+
         return this.lock.critical(async () => {
-            const hash = new Hash(header)
             const { oldStatus, status, dbBlock } = await this.process(hash, header, block)
 
             if (status !== undefined && oldStatus !== status) {
@@ -314,11 +391,14 @@ export class Consensus extends EventEmitter implements IConsensus {
                 await this.db.setHeaderTip(hash)
             }
 
+            const timeDelta = Date.now() - header.timeStamp
             if (status < BlockStatus.Block) {
-                logger.info(`Received Header`
-                    + ` ${hash}(${dbBlock.height}, ${dbBlock.totalWork.toExponential()}),`
-                    + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
-                    + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
+                if (timeDelta < TIMESTAMP_TOLERANCE) {
+                    logger.info(`Processed ${block !== undefined ? "BHeader" : "Header "}`
+                        + ` ${hash}\t(${dbBlock.height}, ${dbBlock.totalWork.toExponential(3)}),`
+                        + `\tBTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential(3)}),`
+                        + `\tHTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential(3)})`)
+                }
                 return { oldStatus, status, height: dbBlock.height }
             }
 
@@ -328,10 +408,12 @@ export class Consensus extends EventEmitter implements IConsensus {
                 this.emit("candidate", this.blockTip, hash)
             }
 
-            logger.info(`Received Block`
-                + ` ${hash}(${dbBlock.height}, ${dbBlock.totalWork.toExponential()}),`
-                + ` BTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential()}),`
-                + ` HTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential()})`)
+            if (timeDelta < TIMESTAMP_TOLERANCE) {
+                logger.info(`Processed Block   `
+                    + ` ${hash}\t(${dbBlock.height}, ${dbBlock.totalWork.toExponential(3)}),`
+                    + `\tBTip(${this.blockTip.height}, ${this.blockTip.totalWork.toExponential(3)}),`
+                    + `\tHTip(${this.headerTip.height}, ${this.headerTip.totalWork.toExponential(3)})`)
+            }
 
             return { oldStatus, status, height: dbBlock.height }
         })
@@ -524,4 +606,69 @@ export class Consensus extends EventEmitter implements IConsensus {
             throw e
         }
     }
+
+    private async blockBroadcastCondition(block: Block, hash: Hash) {
+        const hashString = hash.toString()
+        return this.blockBroadcastLock.critical(async () => {
+            const timeDelta = Math.abs(block.header.timeStamp - Date.now())
+            if (timeDelta > TIMESTAMP_TOLERANCE) {
+                return false
+            }
+            if (this.seenBlocksSet.has(hashString)) {
+                return false
+            }
+
+            const merkleRoot = Block.calculateMerkleRoot(block.txs)
+            if (!block.header.merkleRoot.equals(merkleRoot)) {
+                return false
+            }
+
+            const status = await this.getBlockStatus(hash)
+            if (status < BlockStatus.Nothing || status >= BlockStatus.Block) {
+                return false
+            }
+
+            const proximalDifficulty = this.getHtip().header.difficulty * (1 + REBROADCAST_DIFFICULTY_TOLERANCE)
+            const prehash = block.header.preHash()
+            if (!MinerServer.checkNonce(prehash, block.header.nonce, proximalDifficulty)) {
+                return false
+            }
+
+            this.seenBlocksSet.add(hashString)
+            if (this.seenBlocks.length > 1000) {
+                const [old] = this.seenBlocks.splice(0, 1)
+                this.seenBlocksSet.delete(old)
+            }
+            this.seenBlocks.push(hashString)
+
+            return true
+        })
+    }
+
+    private syncStatus() {
+        const epoch = 1527844585699
+        const now = Date.now()
+        const duration = now - epoch
+
+        if (this.headerTip.header.timeStamp > now + TIMESTAMP_TOLERANCE || now < epoch) {
+            logger.warn(`Please check your system clock`)
+        }
+        if (this.blockTip.header.timeStamp < now - 1000 * 60 * 5) {
+            const blockDelta = Math.max(this.blockTip.header.timeStamp - epoch, 0)
+            const blockProgress = 100 * blockDelta / duration
+            const blockRemaining = Math.round((now - this.blockTip.header.timeStamp) / DifficultyAdjuster.getTargetTime())
+
+            logger.info(`Syncing blocks  ${blockProgress.toFixed(3)}% complete approximately ${blockRemaining} remaining`)
+        }
+
+        if (this.headerTip.header.timeStamp < now - 1000 * 60 * 5) {
+            const headerDelta = Math.max(this.headerTip.header.timeStamp - epoch, 0)
+            const headerProgress = 100 * headerDelta / duration
+            const headersRemaining = Math.round((now - this.headerTip.header.timeStamp) / DifficultyAdjuster.getTargetTime())
+
+            logger.info(`Syncing headers ${headerProgress.toFixed(3)}% complete approximately ${headersRemaining} remaining`)
+        }
+        setTimeout(() => this.syncStatus(), 10000)
+    }
+
 }

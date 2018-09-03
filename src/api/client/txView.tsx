@@ -41,7 +41,7 @@ export class TxView extends React.Component<any, any> {
             return <NotFound />
         }
         if (!this.state.notFound && this.state.tx === undefined) {
-            return < div ></div >
+            return null
         }
         const date = new Date(this.state.tx.receiveTime)
         return (
@@ -60,43 +60,26 @@ export class TxView extends React.Component<any, any> {
                     <table className="mdl-cell mdl-data-table mdl-js-data-table mdl-shadow--2dp table_margined tablesInRow txSummaryTable">
                         <thead>
                             <tr>
-                                <th
-                                    colSpan={2}
-                                    className="mdl-data-table__cell--non-numeric tableHeader_floatLeft"
-                                >
-                                    Summary
-                                </th>
+                                <th colSpan={2} className="mdl-data-table__cell--non-numeric tableHeader_floatLeft">Summary</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td className="mdl-data-table__cell--non-numeric">
-                                    Received Time
-                                </td>
+                                <td className="mdl-data-table__cell--non-numeric">Received Time</td>
                                 <td className="numericTd">{date.toString()}</td>
                             </tr>
-                            {/* <tr>
-                                <td className="mdl-data-table__cell--non-numeric">Lock Time</td>
-                                <td className="numericTd">{this.state.tx.lockTime}</td>
-                            </tr> */}
                             <tr>
-                                <td className="mdl-data-table__cell--non-numeric">
-                                    Included In Blocks
-                                </td>
-                                <td className="numericTd">
-                                    <Link to={`/block/${this.state.tx.blockHash}`}>{this.state.tx.blockHash}</Link>
-                                </td>
+                                <td className="mdl-data-table__cell--non-numeric">Included In Blocks</td>
+                                <td className="numericTd"><Link to={`/block/${this.state.tx.blockHash}`}>{this.state.tx.blockHash}</Link></td>
                             </tr>
                             <tr>
                                 <td className="mdl-data-table__cell--non-numeric">Fees</td>
                                 <td className="numericTd">{this.state.tx.fee} HYCON</td>
                             </tr>
-                            {/* <tr>
-                                <td className="mdl-data-table__cell--non-numeric">Visualize</td>
-                                <td className="numericTd">
-                                    <Link to="/chart">View Tree Chart</Link>
-                                </td>
-                            </tr> */}
+                            <tr>
+                                <td className="mdl-data-table__cell--non-numeric">Nonce</td>
+                                <td className="numericTd">{this.state.tx.nonce ? this.state.tx.nonce : `-`}</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>

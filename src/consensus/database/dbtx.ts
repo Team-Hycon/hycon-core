@@ -6,7 +6,8 @@ export class DBTx {
     public amount: string
     public fee: string
     public blocktime: number
-    constructor(txhash: string, blockhash: string, to: string, from: string, amount: string, fee: string, blocktime: number) {
+    public nonce: number
+    constructor(txhash: string, blockhash: string, to: string, from: string, amount: string, fee: string, blocktime: number, nonce: number) {
         this.txhash = txhash
         this.blockhash = blockhash
         this.to = to
@@ -14,5 +15,6 @@ export class DBTx {
         this.amount = amount
         this.fee = fee
         this.blocktime = blocktime
+        this.nonce = nonce
     }
 }

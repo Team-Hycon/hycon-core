@@ -1,3 +1,4 @@
+import ipaddr = require("ipaddr.js")
 import { getLogger } from "log4js"
 import * as Long from "long"
 import { Socket } from "net"
@@ -6,11 +7,9 @@ import { AnyBlockHeader, BlockHeader } from "../../common/blockHeader"
 import { BaseBlockHeader } from "../../common/genesisHeader"
 import { ITxPool } from "../../common/itxPool"
 import { SignedTx } from "../../common/txSigned"
-import { TIMESTAMP_TOLERANCE } from "../../consensus/consensus"
 import { IConsensus, IStatusChange } from "../../consensus/iconsensus"
 import { BlockStatus, ITip } from "../../consensus/sync"
 import { globalOptions } from "../../main"
-import { MinerServer } from "../../miner/minerServer"
 import * as proto from "../../serialization/proto"
 import { Hash } from "../../util/hash"
 import { IPeer } from "../ipeer"
@@ -18,15 +17,15 @@ import { IPeerDatabase } from "../ipeerDatabase"
 import { BasePeer } from "./basePeer"
 import { BYTES_OVERHEAD, HASH_SIZE, MAX_BLOCKS_PER_PACKET, MAX_HEADERS_PER_PACKET, MAX_PACKET_SIZE, MAX_TX_SIZE, MAX_TXS_PER_BLOCK, REPEATED_OVERHEAD } from "./networkConstants"
 import { RabbitNetwork } from "./rabbitNetwork"
+
 const logger = getLogger("NetPeer")
 
-const DIFFICULTY_TOLERANCE = 0.05
+const PEER_EXCHANGE_MINIMUM_INTERVAL = 1000 * 60 * 60 * 3
+const PEER_EXCHANGE_INTERVAL_VARIATION = 1000 * 60 * 30
 const BROADCAST_LIMIT = 10
 
 export interface IBlockTxs { hash: Hash, txs: SignedTx[] }
 export class RabbitPeer extends BasePeer implements IPeer {
-    public static seenBlocksSet: Set<Hash> = new Set<Hash>()
-    public static seenBlocks: Hash[] = []
     public listenPort: number
     public guid: string
     private consensus: IConsensus
@@ -35,16 +34,18 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private receivedBroadcasts: number
     private lastReceivedTime: number
     private version: number
+    private peerDatabase: IPeerDatabase
 
-    constructor(socket: Socket, network: RabbitNetwork, consensus: IConsensus, txPool: ITxPool, peerDB: IPeerDatabase) {
+    constructor(socket: Socket, network: RabbitNetwork, consensus: IConsensus, txPool: ITxPool, peerDatabase: IPeerDatabase) {
         super(socket)
         // tslint:disable-next-line:max-line-length
-        logger.debug(`New Netpeer Local=${RabbitNetwork.ipNormalise(socket.localAddress)}:${socket.localPort} --> Remote=${RabbitNetwork.ipNormalise(socket.remoteAddress)}:${socket.remotePort}`)
+        logger.debug(`New Netpeer Local=${socket.localAddress}:${socket.localPort} --> Remote=${socket.remoteAddress}:${socket.remotePort}`)
         this.network = network
         this.consensus = consensus
         this.txPool = txPool
         this.receivedBroadcasts = 0
         this.lastReceivedTime = 0
+        this.peerDatabase = peerDatabase
     }
 
     public async detectStatus(): Promise<proto.IStatus> {
@@ -71,6 +72,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
             if (status.version > this.network.version) {
                 logger.warn(`Peer is using a higher version number(${status.version}) than current version(${this.network.version})`)
             }
+            this.peerExchangeLoop()
             return status
         } catch (e) {
             logger.debug(`Disconnecting from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}: ${e}`)
@@ -290,7 +292,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
         const reply = id !== 0
         const rebroadcast = () => {
             if (id === 0) {
-                setImmediate(() => this.network.broadcast(packet))
+                setImmediate(() => this.network.broadcast(packet, this))
             }
         }
         switch (request.request) {
@@ -385,7 +387,31 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private async respondGetPeers(reply: boolean, request: proto.IGetPeers): Promise<proto.INetwork> {
         try {
             const num = request.count
-            const peers = this.network.getIPeers(this)
+            const myPeers = this.network.getIPeers(this)
+            myPeers.sort(() => Math.random() < 0.5 ? -1 : 1)
+            const peers = myPeers.filter(({ host }) => {
+                try {
+                    const ipAddress = ipaddr.parse(host)
+                    switch (ipAddress.range()) {
+                        case "unspecified":
+                        case "broadcast":
+                        case "linkLocal":
+                        case "multicast":
+                        case "linkLocal":
+                        case "loopback":
+                        case "carrierGradeNat":
+                        case "private":
+                        case "reserved":
+                            return false
+                        case "unicast":
+                        default:
+                            return true
+                    }
+                } catch (e) {
+                    return false
+                }
+            }).slice(0, num)
+
             return { getPeersReturn: { success: true, peers } }
         } catch (e) {
             logger.error(`Could not get recent active Peers: ${e}`)
@@ -417,42 +443,6 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return { getTxsReturn: { success: false, txs: [] } }
     }
 
-    private async blockBroadcastCondition(block: Block) {
-        const timeDelta = Math.abs(block.header.timeStamp - Date.now())
-        if (timeDelta > TIMESTAMP_TOLERANCE) {
-            return false
-        }
-        const merkleRoot = Block.calculateMerkleRoot(block.txs)
-        if (!block.header.merkleRoot.equals(merkleRoot)) {
-            return false
-        }
-
-        const blockHash = new Hash(block.header)
-        const status = await this.consensus.getBlockStatus(blockHash)
-        if (status < BlockStatus.Nothing || status >= BlockStatus.Block) {
-            return false
-        }
-
-        if (RabbitPeer.seenBlocksSet.has(blockHash)) {
-            return false
-        }
-
-        const proximalDifficulty = this.consensus.getHtip().header.difficulty * (1 + DIFFICULTY_TOLERANCE)
-        const prehash = block.header.preHash()
-        if (!MinerServer.checkNonce(prehash, block.header.nonce, proximalDifficulty)) {
-            return false
-        }
-
-        RabbitPeer.seenBlocksSet.add(blockHash)
-        if (RabbitPeer.seenBlocks.length > 1000) {
-            const [old] = RabbitPeer.seenBlocks.splice(0, 1)
-            RabbitPeer.seenBlocksSet.delete(old)
-        }
-        RabbitPeer.seenBlocks.push(blockHash)
-
-        return true
-    }
-
     private async respondPutBlock(reply: boolean, request: proto.IPutBlock, rebroadcast: () => void): Promise<proto.INetwork> {
         setImmediate(async () => {
             this.receivedBroadcasts += 1
@@ -468,11 +458,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
             let block: Block
             try {
                 block = new Block(request.blocks[0])
-
-                if (this.blockBroadcastCondition(block)) {
-                    rebroadcast()
-                }
-                await this.consensus.putBlock(block)
+                await this.consensus.putBlock(block, rebroadcast, this.socketBuffer.getIp())
             } catch (e) {
                 logger.debug(e)
             }
@@ -722,5 +708,44 @@ export class RabbitPeer extends BasePeer implements IPeer {
                 }
             }
         }
+    }
+
+    private async peerExchangeLoop(count: number = 100) {
+        try {
+            const newIPeers = await this.getPeers(count)
+            const filteredPeers = newIPeers.filter(({ host }) => {
+                try {
+                    const ipAddress = ipaddr.parse(host)
+                    switch (ipAddress.range()) {
+                        case "unspecified":
+                        case "broadcast":
+                        case "linkLocal":
+                        case "multicast":
+                        case "linkLocal":
+                        case "loopback":
+                        case "carrierGradeNat":
+                        case "private":
+                        case "reserved":
+                            return false
+                        case "unicast":
+                        default:
+                            return true
+                    }
+                } catch (e) {
+                    return false
+                }
+            })
+
+            if (filteredPeers.length < count) {
+                return this.peerDatabase.putPeers(filteredPeers)
+            }
+
+            filteredPeers.sort(() => Math.random() < 0.5 ? -1 : 1)
+            return this.peerDatabase.putPeers(filteredPeers.slice(0, count))
+        } catch (e) {
+            logger.debug(`Failed to get peers from ${this.socketBuffer.getIp()}: ${e}`)
+        }
+
+        setTimeout(() => this.peerExchangeLoop(), PEER_EXCHANGE_MINIMUM_INTERVAL + Math.random() * PEER_EXCHANGE_INTERVAL_VARIATION)
     }
 }

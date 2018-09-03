@@ -1,17 +1,15 @@
-import { Dialog, DialogTitle, FormControl, FormControlLabel, FormLabel, Input, InputLabel, ListItemText, Radio, RadioGroup, Select } from "@material-ui/core"
+import { Dialog, DialogTitle, FormControlLabel, FormLabel, Radio, RadioGroup } from "@material-ui/core"
 import Button from "@material-ui/core/Button"
 import Grid from "@material-ui/core/Grid"
 import Icon from "@material-ui/core/Icon"
-import { Avatar, IconButton, List, ListItem, TextField } from "material-ui"
+import { Avatar, List, ListItem, TextField } from "material-ui"
 import * as React from "react"
 import { Link, Redirect } from "react-router-dom"
 import { AddressBook } from "./addressBook"
-import { IBlock, IHyconWallet, IRest } from "./rest"
 import { WalletList } from "./walletList"
 
 export class WalletView extends React.Component<any, any> {
     public mounted: boolean = false
-    private pattern1 = /^[a-zA-Z0-9\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]{2,20}$/
     constructor(props: any) {
         super(props)
         this.state = {
@@ -21,13 +19,17 @@ export class WalletView extends React.Component<any, any> {
             dialog2: false,
             dialog3: false,
             favorites: [],
+            filename: "",
+            hardwareDialog: false,
+            hardwareWalletType: "",
             ledgerAddress: "",
             load: false,
             possibilityLedger: false,
             privateKey: undefined,
             redirect: false,
+            redirectBitbox: false,
+            redirectLedger: false,
             redirectTxView: false,
-            redirectTxViewWithLedger: false,
             rest: props.rest,
             walletName: "",
             walletPass: "",
@@ -46,23 +48,14 @@ export class WalletView extends React.Component<any, any> {
     public handleInputChange(event: any) {
         const name = event.target.name
         const value = event.target.value
-        if (name === "alias") {
-            this.setState({ alias: value })
-        } else if (name === "addr") {
-            this.setState({ address: value })
-        } else if (name === "walletName") {
-            this.setState({ walletName: value })
-        } else if (name === "walletPass") {
-            this.setState({ walletPass: value })
-        } else if (name === "walletType") {
-            this.setState({ walletType: value })
-        }
+        this.setState({ [name]: value })
     }
 
     public addWalletPrivateKey() {
+        const patternWalletName = /^[a-zA-Z0-9\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]{2,20}$/
         if (this.state.walletName === "") {
             alert(`Please enter 'Name'`)
-        } else if (this.state.walletName.search(/\s/) !== -1 || !this.pattern1.test(this.state.walletName)) {
+        } else if (this.state.walletName.search(/\s/) !== -1 || !patternWalletName.test(this.state.walletName)) {
             alert(`Invalid Wallet Name: must be between 2 and 20 characters, no spaces.`)
         } else {
             this.state.rest.addWalletFile(this.state.walletName, this.state.walletPass, this.state.privateKey).then((result: boolean) => {
@@ -76,21 +69,20 @@ export class WalletView extends React.Component<any, any> {
     }
 
     public nextMakeTx() {
-        if (this.state.walletType === "local") {
-            this.setState({ redirectTxView: true })
-        } else {
-            this.setState({ redirectTxViewWithLedger: true })
-        }
+        this.setState({ redirectTxView: true })
     }
     public render() {
         if (this.state.redirect) {
             return <Redirect to={`/wallet/detail/${this.state.walletName}`} />
         }
         if (this.state.redirectTxView) {
-            return <Redirect to={`/maketransaction/false`} />
+            return <Redirect to={`/maketransaction/${this.state.walletType}`} />
         }
-        if (this.state.redirectTxViewWithLedger) {
-            return <Redirect to={`/maketransaction/true`} />
+        if (this.state.redirectBitbox) {
+            return <Redirect to={`/hardwareWallet/bitbox`} />
+        }
+        if (this.state.redirectLedger) {
+            return <Redirect to={`/hardwareWallet/ledger`} />
         }
         if (!this.state.load) {
             return <div></div>
@@ -107,9 +99,7 @@ export class WalletView extends React.Component<any, any> {
                     </button>
                     {(this.state.possibilityLedger ? (<button onClick={() => { this.setState({ dialog2: true }) }} className="mdl-button"><i className="material-icons">send</i> TRANSFER</button>) : (<div></div>))}
                     {(this.state.possibilityLedger ? (
-                        <button className="mdl-button">
-                            <Link to="/ledgerView" className="coloredBlack"><i className="material-icons">account_balance_wallet</i> LEDGER VIEW</Link>
-                        </button>
+                        <button onClick={() => { this.setState({ hardwareDialog: true }) }} className="mdl-button"><i className="material-icons">account_balance_wallet</i> HARDWARE WALLET</button>
                     ) : (<div></div>))}
                 </div>
                 <div>
@@ -117,10 +107,9 @@ export class WalletView extends React.Component<any, any> {
                     <Grid container direction={"row"}>
                         <List>
                             <ListItem style={{ width: "23em" }}
-                                leftAvatar={<Avatar icon={<i className="material-icons walletIcon_white">
-                                    note_add</i>} />}
+                                leftAvatar={<Avatar icon={<i className="material-icons walletIcon_white">note_add</i>} />}
                                 primaryText={"Load key from file"}
-                                secondaryText={<input type="file" style={{ height: "20px" }} onChange={(e) => this.onDrop(e.target.files)} />}
+                                secondaryText={<input type="file" style={{ height: "20px" }} onChange={(e) => this.onDrop(e)} value={this.state.filename} />}
                             />
                         </List>
                     </Grid>
@@ -139,38 +128,55 @@ export class WalletView extends React.Component<any, any> {
                         <RadioGroup style={{ width: "70%", margin: "auto" }} aria-label="walletType" name="walletType" value={this.state.walletType} onChange={(data) => { this.handleInputChange(data) }}>
                             <FormControlLabel value="local" control={<Radio />} label="Local wallet (Key File)" />
                             <FormControlLabel value="ledger" control={<Radio />} label="Hardware wallet (Ledger)" />
+                            <FormControlLabel value="bitbox" control={<Radio />} label="Hardware wallet (Digital Bitbox)" />
                         </RadioGroup>
                     </div>
                     <Button onClick={this.nextMakeTx}>NEXT</Button>
                 </Dialog>
 
                 {/* ADD PRIVATE KEY */}
-                <Dialog open={this.state.dialog3} onClose={() => { this.setState({ dialog3: false }) }}>
-                    <DialogTitle id="simple-dialog-title" style={{ textAlign: "center" }}><Icon style={{ marginRight: "10px", color: "grey" }}>account_balance_wallet</Icon>Add Wallet</DialogTitle>
-                    <div style={{ textAlign: "center" }}>
+                <Dialog style={{ textAlign: "center" }} open={this.state.dialog3} onClose={() => { this.setState({ dialog3: false, filename: "" }) }}>
+                    <DialogTitle id="simple-dialog-title" ><span style={{ display: "inline-flex" }}><Icon style={{ marginRight: "10px", color: "grey" }}>account_balance_wallet</Icon>Add Wallet</span></DialogTitle>
+                    <div style={{ margin: "2em" }}>
                         <p>Input your wallet address name</p>
-                        <TextField style={{ marginRight: "3%" }} name="walletName" floatingLabelText="Name" floatingLabelFixed={true}
+                        <TextField name="walletName" floatingLabelText="Name" floatingLabelFixed={true}
                             value={this.state.walletName}
-                            onChange={(data) => { this.handleInputChange(data) }} />
+                            onChange={(data) => { this.handleInputChange(data) }} /><br />
                         <TextField name="walletPass" floatingLabelText="Password" floatingLabelFixed={true} type="password" autoComplete="off"
                             value={this.state.walletPass}
                             onChange={(data) => { this.handleInputChange(data) }} />
                     </div><br />
                     <Grid container direction={"row"} justify={"center"} alignItems={"center"}>
-                        <Button variant="raised" onClick={() => { this.setState({ dialog3: false }) }} style={{ backgroundColor: "rgb(225, 0, 80)", color: "white" }}>Cancel</Button>
+                        <Button variant="raised" onClick={(e) => { this.setState({ dialog3: false, filename: "" }) }} style={{ backgroundColor: "rgb(225, 0, 80)", color: "white" }}>Cancel</Button>
                         <Button variant="raised" onClick={() => { this.addWalletPrivateKey() }} style={{ backgroundColor: "#50aaff", color: "white", margin: "0 10px" }}>Save</Button>
+                    </Grid><br />
+                </Dialog>
+
+                {/* SELECT HARDWARE WALLET */}
+                <Dialog open={this.state.hardwareDialog} onClose={() => { this.setState({ hardwareDialog: false }) }}>
+                    <DialogTitle id="simple-dialog-title" style={{ textAlign: "center" }}><Icon style={{ marginRight: "10px", color: "grey" }}>account_balance_wallet</Icon>HARDWARE WALLET</DialogTitle>
+                    <div style={{ textAlign: "center" }}>
+                        <FormLabel component="legend">Select wallet to use.</FormLabel>
+                        <RadioGroup style={{ width: "70%", margin: "auto" }} aria-label="hardwareWalletType" name="hardwareWalletType" value={this.state.hardwareWalletType} onChange={(data) => { this.handleInputChange(data) }}>
+                            <FormControlLabel value="ledger" control={<Radio />} label="Ledger" />
+                            <FormControlLabel value="bitbox" control={<Radio />} label="Digital Bitbox" />
+                        </RadioGroup>
+                    </div><br />
+                    <Grid container direction={"row"} justify={"center"} alignItems={"center"}>
+                        <Button variant="outlined" onClick={() => { this.selectHardwareWallet() }} style={{ margin: "0 10px" }}>Select</Button>
                     </Grid><br />
                 </Dialog>
             </div >
         )
     }
 
-    private onDrop(files: any) {
+    private onDrop(event: any) {
+        this.setState({ filename: event.target.value })
         const reader = new FileReader()
         reader.onload = () => {
             this.setState({ dialog3: true, privateKey: reader.result })
         }
-        reader.readAsText(files[0])
+        reader.readAsText(event.target.files[0])
     }
 
     private closeAddressBook() {
@@ -186,5 +192,16 @@ export class WalletView extends React.Component<any, any> {
                 this.setState({ favorites: data, load: true })
             }
         })
+    }
+
+    private selectHardwareWallet() {
+        switch (this.state.hardwareWalletType) {
+            case "ledger":
+                this.setState({ redirectLedger: true })
+                break
+            case "bitbox":
+                this.setState({ redirectBitbox: true })
+                break
+        }
     }
 }

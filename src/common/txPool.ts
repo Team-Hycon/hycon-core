@@ -22,7 +22,8 @@ interface ITxQueue {
 const TX_BROADCAST_NUMBER: number = 30
 export class TxPool implements ITxPool {
     private server: Server
-
+    private seenTxsSet: Set<string> = new Set<string>()
+    private seenTxs: string[] = []
     private pool: PriorityQueue<ITxQueue>
 
     private minFee: Long
@@ -34,6 +35,8 @@ export class TxPool implements ITxPool {
         this.server = server
         this.maxTxsPerAddress = Number(conf.txPoolMaxTxsPerAddress)
         this.maxAddresses = Number(conf.txPoolMaxAddresses)
+        this.seenTxsSet = new Set<string>()
+        this.seenTxs = []
         this.minFee = minFee === undefined ? Long.fromNumber(1, true) : minFee
         this.accountMap = new Map<string, ITxQueue>()
         this.pool = new PriorityQueue<ITxQueue>(this.maxAddresses, (a: ITxQueue, b: ITxQueue) => {
@@ -58,11 +61,21 @@ export class TxPool implements ITxPool {
 
         const broadcastTxs: SignedTx[] = []
         for (const tx of txs) {
+            const newTxHash = new Hash(tx).toString()
+            if (this.seenTxsSet.has(newTxHash)) {
+                continue
+            }
             if (tx.fee.lessThan(this.minFee)) {
                 continue
             }
             const validity = await this.server.consensus.txValidity(tx)
+            const oldTxs = this.seenTxs.splice(0, this.seenTxs.length - 10000)
+            for (const oldTx of oldTxs) {
+                this.seenTxsSet.delete(oldTx)
+            }
             if (validity === TxValidity.Invalid) {
+                this.seenTxsSet.add(newTxHash)
+                this.seenTxs.push(newTxHash)
                 continue
             }
             const address = tx.from.toString()
@@ -75,11 +88,10 @@ export class TxPool implements ITxPool {
                 this.pool.insert(itxqueue)
             } else {
                 // Check if tx is already inserted
-                const newTxHash = new Hash(tx)
                 let duplicate = false
                 for (const accountTx of itxqueue.queue.toArray()) {
-                    const txHash = new Hash(accountTx)
-                    if (txHash.equals(newTxHash)) {
+                    const txHash = new Hash(accountTx).toString()
+                    if (txHash === newTxHash) {
                         // tx is already in the txpool
                         duplicate = true
                         break
