@@ -229,8 +229,10 @@ export class MakeTransaction extends React.Component<IMakeTransactionProps, any>
     public render() {
         let walletIndex = 0
         if (this.state.redirect) {
-            if (this.state.walletType === "local" || this.state.walletType === "hdwallet") {
+            if (this.state.walletType === "local") {
                 return <Redirect to={`/wallet/detail/${this.state.name}`} />
+            } else if (this.state.walletType === "hdwallet") {
+                return <Redirect to={`/address/${this.state.fromAddress}/hdwallet/${this.state.name}/${this.state.selectedAccount}`} />
             } else {
                 return <Redirect to={`/address/${this.state.fromAddress}/${this.state.walletType}/${this.state.selectedAccount}`} />
             }

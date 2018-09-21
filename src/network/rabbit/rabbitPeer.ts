@@ -15,7 +15,7 @@ import { Hash } from "../../util/hash"
 import { IPeer } from "../ipeer"
 import { IPeerDatabase } from "../ipeerDatabase"
 import { BasePeer } from "./basePeer"
-import { BYTES_OVERHEAD, HASH_SIZE, MAX_BLOCKS_PER_PACKET, MAX_HEADERS_PER_PACKET, MAX_PACKET_SIZE, MAX_TX_SIZE, MAX_TXS_PER_BLOCK, REPEATED_OVERHEAD } from "./networkConstants"
+import { BYTES_OVERHEAD, HASH_SIZE, MAX_BLOCKS_PER_PACKET, MAX_HEADERS_PER_PACKET, MAX_TX_SIZE, MAX_TXS_PER_BLOCK, REPEATED_OVERHEAD, TARGET_PACKET_SIZE } from "./networkConstants"
 import { RabbitNetwork } from "./rabbitNetwork"
 
 const logger = getLogger("NetPeer")
@@ -23,9 +23,12 @@ const logger = getLogger("NetPeer")
 const PEER_EXCHANGE_MINIMUM_INTERVAL = 1000 * 60 * 60 * 3
 const PEER_EXCHANGE_INTERVAL_VARIATION = 1000 * 60 * 30
 const BROADCAST_LIMIT = 10
+const TIP_POLL_INTERVAL = 1000
 
 export interface IBlockTxs { hash: Hash, txs: SignedTx[] }
 export class RabbitPeer extends BasePeer implements IPeer {
+    private static headerSync: Promise<void> | void = undefined
+    private static blockSync: Promise<void> | void = undefined
     public listenPort: number
     public guid: string
     private consensus: IConsensus
@@ -35,6 +38,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private lastReceivedTime: number
     private version: number
     private peerDatabase: IPeerDatabase
+    private lastPoll: number
 
     constructor(socket: Socket, network: RabbitNetwork, consensus: IConsensus, txPool: ITxPool, peerDatabase: IPeerDatabase) {
         super(socket)
@@ -51,6 +55,10 @@ export class RabbitPeer extends BasePeer implements IPeer {
     public async detectStatus(): Promise<proto.IStatus> {
         try {
             const status = await this.status()
+            this.listenPort = status.port
+            this.guid = status.guid
+            this.version = status.version
+
             if (status === undefined) {
                 throw new Error("Peer did not respond to status request")
             }
@@ -60,19 +68,20 @@ export class RabbitPeer extends BasePeer implements IPeer {
             if (status.guid === this.network.guid) {
                 throw new Error(`Connected to self`)
             }
-            for (const peer of this.network.peers.values()) {
-                if (status.guid === peer.guid) {
-                    throw new Error(`Already connected to peer`)
-                }
+            if (this.network.peers.has(status.guid)) {
+                throw new Error(`Already connected to peer`)
+            }
+            this.socketBuffer.getSocket().on("close", () => this.network.peers.delete(status.guid))
+            this.network.peers.set(status.guid, this)
+            if (status.version > this.network.version) {
+                logger.warn(`Peer is using a newer release(${status.version}) than this release(${this.network.version})`)
+            }
+            if (status.version > 3) {
+                this.peerExchangeLoop()
             }
 
-            this.listenPort = status.port
-            this.guid = status.guid
-            this.version = status.version
-            if (status.version > this.network.version) {
-                logger.warn(`Peer is using a higher version number(${status.version}) than current version(${this.network.version})`)
-            }
-            this.peerExchangeLoop()
+            this.lastPoll = Date.now()
+            this.tipPoll()
             return status
         } catch (e) {
             logger.debug(`Disconnecting from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}: ${e}`)
@@ -352,6 +361,37 @@ export class RabbitPeer extends BasePeer implements IPeer {
         }
     }
 
+    private async tipPoll() {
+        const bTip: ITip | void = await this.getBTip().then((v) => v, () => undefined)
+        const timeSinceLastMessage = Date.now() - this.socketBuffer.lastRecieve
+        if (timeSinceLastMessage > 60000) {
+            logger.debug(`Disconnecting from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}, ${timeSinceLastMessage.toFixed(0)}ms since last reply`)
+            this.disconnect()
+            return
+        }
+
+        if (bTip) {
+            if (RabbitPeer.headerSync === undefined && this.consensus.getHtip().totalWork < bTip.totalwork) {
+                logger.debug(`Starting header download from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}`)
+                RabbitPeer.headerSync = this.headerSync(bTip).then(() => RabbitPeer.headerSync = undefined, () => RabbitPeer.headerSync = undefined)
+            }
+
+            if (RabbitPeer.blockSync === undefined && this.consensus.getBtip().totalWork < bTip.totalwork) {
+                if (this.version > 5) {
+                    logger.debug(`Starting block tx download from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}`)
+                    RabbitPeer.blockSync = this.txSync(bTip).then(() => RabbitPeer.blockSync = undefined, () => RabbitPeer.blockSync = undefined)
+                } else {
+                    logger.debug(`Starting block download from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}`)
+                    RabbitPeer.blockSync = this.blockSync(bTip).then(() => RabbitPeer.blockSync = undefined, () => RabbitPeer.blockSync = undefined)
+                }
+            }
+        }
+        const now = Date.now()
+        const duration = now - this.lastPoll
+        this.lastPoll = now
+        setTimeout(() => this.tipPoll(), Math.max(0, TIP_POLL_INTERVAL - duration))
+    }
+
     private async getTip(header = false): Promise<{ hash: Hash, height: number, totalwork: number }> {
         const { reply } = await this.sendRequest({ getTip: { header } })
         if (reply.getTipReturn === undefined) {
@@ -571,11 +611,12 @@ export class RabbitPeer extends BasePeer implements IPeer {
             for (const ihash of request.hashes) {
                 const hash = new Hash(ihash)
                 const txBlock = await this.consensus.getBlockTxs(hash)
-                txBlocks.push(txBlock)
-                packetSize += HASH_SIZE + BYTES_OVERHEAD + REPEATED_OVERHEAD + txBlock.txs.length * MAX_TX_SIZE
-                if (packetSize > MAX_PACKET_SIZE - MAX_TXS_PER_BLOCK * MAX_TX_SIZE) {
+                const thisTxBlock = HASH_SIZE + BYTES_OVERHEAD + REPEATED_OVERHEAD + txBlock.txs.length * MAX_TX_SIZE
+                if (packetSize + thisTxBlock > TARGET_PACKET_SIZE) {
                     break
                 }
+                txBlocks.push(txBlock)
+                packetSize += thisTxBlock
             }
 
             message = { getBlockTxsReturn: { txBlocks } }
@@ -693,7 +734,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
 
     private async getTxBlocks(blockHashes: Hash[]) {
         const requestSize = blockHashes.length * (HASH_SIZE + BYTES_OVERHEAD) + REPEATED_OVERHEAD
-        const numRequests = Math.ceil(requestSize / MAX_PACKET_SIZE)
+        const numRequests = Math.ceil(requestSize / TARGET_PACKET_SIZE)
         const txBlocksPerRequest = Math.floor(blockHashes.length / numRequests)
 
         for (let i = 0; i < numRequests; i++) {
@@ -713,6 +754,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private async peerExchangeLoop(count: number = 100) {
         try {
             const newIPeers = await this.getPeers(count)
+            const normalizedPeers = newIPeers.map(({ host, port }) => ({ host: RabbitNetwork.normalizeHost(host), port }))
             const filteredPeers = newIPeers.filter(({ host }) => {
                 try {
                     const ipAddress = ipaddr.parse(host)

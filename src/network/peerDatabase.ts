@@ -28,7 +28,7 @@ export class PeerDatabase implements IPeerDatabase {
                 synchronize: true,
                 type: "sqlite",
             })
-            await this.connection.createQueryBuilder().update(PeerModel).set({ active: false }).execute()
+            await this.connection.createQueryBuilder().update(PeerModel).set({ active: 0 }).execute()
             await this.dbLock.releaseLock()
         } catch (e) {
             logger.debug(`DB init error: ${e}`)
@@ -38,22 +38,24 @@ export class PeerDatabase implements IPeerDatabase {
 
     public async connecting(host: string, port: number): Promise<void> {
         return this.dbLock.critical(async () => {
-            try {
-                let peerData = await this.connection.manager.findOne(PeerModel, { where: { host, port } })
-                if (peerData === undefined) {
-                    peerData = new PeerModel()
-                    peerData.failCount = 0
-                    peerData.successOutCount = 0
-                    peerData.successInCount = 0
-                    peerData.host = host
-                    peerData.port = port
-                }
-                peerData.lastAttempt = Date.now()
-                peerData.active = 1
-                await this.connection.manager.save(peerData)
-            } catch (e) {
-                logger.debug(`connecting: ${e}`)
+            let peerData = await this.connection.manager.findOne(PeerModel, { where: { host, port } })
+            if (peerData === undefined) {
+                peerData = new PeerModel()
+                peerData.failCount = 0
+                peerData.successOutCount = 0
+                peerData.successInCount = 0
+                peerData.host = host
+                peerData.port = port
             }
+            peerData.lastAttempt = Date.now()
+            if (peerData.active === 1) {
+                throw new Error("Already connecting to peer")
+            }
+            if (peerData.active === 2) {
+                throw new Error("Already connected to peer")
+            }
+            peerData.active = 1
+            await this.connection.manager.save(peerData)
         })
     }
     public async inBoundConnection(host: string, port: number): Promise<void> {
@@ -70,6 +72,9 @@ export class PeerDatabase implements IPeerDatabase {
                 }
                 peerData.lastSeen = Date.now()
                 peerData.successInCount += 1
+                if (peerData.active === 2) {
+                    logger.warn(`It seems like peer ${host}:${port} is using multiple GUIDs`)
+                }
                 peerData.active = 2
                 await this.connection.manager.save(peerData)
             } catch (e) {
@@ -91,6 +96,9 @@ export class PeerDatabase implements IPeerDatabase {
                 }
                 peerData.lastSeen = Date.now()
                 peerData.successOutCount += 1
+                if (peerData.active === 2) {
+                    logger.warn(`It seems like peer ${host}:${port} is using multiple GUIDs`)
+                }
                 peerData.active = 2
                 await this.connection.manager.save(peerData)
             } catch (e) {
@@ -111,19 +119,22 @@ export class PeerDatabase implements IPeerDatabase {
                     peerData.host = host
                     peerData.port = port
                 }
+                if (peerData.active === 2) {
+                    // Some other connection may have taken ownership of this peer
+                    throw new Error("Could not mark failure to connect, as it seems to be connected.")
+                }
 
-                peerData.lastAttempt = Date.now()
                 peerData.active = 0
+                peerData.lastAttempt = Date.now()
                 peerData.failCount += 1
 
                 if (peerData.failCount >= 5 && peerData.lastSeen < Date.now() - PEER_EXPIRATION_TIME) {
-                    await this.connection.createQueryBuilder().delete().from(PeerModel).where("host = :host and port = :port", { host, port })
+                    await this.connection.manager.delete(PeerModel, { host, port })
                 } else {
                     await this.connection.manager.save(peerData)
                 }
             } catch (e) {
                 logger.debug(`failedToConnect: ${e}`)
-                throw e
             }
         })
     }
@@ -133,7 +144,7 @@ export class PeerDatabase implements IPeerDatabase {
     }
 
     public async disconnect(host: string, port: number) {
-        await this.connection.createQueryBuilder().update(PeerModel).set({ active: false }).where("host = :host and port = :port", { host, port }).execute()
+        await this.connection.createQueryBuilder().update(PeerModel).set({ active: 0 }).where("host = :host and port = :port", { host, port }).execute()
     }
 
     public async putPeers(peers: proto.IPeer[]) {
@@ -218,6 +229,6 @@ export class PeerDatabase implements IPeerDatabase {
     }
 
     public getAll(): Promise<PeerModel[]> {
-        return this.connection.manager.find(PeerModel).all()
+        return this.connection.manager.find(PeerModel)
     }
 }

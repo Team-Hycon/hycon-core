@@ -630,7 +630,8 @@ export class Consensus extends EventEmitter implements IConsensus {
 
             const proximalDifficulty = this.getHtip().header.difficulty * (1 + REBROADCAST_DIFFICULTY_TOLERANCE)
             const prehash = block.header.preHash()
-            if (!MinerServer.checkNonce(prehash, block.header.nonce, proximalDifficulty)) {
+            const nonceCheck = await MinerServer.checkNonce(prehash, block.header.nonce, proximalDifficulty)
+            if (!nonceCheck) {
                 return false
             }
 

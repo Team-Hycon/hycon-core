@@ -58,7 +58,7 @@ export interface IPeer {
     lastSeen?: string
     failCount?: number
     lastAttempt?: string
-    active?: boolean
+    active?: number
     currentQueue?: number
     location?: string
     latitude?: number
@@ -170,4 +170,5 @@ export interface IRest {
     sendTxWithBitbox(tx: { from: string, password: string, address: string, amount: string, minerFee: string, nonce?: number }, index: number, queueTx?: Function): Promise<{ res: boolean, case?: (number | { error: number, remain_attemp: string }) }>
     setBitboxPassword(password: string): Promise<boolean | number>
     createBitboxWallet(name: string, password: string): Promise<boolean | number>
+    updateBitboxPassword(originalPwd: string, newPwd: string): Promise<boolean | number | { error: number, remain_attemp: string }>
 }

@@ -144,7 +144,15 @@ export class MinerView extends React.Component<IMinerViewProps, IMinerView> {
         this.state.rest.setLoading(true)
         this.state.rest.getWalletList().then((data: { walletList: IHyconWallet[], length: number }) => {
             if (this.mounted) {
-                this.setState({ wallets: data.walletList, dialogOpen: true })
+                this.setState({ wallets: update(this.state.wallets, { $splice: [[0, this.state.wallets.length]] }) })
+                for (const wallet of data.walletList) {
+                    if (wallet.address !== undefined && wallet.address !== "") {
+                        this.setState({
+                            wallets: update(this.state.wallets, { $push: [wallet] }),
+                        })
+                    }
+                }
+                this.setState({ dialogOpen: true })
             }
             this.state.rest.setLoading(false)
         })
@@ -190,6 +198,9 @@ export class MinerView extends React.Component<IMinerViewProps, IMinerView> {
         } else {
             this.state.rest.setMinerCount(this.state.tmpCpuCount).then(() => {
                 this.setState({ cpuMinerCount: this.state.tmpCpuCount, adjustCpuMiner: false })
+                this.state.rest.getMiner().then((data: IMiner) => {
+                    this.setState({ miner: data, minerAddress: data.currentMinerAddress, cpuMinerCount: data.cpuCount })
+                })
             })
         }
     }

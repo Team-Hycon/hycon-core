@@ -26,7 +26,17 @@ interface ITxLineView {
 export class TxLine extends React.Component<ITxLineProps, ITxLineView> {
     constructor(props: ITxLineProps) {
         super(props)
-        this.state = { address: props.address, tx: props.tx, rest: props.rest, name: props.name, redirect: false, index: props.index, redirectWithHardwareWallet: false, redirectWithHDWallet: false, walletType: props.walletType }
+        this.state = {
+            address: props.address,
+            index: props.index,
+            name: props.name,
+            redirect: false,
+            redirectWithHDWallet: false,
+            redirectWithHardwareWallet: false,
+            rest: props.rest,
+            tx: props.tx,
+            walletType: props.walletType,
+        }
     }
     public render() {
         if (this.state.redirect) {

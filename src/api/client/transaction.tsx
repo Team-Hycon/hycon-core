@@ -152,17 +152,34 @@ export class Transaction extends React.Component<any, any> {
                                     <Icon>bookmark</Icon><span style={{ marginLeft: "5px" }}>Address Book</span>
                                 </Button>
                             </Grid>
-                            <TextField style={{ width: "330px" }} floatingLabelText="From Address" type="text" disabled={true} value={this.state.wallet.address} />
-                            <TextField name="address" floatingLabelFixed={true} style={{ marginLeft: "30px", width: "330px" }} floatingLabelText="To Address" type="text" value={this.state.address} onChange={this.handleInputChange} />
-                            <br />
-                            <TextField style={{ width: "330px" }} floatingLabelText="Balance" type="text" disabled={true} value={this.state.piggyBank} />
-                            <TextField style={{ marginLeft: "30px", width: "330px" }} name="amount" floatingLabelFixed={true} floatingLabelText="Amount" type="text" value={this.state.amount} max={this.state.piggyBank} onChange={this.handleInputChange} />
-                            <br />
-                            <TextField floatingLabelText="Pending Amount" style={{ width: "330px" }} type="text" disabled={true} value={this.state.wallet.pendingAmount} />
-                            <TextField name="minerFee" floatingLabelFixed={true} style={{ marginLeft: "30px", width: "330px" }} floatingLabelText="Miner Fee" type="text" value={this.state.minerFee} onChange={this.handleInputChange} />
-                            <br />
-                            <TextField name="password" value={this.state.password} floatingLabelFixed={true} style={{ marginRight: "20px", width: "330px" }} floatingLabelText="Wallet Password" type="password" autoComplete="off" onChange={(data) => { this.handlePassword(data) }} />
-                            {this.state.isHint ? (<span style={{ fontSize: "12px" }}>(Password Hint: {this.state.hint})</span>) : (<Button onClick={(e) => this.showHint(e)}>Hint</Button>)}
+
+                            <Grid container direction={"row"} justify={"flex-end"} alignItems={"flex-end"} spacing={24}>
+                                <Grid item xs={12} sm={12} md={6}>
+                                    <TextField style={{ width: "330px" }} floatingLabelText="From Address" type="text" disabled={true} value={this.state.wallet.address} />
+                                </Grid>
+                                <Grid item xs={12} sm={12} md={6}>
+                                    <TextField name="address" floatingLabelFixed={true} style={{ width: "330px" }} floatingLabelText="To Address" type="text" value={this.state.address} onChange={this.handleInputChange} />
+                                </Grid>
+                                <Grid item xs={12} sm={12} md={6}>
+                                    <TextField style={{ width: "330px" }} floatingLabelText="Balance" type="text" disabled={true} value={this.state.piggyBank} />
+                                </Grid>
+                                <Grid item xs={12} sm={12} md={6}>
+                                    <TextField style={{ width: "330px" }} name="amount" floatingLabelFixed={true} floatingLabelText="Amount" type="text" value={this.state.amount} max={this.state.piggyBank} onChange={this.handleInputChange} />
+                                </Grid>
+                                <Grid item xs={12} sm={12} md={6}>
+                                    <TextField floatingLabelText="Pending Amount" style={{ width: "330px" }} type="text" disabled={true} value={this.state.wallet.pendingAmount} />
+                                </Grid>
+                                <Grid item xs={12} sm={12} md={6}>
+                                    <TextField name="minerFee" floatingLabelFixed={true} style={{ width: "330px" }} floatingLabelText="Miner Fee" type="text" value={this.state.minerFee} onChange={this.handleInputChange} /></Grid>
+
+                                <Grid item xs zeroMinWidth />
+                                <Grid item xs={8}>
+                                    <TextField name="password" value={this.state.password} floatingLabelFixed={true} style={{ marginRight: "20px", width: "330px" }} floatingLabelText="Wallet Password" type="password" autoComplete="off" onChange={(data) => { this.handlePassword(data) }} />
+                                    {this.state.isHint ? (<span style={{ fontSize: "12px" }}>(Password Hint: {this.state.hint})</span>) : (<Button onClick={(e) => this.showHint(e)}>Hint</Button>)}
+                                </Grid>
+                                <Grid item xs zeroMinWidth />
+                            </Grid>
+
                             <br /><br />
                             <Grid container direction={"row"} justify={"flex-end"} alignItems={"flex-end"}>
                                 <Button variant="raised" onClick={this.handleSubmit} style={{ backgroundColor: "#50aaff", color: "white", float: "right", margin: "0 10px" }}>

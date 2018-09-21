@@ -19,6 +19,7 @@ const headerPostfixLength = 4
 const scrapBufferLength = Math.max(headerPrefix.length, headerRouteLength, headerPostfixLength)
 const writeBufferLength = headerRouteLength + headerPostfixLength
 export class SocketParser {
+    public lastReceive: number
     private socket: Socket
     private parseState: ParseState
     private scrapBuffer: Buffer
@@ -28,6 +29,7 @@ export class SocketParser {
     private parseIndex: number
     private packetCallback: (route: number, buffer: Buffer) => void
     private sendLock: AsyncLock
+    // private lockLogTimer: NodeJS.Timer
 
     constructor(socket: Socket, onPacket: (route: number, buffer: Buffer) => void, bufferSize: number = 1024) {
         this.socket = socket
@@ -41,6 +43,7 @@ export class SocketParser {
         this.socket.on("drain", () => {
             logger.debug(`Resuming socket(${this.socket.bufferSize}) ${this.socket.remoteAddress}:${this.socket.remotePort}`)
             this.socket.resume()
+            // clearTimeout(this.lockLogTimer)
             this.sendLock.releaseLock()
         })
     }
@@ -51,16 +54,19 @@ export class SocketParser {
         }
 
         await this.sendLock.getLock()
+        // this.lockLogTimer = setTimeout(() => logger.debug(`Long lock time in SocketParse.send`), 10000)
         this.writeBuffer.writeUInt32LE(route, 0)
         this.writeBuffer.writeUInt32LE(buffer.length, 4)
         this.socket.write(Buffer.from(headerPrefix))
         this.socket.write(this.writeBuffer)
         this.socket.write(Buffer.from(buffer))
         if (this.socket.bufferSize === undefined || this.socket.bufferSize < 1024 * 1024) {
+            // clearTimeout(this.lockLogTimer)
             this.sendLock.releaseLock()
         } else {
             // for this case, user memory is used
             // it will be released in "drain" event
+            // logger.debug(`Pausing socket(${this.socket.bufferSize}) ${this.socket.remoteAddress}:${this.socket.remotePort}`)
             this.socket.pause()
         }
     }
@@ -100,6 +106,7 @@ export class SocketParser {
         return this.sendLock.queueLength()
     }
     private receive(src: Buffer): void {
+        this.lastReceive = Date.now()
         try {
             this.parse(src)
         } catch (e) {

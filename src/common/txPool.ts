@@ -65,17 +65,17 @@ export class TxPool implements ITxPool {
             if (this.seenTxsSet.has(newTxHash)) {
                 continue
             }
-            if (tx.fee.lessThan(this.minFee)) {
-                continue
-            }
-            const validity = await this.server.consensus.txValidity(tx)
             const oldTxs = this.seenTxs.splice(0, this.seenTxs.length - 10000)
             for (const oldTx of oldTxs) {
                 this.seenTxsSet.delete(oldTx)
             }
+            this.seenTxsSet.add(newTxHash)
+            this.seenTxs.push(newTxHash)
+            if (tx.fee.lessThan(this.minFee)) {
+                continue
+            }
+            const validity = await this.server.consensus.txValidity(tx)
             if (validity === TxValidity.Invalid) {
-                this.seenTxsSet.add(newTxHash)
-                this.seenTxs.push(newTxHash)
                 continue
             }
             const address = tx.from.toString()

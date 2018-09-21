@@ -5,7 +5,6 @@ import { TxPool } from "./common/txPool"
 import { Consensus } from "./consensus/consensus"
 import { WorldState } from "./consensus/database/worldState"
 import { IConsensus } from "./consensus/iconsensus"
-import { Sync } from "./consensus/sync"
 import { globalOptions } from "./main"
 import { MinerServer } from "./miner/minerServer"
 import { INetwork } from "./network/inetwork"
@@ -28,7 +27,6 @@ export class Server {
     public readonly rest: RestManager
     public worldState: WorldState
     public httpServer: HttpServer
-    public sync: Sync
     constructor() {
         const prefix = globalOptions.data
         const postfix = globalOptions.postfix
@@ -38,7 +36,6 @@ export class Server {
         this.network = new RabbitNetwork(this.txPool, this.consensus, globalOptions.port, prefix + "peerdb" + postfix, globalOptions.networkid)
         this.miner = new MinerServer(this.txPool, this.worldState, this.consensus, this.network, globalOptions.cpuMiners, globalOptions.str_port)
         this.rest = new RestManager(this)
-        this.sync = new Sync(this.consensus, this.network)
     }
     public async run() {
         await this.consensus.init()
@@ -59,6 +56,5 @@ export class Server {
                 this.network.addPeer(ip, port).catch((e) => logger.error(`Failed to connect to client: ${e}`))
             }
         }
-        this.sync.start()
     }
 }

@@ -43,6 +43,7 @@ export const routes: RouteConfig[] = [
     { exact: true, path: "/minerView" },
     { exact: true, path: "/hardwareWallet/:walletType" },
     { exact: true, path: "/address/:hash/:walletType/:selectedAccount" },
+    { exact: true, path: "/address/:hash/:walletType/:name/:selectedAccount" },
     // { exact: true, path: "/peer/:hash" },
 ]
 
@@ -68,6 +69,7 @@ export class App extends React.Component<{ rest: IRest }, any> {
     public minerView: ({ match }: RouteComponentProps<{ name: string }>) => JSX.Element
     public hardwareWalletView: ({ match }: RouteComponentProps<{ walletType: string }>) => JSX.Element
     public hardwareAddressView: ({ match }: RouteComponentProps<{ walletType: string, hash: string, selectedAccount: string }>) => JSX.Element
+    public hdwalletAddressView: ({ match }: RouteComponentProps<{ walletType: string, hash: string, name: string, selectedAccount: string }>) => JSX.Element
     public notFound: boolean
 
     constructor(props: any) {
@@ -139,6 +141,9 @@ export class App extends React.Component<{ rest: IRest }, any> {
         this.hardwareAddressView = ({ match }: RouteComponentProps<{ walletType: string, hash: string, selectedAccount: string }>) => (
             <AddressInfo hash={match.params.hash} walletType={match.params.walletType} rest={this.rest} selectedAccount={match.params.selectedAccount} />
         )
+        this.hdwalletAddressView = ({ match }: RouteComponentProps<{ walletType: string, hash: string, name: string, selectedAccount: string }>) => (
+            <AddressInfo hash={match.params.hash} walletType={match.params.walletType} rest={this.rest} name={match.params.name} selectedAccount={match.params.selectedAccount} />
+        )
     }
     public render() {
         return (
@@ -184,6 +189,7 @@ export class App extends React.Component<{ rest: IRest }, any> {
                             <Route exact path="/minerView" component={this.minerView} />
                             <Route exact path="/hardwareWallet/:walletType" component={this.hardwareWalletView} />
                             <Route exact path="/address/:hash/:walletType/:selectedAccount" component={this.hardwareAddressView} />
+                            <Route exact path="/address/:hash/:walletType/:name/:selectedAccount" component={this.hdwalletAddressView} />
                         </Switch>
                     </div>
                 </main>

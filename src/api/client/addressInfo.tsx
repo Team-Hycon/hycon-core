@@ -9,6 +9,7 @@ import { TxLine } from "./txLine"
 interface IAddressProps {
     rest: IRest
     hash: string
+    name?: string
     selectedAccount?: string
     walletType?: string
 }
@@ -40,7 +41,7 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
             index: 1,
             minedBlocks: [],
             minerIndex: 1,
-            name: "",
+            name: props.name ? props.name : "",
             pendings: [],
             redirectTxView: false,
             rest: props.rest,
@@ -73,6 +74,9 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
             return < div ></div >
         }
         if (this.state.redirectTxView) {
+            if (this.state.walletType === "hdwallet") {
+                return <Redirect to={`/maketransactionHDWallet/hdwallet/${this.state.name}/${this.state.hash}/${this.state.accountIndex}`} />
+            }
             return <Redirect to={`/maketransactionAddress/${this.state.walletType}/${this.state.hash}/${this.state.accountIndex}`} />
         }
         let count = 0
@@ -109,7 +113,7 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
                         {this.state.pendings.map((tx: ITxProp) => {
                             return (
                                 <div key={count++}>
-                                    <TxLine tx={tx} rest={this.state.rest} index={this.state.accountIndex} address={this.state.hash} walletType={this.state.walletType} />
+                                    <TxLine tx={tx} rest={this.state.rest} index={this.state.accountIndex} address={this.state.hash} walletType={this.state.walletType} name={this.state.name} />
                                     <div>
                                         {tx.from === this.state.hash ? (
                                             <button className="mdl-button mdl-js-button mdl-button--raised mdl-button--accent txAmtBtn">

@@ -35,6 +35,7 @@ export class WalletDetail extends React.Component<any, any> {
             password: "",
             pendings: [],
             rest: props.rest,
+            redirectHDwalletView: false,
             selectedAccount: "",
             showDialog1: false,
             startWalletIndex: 0,
@@ -96,19 +97,7 @@ export class WalletDetail extends React.Component<any, any> {
     }
 
     public accountSelected(index: string, account: IHyconWallet) {
-        this.state.rest.setLoading(true)
-        this.state.rest.getAddressInfo(account.address).then((result: IWalletAddress) => {
-            this.setState({
-                address: account.address,
-                minedBlocks: result.minedBlocks,
-                pendings: result.pendings,
-                selectedAccount: index,
-                showDialog1: false,
-                txs: result.txs,
-                wallet: result,
-            })
-            this.state.rest.setLoading(false)
-        })
+        this.setState({ redirectHDwalletView: true, address: account.address, selectedAccount: index })
     }
     public render() {
         let accountIndex = 0
@@ -121,6 +110,9 @@ export class WalletDetail extends React.Component<any, any> {
         }
         if (this.state.redirect) {
             return <Redirect to="/wallet" />
+        }
+        if (this.state.redirectHDwalletView) {
+            return <Redirect to={`/address/${this.state.address}/hdwallet/${this.state.name}/${this.state.selectedAccount}`} />
         }
         if (this.state.isTransfer) {
             if (this.state.selectedAccount !== "") {

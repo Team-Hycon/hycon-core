@@ -605,4 +605,19 @@ export class RestClient implements IRest {
                 console.log(err)
             }))
     }
+
+    public async updateBitboxPassword(originalPwd: string, newPwd: string): Promise<boolean | number | { error: number, remain_attemp: string }> {
+        const headers = new Headers()
+        headers.append("Accept", "application/json")
+        headers.append("Content-Type", "application/json")
+        return Promise.resolve(fetch(`/api/${this.apiVersion}/updateBitboxPassword`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ originalPwd, newPwd }),
+        })
+            .then((response) => response.json())
+            .catch((err: Error) => {
+                console.log(err)
+            }))
+    }
 }

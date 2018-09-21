@@ -1,4 +1,4 @@
-import { Button, Radio } from "@material-ui/core"
+import { Button, Dialog, DialogContent, DialogTitle, Radio, Step, StepLabel, Stepper } from "@material-ui/core"
 import Grid from "@material-ui/core/Grid"
 import { CircularProgress, TextField } from "material-ui"
 import * as React from "react"
@@ -6,6 +6,7 @@ import update = require("react-addons-update")
 import { Redirect } from "react-router"
 import { IHyconWallet, IResponseError } from "./rest"
 
+const updateSteps = ["Enter password", "Change Bitbox password"]
 export class MultipleAccountsView extends React.Component<any, any> {
     public mounted = false
     constructor(props: any) {
@@ -13,6 +14,7 @@ export class MultipleAccountsView extends React.Component<any, any> {
 
         this.state = {
             accounts: [],
+            activeStep: 0,
             initialInfo: false,
             initialInfoStep: 0,
             initialSelected: props.selectedAccount ? props.selectedAccount : "",
@@ -20,6 +22,9 @@ export class MultipleAccountsView extends React.Component<any, any> {
             isLoad: false,
             moreLoading: false,
             name: props.name ? props.name : "",
+            newPassword1: "",
+            newPassword2: "",
+            originalPassword: "",
             password: props.password ? props.password : "",
             password1: "",
             password2: "",
@@ -29,6 +34,7 @@ export class MultipleAccountsView extends React.Component<any, any> {
             selectFunction: props.selectFunction,
             selectedAccount: "",
             startIndex: 0,
+            updatePassword: false,
             walletType: props.walletType,
         }
         this.handleInputChange = this.handleInputChange.bind(this)
@@ -52,21 +58,23 @@ export class MultipleAccountsView extends React.Component<any, any> {
         const name = event.target.name
         const value = event.target.value
         this.setState({ [name]: value })
-        if (this.state.initialInfoStep === 0) {
-            if (name === "password1") {
+        if (this.state.initialInfoStep === 0 || this.state.updatePassword) {
+            if (name === "password1" || name === "newPassword1") {
+                const compareTarget = name === "password1" ? this.state.password2 : this.state.newPassword2
                 if (value.length > 0 && value.length < 4) {
                     this.setState({ errorText: "The password length must be at least 4 characters." })
                 } else { this.setState({ errorText: "" }) }
 
-                if (this.state.password2 !== "") {
-                    if (event.target.value === this.state.password2) {
+                if (compareTarget !== "") {
+                    if (event.target.value === compareTarget) {
                         this.setState({ errorText1: "" })
                     } else { this.setState({ errorText1: "Not matched with password" }) }
                 }
             }
-            if (name === "password2") {
-                if (this.state.password1 !== "") {
-                    if (event.target.value === this.state.password1) {
+            if (name === "password2" || name === "newPassword2") {
+                const compareTarget = name === "password2" ? this.state.password1 : this.state.newPassword1
+                if (compareTarget !== "") {
+                    if (event.target.value === compareTarget) {
                         this.setState({ errorText1: "" })
                     } else { this.setState({ errorText1: "Not matched with password" }) }
                 }
@@ -108,7 +116,13 @@ export class MultipleAccountsView extends React.Component<any, any> {
                             value={this.state.password1}
                             onChange={(data) => { this.handleInputChange(data) }}
                             onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleNext() } }}
-                        /><br /><br />
+                        /><br />
+                        <Grid container direction={"row"} justify={"center"} alignItems={"center"} spacing={24}>
+                            <Grid item>
+                                <Button onClick={() => { this.updatePassword() }} style={{ fontSize: "10px", padding: "0", minHeight: "unset" }}><u>Change Password</u></Button>
+                            </Grid>
+                        </Grid>
+                        <br /><br />
                     </div>
                     <div style={{ display: `${this.state.initialInfoStep === 2 ? ("block") : ("none")}` }} >
                         Bitbox does not have wallet information. Create a new wallet. Please enter the information.<br />
@@ -121,7 +135,54 @@ export class MultipleAccountsView extends React.Component<any, any> {
                     <Grid container direction={"row"} justify={"center"} alignItems={"center"}>
                         <Button variant="outlined" onClick={() => { this.handleNext() }} style={{ margin: "0 10px" }}>Next</Button>
                     </Grid><br />
-                </div>
+
+                    {/* Update bitbox password dialog */}
+                    <Dialog open={this.state.updatePassword} onClose={() => { this.closeDialog() }}>
+                        <DialogTitle style={{ textAlign: "center" }}>Change Bitbox Password</DialogTitle>
+                        <Grid container direction={"row"} justify={"center"} alignItems={"center"} style={{ display: "inline-block" }}>
+                            <Stepper style={{ marginBottom: "2%" }} activeStep={this.state.activeStep}>
+                                {updateSteps.map((label, index) => (<Step key={index}><StepLabel>{label}</StepLabel></Step>))}
+                            </Stepper>
+                        </Grid>
+                        <DialogContent>
+                            <Grid container direction={"row"} justify={"center"} alignItems={"center"} spacing={24}>
+                                <div style={{ display: `${this.state.activeStep === 0 ? "block" : "none"}` }}>
+                                    <Grid item xs={8}>
+                                        <TextField floatingLabelText="Original Password" floatingLabelFixed={true} type="password" autoComplete="off" name="originalPassword"
+                                            value={this.state.originalPassword}
+                                            onChange={(data) => { this.handleInputChange(data) }}
+                                            onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleDialogNext() } }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={8}>
+                                        <TextField style={{ marginTop: "10%" }} floatingLabelText="New Password" floatingLabelFixed={true} type="password" autoComplete="off" name="newPassword1"
+                                            errorText={this.state.errorText} errorStyle={{ float: "left" }} value={this.state.newPassword1}
+                                            onChange={(data) => { this.handleInputChange(data) }}
+                                            onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleDialogNext() } }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={8}>
+                                        <TextField style={{ marginTop: "10%" }} floatingLabelText="Confirm New Password" floatingLabelFixed={true} type="password" autoComplete="off" name="newPassword2"
+                                            errorText={this.state.errorText1} errorStyle={{ float: "left" }}
+                                            value={this.state.newPassword2}
+                                            onChange={(data) => { this.handleInputChange(data) }}
+                                            onKeyPress={(event) => { if (event.key === "Enter") { event.preventDefault(); this.handleDialogNext() } }}
+                                        />
+                                    </Grid>
+                                </div>
+                                <div style={{ marginTop: "5%", textAlign: "center", display: `${this.state.activeStep !== 0 ? "block" : "none"}` }}>
+                                    Click <b> 'CHANGE' </b> below to change your password.<br />
+                                    After clicking button, when the <b> LED indicator </b> of the Bitbox device turns on, please <b> hold on </b> it.<br />
+                                    <CircularProgress style={{ padding: "1em", margin: "auto", display: `${this.state.activeStep === 2 ? "block" : "none"}` }} size={20} thickness={2} />
+                                </div>
+                            </Grid>
+                        </DialogContent>
+                        <Grid container direction={"row"} justify={"center"} alignItems={"center"} style={{ margin: "1em 0em" }}>
+                            <Button variant="outlined" onClick={() => { this.handleDialogNext() }} style={{ display: `${this.state.activeStep === 0 ? "block" : "none"}` }}>Next</Button>
+                            <Button variant="outlined" onClick={() => { this.updateBitboxPassword() }} style={{ display: `${this.state.activeStep === 1 ? "block" : "none"}` }}>Change</Button>
+                        </Grid>
+                    </Dialog>
+                </div >
             )
         }
         return (
@@ -231,6 +292,10 @@ export class MultipleAccountsView extends React.Component<any, any> {
             case 0:
                 if (this.state.password1 !== this.state.password2) {
                     alert(`Not matched password`)
+                    this.setState({ isLoad: true })
+                    return
+                } else if (this.state.password1.length < 4) {
+                    alert(`The password length must be at least 4 characters.`)
                     this.setState({ isLoad: true })
                     return
                 }
@@ -365,5 +430,77 @@ export class MultipleAccountsView extends React.Component<any, any> {
             }
             this.handleError(result)
         })
+    }
+
+    private updatePassword() {
+        if (!confirm(`Do you want to change the password used by the Bitbox device? After changing the password, please be careful not to lose your password.`)) {
+            return
+        }
+        this.setState({ updatePassword: true })
+    }
+
+    private handleDialogNext() {
+        if (this.state.newPassword1 !== this.state.newPassword2) {
+            alert(`Not matched password`)
+            return
+        } else if (this.state.newPassword1.length < 4) {
+            alert(`The password length must be at least 4 characters.`)
+            return
+        }
+        this.setState({ activeStep: this.state.activeStep + 1 })
+    }
+
+    private updateBitboxPassword() {
+        this.setState({ activeStep: this.state.activeStep + 1 })
+        this.state.rest.updateBitboxPassword(this.state.originalPassword, this.state.newPassword1).then((result: boolean | number | { error: number, remain_attemp: string }) => {
+            if (typeof (result) === "boolean") {
+                if (result) {
+                    alert(`Your password has been changed.`)
+                    this.closeDialogState()
+                } else {
+                    alert(`Failed to change password. Please try again.`)
+                    this.setState({ activeStep: 0 })
+                }
+                return
+            }
+            if (typeof (result) === "number") {
+                switch (result) {
+                    case 20:
+                        alert(`Can not find bitbox device.`)
+                        this.setState({ activeStep: 0 })
+                        break
+                    case 21:
+                        alert(`Password information was not found.`)
+                        this.closeDialogState()
+                        this.setState({ initialInfoStep: 0, password1: "", password2: "", activeStep: 0 })
+                        break
+                    case 22:
+                        alert(`Wallet information was not found.`)
+                        this.closeDialogState()
+                        this.setState({ initialInfoStep: 2, activeStep: 0 })
+                        break
+                    default:
+                        alert(`Failed to change password. Please try again.`)
+                        this.setState({ activeStep: 0 })
+                        break
+
+                }
+                return
+            }
+            alert(`Invalid password. Please try again. Remain attemp : ${result.remain_attemp}`)
+            this.setState({ activeStep: 0, originalPassword: "", newPassword1: "", newPassword2: "" })
+        })
+    }
+
+    private closeDialog() {
+        if (this.state.activeStep === 2) {
+            alert(`Communicating with the Bitbox device. Please wait.`)
+            return
+        }
+        this.closeDialogState()
+    }
+
+    private closeDialogState() {
+        this.setState({ updatePassword: false, activeStep: 0, originalPassword: "", newPassword1: "", newPassword2: "" })
     }
 }

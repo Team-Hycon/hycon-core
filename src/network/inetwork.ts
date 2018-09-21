@@ -5,7 +5,6 @@ import { RabbitPeer } from "./rabbit/rabbitPeer"
 export interface INetwork {
     version: number
     start(): Promise<boolean>
-    getRandomPeer(): IPeer
     connect(ip: string, port: number): Promise<IPeer>
     getPeerDb(): Promise<PeerModel[]>
     getConnection(): Promise<PeerModel[]>

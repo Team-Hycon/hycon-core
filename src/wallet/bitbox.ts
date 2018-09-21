@@ -24,6 +24,7 @@ export enum BitboxError {
     FAIL_CREATEPASSWORD = 33,
     FAIL_CHECKPASSWORD = 34,
     FAIL_SET_WALLETNAME = 35,
+    FAIL_UPDATE_PASSWORD = 36,
 }
 
 export class Bitbox {
@@ -147,6 +148,21 @@ export class Bitbox {
             if (typeof (e) === "number") { throw e }
             if (e.remain_attemp) { throw e }
             throw BitboxError.FAIL_SIGN
+        }
+    }
+
+    public async updatePassword(password: string, newPassword: string): Promise<boolean> {
+        try {
+            const isSetted = await this.checkWalletSetting(password)
+            if (!isSetted) { this.close(); throw BitboxError.NOTFOUND_WALLET }
+            const response = await this.bitbox.updatePassword(newPassword)
+            if (response.error || response.password !== "success") { this.close(); throw BitboxError.FAIL_UPDATE_PASSWORD }
+            return true
+        } catch (e) {
+            this.close()
+            if (typeof (e) === "number") { throw e }
+            if (e.remain_attemp) { throw e }
+            throw BitboxError.FAIL_UPDATE_PASSWORD
         }
     }
 

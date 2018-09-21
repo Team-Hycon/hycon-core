@@ -157,10 +157,10 @@ export class RestServer implements IRest {
                 const address = new Address(tx.to)
                 const wallet = new Wallet(Buffer.from(tx.privateKey, "hex"))
                 const account = await this.consensus.getAccount(new Address(wallet.pubKey.address()))
+                const pendingTxs = this.txPool.getTxsOfAddress(address)
                 let nonce = tx.nonce
                 if (nonce === undefined) {
                     nonce = account.nonce + 1
-                    const pendingTxs = this.txPool.getTxsOfAddress(address)
                     for (const pendingTx of pendingTxs) {
                         if (nonce <= pendingTx.nonce) {
                             nonce = pendingTx.nonce + 1
@@ -812,13 +812,51 @@ export class RestServer implements IRest {
                 lastSeen: seen,
                 failCount: peer.failCount,
                 lastAttempt: attempt,
-                active: peer.active !== 0,
+                active: peer.active,
                 location: result ? result.region_name : undefined,
                 latitude: result ? result.latitude : undefined,
                 longitude: result ? result.longitude : undefined,
             }
             peerList.push(temp)
         }
+        peerList.sort((a, b) => {
+            if (a.active < b.active) {
+                return 1
+            }
+            if (a.active > b.active) {
+                return -1
+            }
+
+            if (a.lastSeen < b.lastSeen) {
+                return 1
+            }
+            if (a.lastSeen > b.lastSeen) {
+                return -1
+            }
+
+            if (a.lastAttempt < b.lastAttempt) {
+                return 1
+            }
+            if (a.lastAttempt > b.lastAttempt) {
+                return -1
+            }
+
+            if (a.host < b.host) {
+                return 1
+            }
+            if (a.host > b.host) {
+                return -1
+            }
+
+            if (a.port < b.port) {
+                return 1
+            }
+            if (a.port > b.port) {
+                return -1
+            }
+
+            return 0
+        })
         return peerList
     }
 
@@ -842,13 +880,51 @@ export class RestServer implements IRest {
                 peerList.push({
                     host: peer.host,
                     port: peer.port,
-                    active: peer.active !== 0,
+                    active: peer.active,
                     failCount: peer.failCount,
                     successCount: peer.successInCount + peer.successOutCount,
                     lastSeen: seen,
                     lastAttempt: attempt,
                 })
             }
+            peerList.sort((a, b) => {
+                if (a.active < b.active) {
+                    return 1
+                }
+                if (a.active > b.active) {
+                    return -1
+                }
+
+                if (a.lastSeen < b.lastSeen) {
+                    return 1
+                }
+                if (a.lastSeen > b.lastSeen) {
+                    return -1
+                }
+
+                if (a.lastAttempt < b.lastAttempt) {
+                    return 1
+                }
+                if (a.lastAttempt > b.lastAttempt) {
+                    return -1
+                }
+
+                if (a.host < b.host) {
+                    return 1
+                }
+                if (a.host > b.host) {
+                    return -1
+                }
+
+                if (a.port < b.port) {
+                    return 1
+                }
+                if (a.port > b.port) {
+                    return -1
+                }
+
+                return 0
+            })
             const start = index * 20
             const end = start + 20
             const peersInPage = peerList.slice(start, end)
@@ -1220,6 +1296,17 @@ export class RestServer implements IRest {
             return result
         } catch (e) {
             logger.error(`Error createBitboxWallet : ${e}`)
+            return e
+        }
+    }
+
+    public async updateBitboxPassword(originalPwd: string, newPwd: string): Promise<boolean | number | { error: number, remain_attemp: string }> {
+        try {
+            const bitbox = Bitbox.getBitbox()
+            const result = await bitbox.updatePassword(originalPwd, newPwd)
+            bitbox.close()
+            return result
+        } catch (e) {
             return e
         }
     }

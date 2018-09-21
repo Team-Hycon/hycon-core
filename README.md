@@ -8,10 +8,10 @@ We have a lot of exciting developments coming up, and we'll have our timeline ad
 
 For more information about HYCON, visit the website at [https://hycon.io](https://hycon.io) or read the whitepaper in one of the following languages:
 
-- [English](https://hycon.io/doc/whitepaper1.2.2_en.pdf)
-- [Korean / 한국어](https://hycon.io/doc/whitepaper.1.2.2_kr.pdf)
-- [Japanese / 日本語](https://hycon.io/doc/whitepaper_jp.pdf)
-- [Chinese / 中文](https://hycon.io/doc/whitepaper_cn.pdf)
+- [English](https://hycon.io/wp-content/uploads/2018/08/whitepaper1.2.2_en.pdf)
+- [Korean / 한국어](https://hycon.io/wp-content/uploads/2018/08/whitepaper.1.2.2_kr.pdf)
+- [Japanese / 日本語](https://hycon.io/wp-content/uploads/2018/08/whitepaper_jp.pdf)
+- [Chinese / 中文](https://hycon.io/wp-content/uploads/2018/08/whitepaper_cn.pdf)
 
 ### Getting Releases
 

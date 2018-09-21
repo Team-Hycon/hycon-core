@@ -409,6 +409,10 @@ export class HttpServer {
             res.json(await this.rest.createBitboxWallet(req.body.name, req.body.password))
         })
 
+        router.post("/updateBitboxPassword", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.updateBitboxPassword(req.body.originalPwd, req.body.newPwd))
+        })
+
         this.app.use(`/api/${apiVersion}`, router)
     }
 

@@ -63,9 +63,11 @@ export class AsyncLock {
 
     public async critical<T>(f: () => Promise<T>): Promise<T> {
         await this.getLock()
+        // const lockLogTimer = setTimeout(() => logger.debug(`Long lock time`), 10000)
         try {
             return await f()
         } finally {
+            // clearTimeout(lockLogTimer)
             this.releaseLock()
         }
     }

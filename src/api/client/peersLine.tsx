@@ -22,20 +22,11 @@ export class PeersLine extends React.Component<any, any> {
                 <td className="mdl-data-table__cell--non-numeric">
                     <span>{this.state.peer.port}</span>
                 </td>
-                {this.state.peer.active ? (
-                    <td className="mdl-data-table__cell--non-numeric">
-                        <span>
-                            <div className="led-green"> </div>
-                        </span>
-                    </td>
-                ) : (
-                        <td className="mdl-data-table__cell--non-numeric">
-                            <span>
-                                <div className="led-red"> </div>
-                            </span>
-                        </td>
-                    )
-                }
+                <td className="mdl-data-table__cell--non-numeric">
+                    <span>
+                        <div className={`led-${this.state.peer.active > 1 ? "green" : (this.state.peer.active ? "orange" : "red")}`}> </div>
+                    </span>
+                </td>
                 <td className="mdl-data-table__cell--non-numeric">
                     <span>{this.state.peer.successCount}</span>
                 </td>
