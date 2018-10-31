@@ -49,12 +49,8 @@ export class TxView extends React.Component<any, any> {
                 <div className="contentTitle">Transaction</div>
                 <div>
                     <TxLine rest={this.state.rest} tx={this.state.tx} />
-                    <button className="mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn green">
-                        {this.state.tx.estimated + " HYCON"}
-                    </button>
-                    <button className="mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn">
-                        {this.state.tx.confirmation} Confirmations
-                    </button>
+                    <button className="disableBtn mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn green">{this.state.tx.estimated + " HYCON"}</button>
+                    <button className="disableBtn mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn">{this.state.tx.confirmation} Confirmations</button>
                 </div>
                 <div className="mdl-grid">
                     <table className="mdl-cell mdl-data-table mdl-js-data-table mdl-shadow--2dp table_margined tablesInRow txSummaryTable">

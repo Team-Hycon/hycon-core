@@ -73,7 +73,7 @@ export class PeerDatabase implements IPeerDatabase {
                 peerData.lastSeen = Date.now()
                 peerData.successInCount += 1
                 if (peerData.active === 2) {
-                    logger.warn(`It seems like peer ${host}:${port} is using multiple GUIDs`)
+                    logger.debug(`It seems like peer ${host}:${port} is using multiple GUIDs`)
                 }
                 peerData.active = 2
                 await this.connection.manager.save(peerData)
@@ -97,7 +97,7 @@ export class PeerDatabase implements IPeerDatabase {
                 peerData.lastSeen = Date.now()
                 peerData.successOutCount += 1
                 if (peerData.active === 2) {
-                    logger.warn(`It seems like peer ${host}:${port} is using multiple GUIDs`)
+                    logger.debug(`It seems like peer ${host}:${port} is using multiple GUIDs`)
                 }
                 peerData.active = 2
                 await this.connection.manager.save(peerData)

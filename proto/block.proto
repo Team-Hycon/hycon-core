@@ -20,4 +20,5 @@ message BlockDB {
     double pEMA = 7;
     double nextDifficulty = 8;
     double totalWork = 9;
+    bool uncle = 10; 
 }

@@ -42,7 +42,7 @@ export class RabbitNetwork implements INetwork {
     }
 
     public networkid: string = "hycon"
-    public readonly version: number = 11
+    public readonly version: number = 12
     public port: number
     public publicPort: number
     public guid: string // unique id to prevent self connecting
@@ -68,6 +68,7 @@ export class RabbitNetwork implements INetwork {
         this.guid = new Hash(randomBytes(32)).toString()
         this.consensus.on("txs", (txs) => { this.broadcastTxs(txs) })
         this.consensus.on("blockBroadcast", (block: Block) => { this.broadcastBlocks([block]) })
+        this.consensus.on("missingUncles", (height: number, missingHashes: Hash[]) => { this.getHeadersByHashes(height, missingHashes) })
         logger.info(`TcpNetwork Port=${port} Session Guid=${this.guid}`)
     }
 
@@ -103,6 +104,11 @@ export class RabbitNetwork implements INetwork {
     public broadcastTxs(txs: proto.ITx[], exempt?: RabbitPeer): void {
         const packet = proto.Network.encode({ putTx: { txs } }).finish()
         this.broadcast(packet, exempt)
+    }
+
+    public broadcastHeaders(headers: proto.IBlockHeader[]): void {
+        const packet = proto.Network.encode({ putHeaders: { headers } }).finish()
+        this.broadcast(packet)
     }
 
     public broadcastBlocks(blocks: proto.IBlock[]): void {
@@ -307,6 +313,21 @@ export class RabbitNetwork implements INetwork {
             await this.peerDatabase.putPeers(info)
         } catch (e) {
             logger.debug(`Error occurred while connecting to seeds: ${e}`)
+        }
+    }
+
+    private async getHeadersByHashes(height: number, missingHashes: Hash[]) {
+
+        const peers = this.getPeers()
+        for (const peer of peers) {
+            const tipHeight = peer.getTipHeight()
+            if (tipHeight === undefined || tipHeight < height) { continue }
+            try {
+                const result = await peer.getHeadersByHashes(missingHashes)
+                if (missingHashes.length === result) { break }
+            } catch (e) {
+                logger.debug(`Could not get Headers by Hashes: ${e}`)
+            }
         }
     }
 }

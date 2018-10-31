@@ -7,6 +7,7 @@ import { AnyBlockHeader, BlockHeader } from "../../common/blockHeader"
 import { BaseBlockHeader } from "../../common/genesisHeader"
 import { ITxPool } from "../../common/itxPool"
 import { SignedTx } from "../../common/txSigned"
+import { maxNumberOfUncles, maxUncleHeightDelta } from "../../consensus/consensusGhost"
 import { IConsensus, IStatusChange } from "../../consensus/iconsensus"
 import { BlockStatus, ITip } from "../../consensus/sync"
 import { globalOptions } from "../../main"
@@ -39,6 +40,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
     private version: number
     private peerDatabase: IPeerDatabase
     private lastPoll: number
+    private bTip: ITip
 
     constructor(socket: Socket, network: RabbitNetwork, consensus: IConsensus, txPool: ITxPool, peerDatabase: IPeerDatabase) {
         super(socket)
@@ -61,6 +63,9 @@ export class RabbitPeer extends BasePeer implements IPeer {
 
             if (status === undefined) {
                 throw new Error("Peer did not respond to status request")
+            }
+            if (status.version < this.consensus.minimumVersionNumber()) {
+                throw new Error(`Peer needs to upgrade, current version (${status.version}) is too old`)
             }
             if (status.networkid !== globalOptions.networkid) {
                 throw new Error(`Peer is using different NetworkID(${status.networkid}) to expected value(${globalOptions.networkid})`)
@@ -219,17 +224,16 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return blocks
     }
 
-    public async getHeadersByHashes(hashes: Hash[]): Promise<AnyBlockHeader[]> {
+    public async getHeadersByHashes(hashes: Hash[]): Promise<number> {
         const { reply, packet } = await this.sendRequest({ getHeadersByHash: { hashes } })
         if (reply.getHeadersByHashReturn === undefined) {
             this.protocolError(new Error(`Reply has no 'getHeadersByHashReturn': ${JSON.stringify(reply)}`))
             throw new Error("Invalid response")
         }
-        const headers: AnyBlockHeader[] = []
         for (const header of reply.getHeadersByHashReturn.headers) {
-            headers.push(new BlockHeader(header))
+            await this.consensus.putHeader(new BlockHeader(header))
         }
-        return headers
+        return reply.getHeadersByHashReturn.headers.length
     }
 
     public async getBlocksByRange(fromHeight: number, count: number): Promise<Block[]> {
@@ -276,12 +280,15 @@ export class RabbitPeer extends BasePeer implements IPeer {
         const blockHashes: Hash[] = []
         let header = this.consensus.getHtip().header
         let status: BlockStatus
+        let firstHash: Hash
         do {
-            status = await this.consensus.getBlockStatus(new Hash(header))
+            const hash = new Hash(header)
+            status = await this.consensus.getBlockStatus(hash)
             if (status >= BlockStatus.Block) { break }
             if (!(header instanceof BlockHeader)) { continue }
+            if (firstHash === undefined) { firstHash = hash }
             if (!header.merkleRoot.equals(Hash.emptyHash)) {
-                blockHashes.unshift(new Hash(header))
+                blockHashes.unshift(hash)
             }
             if (blockHashes.length > MAX_HEADERS_PER_PACKET) {
                 blockHashes.pop()
@@ -293,6 +300,13 @@ export class RabbitPeer extends BasePeer implements IPeer {
             logger.debug(`Receiving transactions from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}`)
             return this.getTxBlocks(blockHashes)
         }
+        if (firstHash !== undefined) {
+            return this.getTxBlocks([firstHash])
+        }
+    }
+
+    public getTipHeight() {
+        return this.bTip ? this.bTip.height : undefined
     }
 
     // this is called in BasePeer's onPacket
@@ -342,7 +356,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
                 response = await this.respondGetTip(reply, request[request.request])
                 break
             case "putHeaders":
-                response = await this.respondPutHeaders(reply, request[request.request])
+                response = await this.respondPutHeaders(reply, request[request.request], rebroadcast)
                 break
             case "getHash":
                 response = await this.respondGetHash(reply, request[request.request])
@@ -363,7 +377,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
 
     private async tipPoll() {
         const bTip: ITip | void = await this.getBTip().then((v) => v, () => undefined)
-        const timeSinceLastMessage = Date.now() - this.socketBuffer.lastRecieve
+        const timeSinceLastMessage = Date.now() - this.socketBuffer.lastReceive
         if (timeSinceLastMessage > 60000) {
             logger.debug(`Disconnecting from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}, ${timeSinceLastMessage.toFixed(0)}ms since last reply`)
             this.disconnect()
@@ -371,6 +385,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
         }
 
         if (bTip) {
+            this.bTip = bTip
             if (RabbitPeer.headerSync === undefined && this.consensus.getHtip().totalWork < bTip.totalwork) {
                 logger.debug(`Starting header download from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}`)
                 RabbitPeer.headerSync = this.headerSync(bTip).then(() => RabbitPeer.headerSync = undefined, () => RabbitPeer.headerSync = undefined)
@@ -560,7 +575,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
         try {
             const fromHeight = Number(request.fromHeight)
             const count = Number(request.count)
-            const headers = await this.consensus.getHeadersRange(fromHeight, count)
+            const headers = await this.consensus.getHeadersChainRange(fromHeight, count)
             message = { getHeadersByRangeReturn: { success: true, headers } }
         } catch (e) {
             logger.error(`Failed to getHeadersByRange: ${e}`)
@@ -586,7 +601,32 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return message
     }
 
-    private async respondPutHeaders(reply: boolean, request: proto.IPutHeaders): Promise<proto.INetwork> {
+    private async respondPutHeaders(reply: boolean, request: proto.IPutHeaders, rebroadcast: () => void): Promise<proto.INetwork> {
+        setImmediate(async () => {
+            this.receivedBroadcasts += 1
+            const decay = (Date.now() - this.lastReceivedTime) / 1000
+            this.lastReceivedTime = Date.now()
+            this.receivedBroadcasts = Math.max(0, this.receivedBroadcasts - decay)
+
+            if (this.receivedBroadcasts > BROADCAST_LIMIT) {
+                return
+            }
+
+            request.headers = request.headers.slice(0, maxNumberOfUncles)
+
+            try {
+                const headers = request.headers.map((header) => this.consensus.putHeader(new BlockHeader(header)))
+                const statusChanges = await Promise.all(headers)
+                if (statusChanges.length === 0) {
+                    return
+                }
+                if (statusChanges.every((statusChange) => statusChange.status !== BlockStatus.Rejected)) {
+                    rebroadcast()
+                }
+            } catch (e) {
+                logger.debug(e)
+            }
+        })
         return { putHeadersReturn: { statusChanges: [] } }
     }
 
@@ -686,14 +726,23 @@ export class RabbitPeer extends BasePeer implements IPeer {
         let height = commonHeight + 1
         do {
             headers = await this.getHeadersByRange(height, MAX_HEADERS_PER_PACKET)
+            let uncleCount = 0
             for (const header of headers) {
                 if (!(header instanceof BlockHeader)) {
                     throw new Error(`Received Genesis Block Header during sync`)
                 }
                 const result = await this.consensus.putHeader(header)
-                this.validatePut(height, previousHash, result, header, BlockStatus.Header)
-                height++
-                previousHash = new Hash(header)
+                if (previousHash.equals(header.previousHash[0])) {
+                    this.validatePut(height, previousHash, result, header, BlockStatus.Header)
+                    height++
+                    previousHash = new Hash(header)
+                } else {
+                    uncleCount++
+                    if (uncleCount > maxNumberOfUncles) { throw new Error(`Received too many uncles.`) }
+                    if ((result.height !== undefined) && (height - result.height > maxUncleHeightDelta || result.height >= height)) {
+                        throw new Error(`Received invalid uncle height while header syncing.`)
+                    }
+                }
             }
         } while (height < maxHeight && headers.length > 0)
     }

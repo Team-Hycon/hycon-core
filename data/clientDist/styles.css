@@ -11484,12 +11484,7 @@ _:-ms-input-placeholder, :root .mdl-slider.mdl-slider.is-upgraded {
   font-weight: bold;
   color: #6e6e6e;
 }
-.inCardTitle {
-  margin-top: 0em;
-  font-size: 1.2em;
-  color: white;
-  font-weight: 500;
-}
+
 .errTitle {
   margin-top: 1em;
   margin-bottom: 1em;
@@ -11540,14 +11535,6 @@ a {
   padding-left: 0.8em;
   padding-top: 0.5em;
 }
-.addrTd {
-  width: 40%;
-}
-.arrowImg {
-  margin-left: 50px;
-  margin-right: 50px;
-  padding-top: 0.5em;
-}
 .NoFrom {
   color: #6e6e6e;
   font-weight: bold;
@@ -11563,9 +11550,6 @@ a {
   display: inline-table;
   margin-top: 2em;
   margin-right: 2em;
-}
-.twoTablesInRow {
-  width: 43%;
 }
 .threeTablesInRow {
   width: 25%;
@@ -11617,13 +11601,6 @@ table {
   width: 18em;
   height: 2.5em;
 }
-.addrBtn {
-  float: right;
-  font-size: 0.9em;
-}
-.AddrBtnDiv {
-  margin-right: 28%;
-}
 .progressBar {
   width: 100%;
 }
@@ -11642,81 +11619,20 @@ table {
 .mdl-grid {
   width: 100%;
 }
-.txBtnDiv {
-  height: 1em;
-}
 .mdl-button--raised {
   border-radius: 0.5em;
-}
-.mnemonicInput {
-  width: 45em;
 }
 .disable {
   background-color: grey;
   position: relative;
   z-index: 100;
 }
-.addAccountBtnTd {
-  text-align: right;
-}
-.addAccountBtn {
-  width: 7em;
-  margin-left: 1em;
-}
-.mnemonicTable {
-  width: 51.5em;
-}
-.recoverTable {
-  width: 64.5em;
-}
 .mdl-textfield {
   padding: 15px 0;
-}
-.warningMsg {
-  color: red;
-  font-size: 2em;
-  margin-bottom: 1em;
-}
-.mdl-card {
-  min-height: unset;
-}
-.mdl-card__title {
-  padding: 1% 1%;
-}
-.cardMarginTop {
-  margin-top: 1.5em;
-  width: 48%;
-  float: left;
-  margin-right: 1em;
-}
-.walletIcon_grey {
-  color: grey;
-  font-size: 6em;
-  margin-right: 0.2em;
-  float: left;
 }
 .walletIcon_white {
   font-size: 3em;
   margin-right: 0.2em;
-}
-.walletTitleDiv {
-  background-color: #929292;
-}
-.cardTag {
-  padding: 0px;
-  height: auto;
-}
-.cardAddress {
-  text-align: left;
-  padding-left: 3em;
-  height: 3em;
-}
-.balanceInfo {
-  float: right;
-  margin: 2.5% 0 0 0;
-}
-.addressSpan {
-  line-height: 2em;
 }
 .walletTable_NameAddr {
   float: left;
@@ -11726,10 +11642,6 @@ table {
   font-size: 1.5em;
   color: #6e6e6e;
   font-weight: bold;
-}
-.walletTxTitle {
-  font-size: 1.3em;
-  padding-top: 1em;
 }
 .QRCodeInWalletDetail {
   padding-left: 1.5em;
@@ -11752,67 +11664,27 @@ table {
   text-align: right;
   padding-bottom: 1em;
 }
-.mdl-color--teal {
-  background-color: black !important;
-}
-.walletSummaryTable {
-  width: 88%;
-}
 .walletViewBtnDiv {
   text-align: right;
 }
 .noMarginTitle {
   margin: 0;
 }
-.addressFont {
-  font-size: 0.9em;
-}
-
-.selectBox{
-  width: 100%;
-}
-
-.leftAlignForm{
-  text-align: left;
-}
-
-.balanceOfAccount{
-  float: right;
-}
-
 .dialogContent{
   padding: 0px 0px 10px 2px !important;
   text-align: "center";
 }
-
-.accountList{
-  padding: 0px 0px 10px 2px !important;
-  overflow: scroll;
-  height: 5em;
-}
-
 .dialog{
   border-radius: 2px;
   background-color: #fff;
   box-shadow: 0px 11px 15px -7px rgba(0, 0, 0, 0.2), 0px 24px 38px 3px rgba(0, 0, 0, 0.14), 0px 9px 46px 8px rgba(0, 0, 0, 0.12);
 }
-
 .fee-font{
   font-size: 13px !important;
 }
-.displayBlock{
-  display: block;
-}
-
 .navMargin{
   margin-left: 4em;
 }
-
-.searchBox{
-  height: 2.5em;
-  margin: 0 0 0 0 !important;
-}
-
 .txSendInput{
   padding: 10px 20px !important;
   width: 100%;
@@ -11822,24 +11694,6 @@ table {
   border-radius: 4px;
   box-sizing: border-box;
 }
-
-.txSendInputPwd{
-  width: 75% !important;
-}
-
-.txLabel{
-  width: 33em !important;
-}
-
-.hintBtn{
-  display: initial;
-  margin-left: 1em !important;
-  width: 21% !important;
-}
-/* .selectAccountDiv{
-    padding: 1em 2em 1em 2em;
-} */
-
 .led-green {
   width: 10px;
   height: 10px;
@@ -11852,23 +11706,6 @@ table {
   -o-animation: blinkRed 0.5s infinite;
   animation: blinkRed 0.5s infinite;
 }
-.led-orange {
-  width: 10px;
-  height: 10px;
-  background-color: #FA0;
-  border-radius: 50%;
-  box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #582f00 0 -1px 9px, rgba(225, 125, 0, 0.5) 0 2px 12px;
-}
-
-
-.led-red {
-  width: 10px;
-  height: 10px;
-  background-color: #F00;
-  border-radius: 50%;
-  box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(200, 0, 0, 0.5) 0 2px 12px;
-}
-
 .textRed{
   color: red;
 }
@@ -11876,20 +11713,8 @@ table {
   vertical-align: super;
   padding-left: 10px;
 }
-
-.checkPassphrase{
-  padding: 36px 0;
-}
-
-.dropzone{
-  width: 90%;
-  height: 150px;
-  border : 1px dashed grey;
-  border-radius: 5px;
-  border-width: medium;
-  margin-top: 2%;
-  text-align: center;
-  display: table;
+.disableBtn{
+  pointer-events: none;
 }.marker {
   /* position: 'absolute';
     width: 40px ;

@@ -4,6 +4,7 @@
     "dataRoot": "./data",
     "dataWallet": "./wallet",
     "minerAddress": "",
+    "ghostHeight": 317713,
     "txPoolMaxAddresses": 36000,
     "txPoolMaxTxsPerAddress": 64
 }

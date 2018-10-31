@@ -191,11 +191,9 @@ export class WalletDetail extends React.Component<any, any> {
                             return (
                                 <div key={accountIndex++}>
                                     <TxLine tx={tx} rest={this.state.rest} name={this.state.name} index={this.state.selectedAccount} address={this.state.address} walletType={this.state.walletType} />
-                                    {
-                                        tx.from === this.state.address ?
-                                            (<button className="mdl-button mdl-js-button mdl-button--raised mdl-button--accent txAmtBtn">-{tx.estimated} HYCON</button>)
-                                            :
-                                            (<button className="mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn">{tx.amount} HYCON</button>)
+                                    {tx.from === this.state.address
+                                        ? (<button className="disableBtn mdl-button mdl-js-button mdl-button--raised mdl-button--accent txAmtBtn">-{tx.estimated} HYCON</button>)
+                                        : (<button className="disableBtn mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn">{tx.amount} HYCON</button>)
                                     }
                                 </div>
                             )
@@ -205,8 +203,8 @@ export class WalletDetail extends React.Component<any, any> {
                                 <div key={accountIndex++}>
                                     <TxLine tx={tx} rest={this.state.rest} address={this.state.address} />
                                     {tx.from === this.state.address
-                                        ? (<button className="mdl-button mdl-js-button mdl-button--raised mdl-button--accent txAmtBtn">-{tx.estimated} HYCON</button>)
-                                        : (<button className="mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn">{tx.amount} HYCON</button>)}
+                                        ? (<button className="disableBtn mdl-button mdl-js-button mdl-button--raised mdl-button--accent txAmtBtn">-{tx.estimated} HYCON</button>)
+                                        : (<button className="disableBtn mdl-button mdl-js-button mdl-button--raised mdl-button--colored txAmtBtn">{tx.amount} HYCON</button>)}
                                 </div>
                             )
                         })}
@@ -218,7 +216,6 @@ export class WalletDetail extends React.Component<any, any> {
                             <thead>
                                 <tr>
                                     <th className="mdl-data-table__cell--non-numeric">Block Hash</th>
-                                    <th className="mdl-data-table__cell--non-numeric">Miner Address</th>
                                     <th className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>Fee Reward</th>
                                     <th className="mdl-data-table__cell--non-numeric">Timestamp</th>
                                 </tr>

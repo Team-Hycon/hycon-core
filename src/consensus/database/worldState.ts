@@ -9,6 +9,7 @@ import { GenesisBlock } from "../../common/blockGenesis"
 import { ITxPool } from "../../common/itxPool"
 import { SignedTx } from "../../common/txSigned"
 import { Hash } from "../../util/hash"
+import { IUncleCandidate, uncleReward } from "../consensusGhost"
 import { Account } from "./account"
 import { DBState } from "./dbState"
 import { NodeRef } from "./nodeRef"
@@ -130,7 +131,7 @@ export class WorldState {
         }
     }
 
-    public async next(previousState: Hash, minerAddress: Address, txs?: SignedTx[]): Promise<{ stateTransition: IStateTransition, validTxs: SignedTx[], invalidTxs: SignedTx[] }> {
+    public async next(previousState: Hash, minerAddress: Address, minerReward: number, txs?: SignedTx[], height?: number, uncles: IUncleCandidate[] = []): Promise<{ stateTransition: IStateTransition, validTxs: SignedTx[], invalidTxs: SignedTx[] }> {
         // Consensus Critical
 
         txs === undefined ? txs = this.txPool.getTxs(4096).slice(0, 4096) : txs = txs
@@ -139,11 +140,10 @@ export class WorldState {
         const changes: IChange[] = []
         const mapAccount: Map<string, DBState> = new Map<string, DBState>()
         const mapIndex: Map<string, number> = new Map<string, number>()
-        let fees: Long = Long.fromNumber(240e9, true)
+        let fees: Long = Long.fromNumber(minerReward, true)
         const validTxs: SignedTx[] = []
         const invalidTxs: SignedTx[] = []
         return await this.accountLock.critical(async () => {
-
             for (const tx of txs) {
                 const validity = await this.processTx(tx, previousState, mapIndex, changes)
                 switch (validity) {
@@ -159,6 +159,13 @@ export class WorldState {
                 }
             }
 
+            for (const uncle of uncles) {
+                const uncleAccount = await this.getModifiedAccount(uncle.miner, previousState, mapIndex, changes)
+                const heightDelta = height - uncle.height
+                const reward = uncleReward(minerReward, heightDelta)
+                uncleAccount.account.balance = uncleAccount.account.balance.add(reward)
+                this.putChange(uncleAccount, mapIndex, changes)
+            }
             const miner = await this.getModifiedAccount(minerAddress, previousState, mapIndex, changes)
             miner.account.balance = miner.account.balance.add(fees)
             this.putChange(miner, mapIndex, changes)

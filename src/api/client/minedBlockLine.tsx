@@ -1,11 +1,6 @@
-import Long = require("long")
 import * as React from "react"
-import update = require("react-addons-update")
-import * as ReactPaginate from "react-paginate"
 import { Link } from "react-router-dom"
-import { BlockLine } from "./blockLine"
-import { IBlock, IMinedInfo, IRest } from "./rest"
-import { hyconfromString, hycontoString } from "./stringUtil"
+import { IMinedInfo } from "./rest"
 
 interface IMinedBlockLineProps {
     minedInfo: IMinedInfo
@@ -35,18 +30,12 @@ export class MinedBlockLine extends React.Component<IMinedBlockLineProps, IMined
                         {this.state.minedInfo.blockhash}
                     </Link>
                 </td>
-                <td className="mdl-data-table__cell--non-numeric">
-                    <a href={`/address/${this.state.minedInfo.miner}`}>
-                        {this.state.minedInfo.miner}
-                    </a>
-                </td>
                 <td className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>
                     {this.state.minedInfo.feeReward} HYCON
                 </td>
                 <td className="mdl-data-table__cell--non-numeric">
                     {date.toString()}
                 </td>
-
             </tr>
         )
     }

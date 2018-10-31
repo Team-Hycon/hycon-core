@@ -13,7 +13,7 @@ interface IAsyncCpuMiner {
 }
 
 export class CpuMiner {
-    public static mine(preHash: Uint8Array, difficulty: number, prefix: number, startNonce: number = 0, maxNonce: number = 0xFFFFFFFF): IAsyncCpuMiner {
+    public static mine(preHash: Uint8Array, target: Buffer, prefix: number, startNonce: number = 0, maxNonce: number = 0xFFFFFFFF): IAsyncCpuMiner {
         let calculate = true
         let currentNonce = startNonce
         const startTime = Date.now()
@@ -23,7 +23,6 @@ export class CpuMiner {
                 const buffer = Buffer.allocUnsafe(72)
                 buffer.fill(preHash, 0, 64)
                 buffer.writeUInt32LE(prefix, 64)
-                const target = DifficultyAdjuster.getTarget(difficulty, 32)
 
                 while (currentNonce < maxNonce && calculate) {
                     buffer.writeUInt32LE(currentNonce, 68)
@@ -86,12 +85,12 @@ export class CpuMiner {
         return Promise.all(promises)
     }
 
-    public putWork(block: Block, prehash: Uint8Array, difficulty: number) {
+    public putWork(block: Block, target: Buffer, prehash: Uint8Array) {
         this.stop()
         this.miners = []
         const hash = new Hash(block.header)
         for (let i = 0; i < this.minerCount; i++) {
-            const miner = CpuMiner.mine(prehash, difficulty, i)
+            const miner = CpuMiner.mine(prehash, target, i)
             miner.nonce.then((nonce) => {
                 const minedBlock = new Block(block)
                 minedBlock.header.nonce = nonce

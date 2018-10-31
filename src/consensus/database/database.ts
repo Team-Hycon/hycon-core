@@ -3,6 +3,7 @@ import { getLogger } from "log4js"
 import rocksdb = require("rocksdb")
 import { AnyBlock, Block } from "../../common/block"
 import { GenesisBlock } from "../../common/blockGenesis"
+import { BlockHeader } from "../../common/blockHeader"
 import { Hash } from "../../util/hash"
 import { BlockStatus } from "../sync"
 import { BlockFile } from "./blockFile"
@@ -36,9 +37,10 @@ export class Database {
         await this.blockFile.fileInit(this.fileNumber, +filePosition)
     }
     public putDBBlock(hash: Hash, dbBlock: DBBlock) {
-        return this.database.put("b" + hash, dbBlock.encode())
+        const key = "b" + hash
+        const value = dbBlock.encode()
+        return this.database.put(key, value)
     }
-
     public async writeBlock(block: AnyBlock) {
         const writeLocation = await this.blockFile.put(block)
         if (this.fileNumber !== writeLocation.fileNumber) {
@@ -49,15 +51,19 @@ export class Database {
         return writeLocation
     }
 
-    public async setHashAtHeight(height: number, hash: Hash): Promise<void> {
-        await this.database.put(height, hash.toBuffer())
+    public setHashAtHeight(height: number, hash: Hash) {
+        const value = hash.toBuffer()
+        return this.database.put(height, value)
+    }
+
+    public batch(batch: levelup.Batch[]) {
+        return this.database.batch(batch)
     }
 
     public async getHashAtHeight(height: number): Promise<Hash> {
         try {
             const hashData = await this.database.get(height)
-            const hash = new Hash(hashData)
-            return hash
+            return new Hash(hashData)
         } catch (e) {
             if (e.notFound) { return undefined }
             logger.error(`Fail to getHashAtHeight : ${e}`)
@@ -72,8 +78,9 @@ export class Database {
         return this.dbBlockToBlock(block)
     }
 
-    public async setBlockStatus(hash: Hash, status: BlockStatus): Promise<void> {
-        await this.database.put("s" + hash, status)
+    public setBlockStatus(hash: Hash, status: BlockStatus) {
+        const key = "s" + hash
+        return this.database.put(key, status)
     }
 
     public async getBlockStatus(hash: Hash): Promise<BlockStatus> {
@@ -88,16 +95,18 @@ export class Database {
         }
     }
 
-    public async setBlockTip(hash: Hash) {
-        await this.database.put("__blockTip", hash.toBuffer())
+    public setBlockTip(hash: Hash) {
+        const key = "__blockTip"
+        const value = hash.toBuffer()
+        return this.database.put(key, value)
     }
 
     public async getBlockTip(): Promise<DBBlock | undefined> {
         return this.getTip("__blockTip")
     }
 
-    public async setHeaderTip(hash: Hash) {
-        await this.database.put("__headerTip", hash.toBuffer())
+    public setHeaderTip(hash: Hash) {
+        return this.database.put("__headerTip", hash.toBuffer())
     }
 
     public async getHeaderTip(): Promise<DBBlock | undefined> {
@@ -115,7 +124,6 @@ export class Database {
                 return undefined
             }
             if (e instanceof DecodeError) {
-
                 logger.error(`Could not decode block ${hash}`)
             }
             throw e
@@ -137,31 +145,35 @@ export class Database {
         return dbBlocks
     }
 
+    public async getDBBlocksChainRange(fromHeight: number, count?: number): Promise<DBBlock[]> {
+        const dbBlocks: DBBlock[] = []
+        for (let height = fromHeight; height < fromHeight + count; height++) {
+            const hash = await this.getHashAtHeight(height)
+            if (hash === undefined) { continue }
+
+            const dbBlock = await this.getDBBlock(hash)
+            if (dbBlock === undefined) { continue }
+
+            if (dbBlock.header instanceof BlockHeader) {
+                const unclesHashes = dbBlock.header.previousHash.slice(1)
+                for (const uncle of unclesHashes) {
+                    const uncleDBBlock = await this.getDBBlock(uncle)
+                    if (uncleDBBlock === undefined) { continue }
+                    dbBlocks.push(uncleDBBlock)
+                }
+            }
+            dbBlocks.push(dbBlock)
+        }
+        return dbBlocks
+    }
+
     public async getDBBlock(hash: Hash): Promise<DBBlock | undefined> {
-        let decodingDBEntry = false
         try {
             const key = "b" + hash
             const encodedBlock = await this.database.get(key)
-            decodingDBEntry = true
-            const block = DBBlock.decode(encodedBlock)
-            if (block) {
-                return block
-            } else {
-
-                logger.debug(`Could not decode block ${hash}`)
-                const decodeError = new DecodeError()
-                decodeError.hash = hash
-                throw decodeError
-            }
+            return DBBlock.decode(encodedBlock)
         } catch (e) {
             if (e.notFound) { return undefined }
-            if (decodingDBEntry) {
-
-                logger.error(`Could not decode block ${hash}`)
-                const decodeError = new DecodeError()
-                decodeError.hash = hash
-                throw decodeError
-            }
             throw e
         }
     }

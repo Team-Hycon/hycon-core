@@ -20,6 +20,8 @@ export type AnySignedTx = (GenesisSignedTx | SignedTx)
 export type NewBlockCallback = (block: AnyBlock) => void
 export interface IConsensus extends EventEmitter {
     init(): Promise<void>
+    minimumVersionNumber(): number
+    getTargetTime(): number
     putBlock(block: Block, rebroadcast?: () => void, ip?: string): Promise<IStatusChange>
     putHeader(header: BlockHeader): Promise<IStatusChange>
     putTxBlocks(txBlocks: Array<{ hash: Hash, txs: SignedTx[] }>): Promise<IStatusChange[]>
@@ -27,13 +29,15 @@ export interface IConsensus extends EventEmitter {
     getBlockByHash(hash: Hash): Promise<AnyBlock>
     getHeaderByHash(hash: Hash): Promise<AnyBlockHeader>
     getBlocksRange(fromHeight: number, count?: number): Promise<AnyBlock[]>
+    getBlocksRanges(fromHeight: number, count?: number): Promise<{ nakamotoBlocks: AnyBlock[], ghostBlocks: AnyBlock[] }>
     getHeadersRange(fromHeight: number, count?: number): Promise<AnyBlockHeader[]>
+    getHeadersChainRange(fromHeight: number, count?: number): Promise<AnyBlockHeader[]>
     getAccount(address: Address): Promise<Account>
     getLastTxs(address: Address, count?: number): Promise<DBTx[]>
     getTxsInBlock(blockhash: string, count?: number): Promise<{ txs: DBTx[], amount: string, fee: string, length: number }>
     getNextTxs(address: Address, txHash: Hash, index: number, count?: number): Promise<DBTx[]>
     getNextTxsInBlock(blockHash: string, txHash: string, index: number, count?: number): Promise<DBTx[]>
-    getMinedBlocks(address: Address, count?: number, index?: number, blockHash?: Hash): Promise<DBMined[]>
+    getMinedBlocks(address: Address, count?: number, index?: number, blockHash?: string): Promise<DBMined[]>
     getBlockStatus(hash: Hash): Promise<BlockStatus>
     getBlocksTip(): { hash: Hash, height: number, totalwork: number }
     getCurrentDiff(): number
@@ -46,4 +50,5 @@ export interface IConsensus extends EventEmitter {
     getBlockHeight(hash: Hash): Promise<number | undefined>
     getBlockAtHeight(height: number): Promise<Block | GenesisBlock | undefined>
     getBurnAmount(): Promise<{ amount: Long }>
+    isUncleBlock(hash: Hash): Promise<boolean>
 }

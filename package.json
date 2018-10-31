@@ -1,6 +1,6 @@
 {
     "name": "hycon",
-    "version": "0.0.7",
+    "version": "0.1.0",
     "description": "HYCON Full-node",
     "main": "index.js",
     "bin": "build/src/main.js",

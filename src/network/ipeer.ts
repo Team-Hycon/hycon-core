@@ -18,7 +18,7 @@ export interface IPeer {
     getBlockTxs(hashes: Hash[]): Promise<IBlockTxs[]>
     getHash(height: number): Promise<Hash | undefined>
     getBlocksByHashes(hashes: Hash[]): Promise<Block[]>
-    getHeadersByHashes(hashes: Hash[]): Promise<AnyBlockHeader[]>
+    getHeadersByHashes(hashes: Hash[]): Promise<number>
     getBlocksByRange(fromHeight: number, count: number): Promise<Block[]>
     getHeadersByRange(fromHeight: number, count: number): Promise<AnyBlockHeader[]>
     getHTip(header?: boolean): Promise<{ hash: Hash, height: number, totalwork: number }>
@@ -27,4 +27,5 @@ export interface IPeer {
     headerSync(remoteTip: ITip): Promise<void>
     txSync(remoteTip: ITip): Promise<void>
     blockSync(remoteBlockTip: ITip): Promise<void>
+    getTipHeight(): number | undefined
 }

@@ -8,18 +8,16 @@ import { ITxPool } from "../../common/itxPool"
 import { PrivateKey } from "../../common/privateKey"
 import { SignedTx } from "../../common/txSigned"
 import { DBTx } from "../../consensus/database/dbtx"
-import { DifficultyAdjuster } from "../../consensus/difficultyAdjuster"
 import { IConsensus } from "../../consensus/iconsensus"
 import { globalOptions } from "../../main"
 import { setMiner } from "../../main"
 import { MinerServer } from "../../miner/minerServer"
 import { INetwork } from "../../network/inetwork"
-import * as proto from "../../serialization/proto"
 import { Hash } from "../../util/hash"
 import { Bitbox } from "../../wallet/bitbox"
 import { Ledger } from "../../wallet/ledger"
 import { Wallet } from "../../wallet/wallet"
-import { IBlock, ICreateWallet, IHyconWallet, IMinedInfo, IMiner, IPeer, IResponseError, IRest, ITxProp, IUser, IWalletAddress } from "../client/rest"
+import { IBlock, ICreateWallet, IHyconWallet, IMinedInfo, IMiner, IPeer, IResponseError, IRest, ITxProp, IWalletAddress } from "../client/rest"
 import { hyconfromString, hycontoString, zeroPad } from "../client/stringUtil"
 const logger = getLogger("RestServer")
 
@@ -275,7 +273,7 @@ export class RestServer implements IRest {
         }
     }
 
-    public async getAddressInfo(address: string): Promise<IWalletAddress> {
+    public async getAddressInfo(address: string): Promise<IWalletAddress | IResponseError> {
         try {
             const addressOfWallet = new Address(address)
             const n = 10
@@ -334,8 +332,12 @@ export class RestServer implements IRest {
                 pendingAmount: hycontoString(pendingAmount),
             })
         } catch (e) {
-            logger.warn(`${e}`)
-            throw e
+            return Promise.resolve({
+                status: 404,
+                timestamp: Date.now(),
+                error: "INVALID_PARAMETER",
+                message: e.toString(),
+            })
         }
     }
 
@@ -988,7 +990,7 @@ export class RestServer implements IRest {
 
     public async getMinedBlocks(address: string, blockHash: string, index: number): Promise<IMinedInfo[]> {
         const cntPerPage: number = 10
-        const minedInfo = await this.consensus.getMinedBlocks(new Address(address), cntPerPage, index, Hash.decode(blockHash))
+        const minedInfo = await this.consensus.getMinedBlocks(new Address(address), cntPerPage, index, blockHash)
         const minedBloks: IMinedInfo[] = []
         for (const mined of minedInfo) {
             minedBloks.push({
@@ -1004,11 +1006,26 @@ export class RestServer implements IRest {
     public async getMiner(): Promise<IMiner> {
         const minerInfo = this.miner.getMinerInfo()
         const currentDiff = this.consensus.getCurrentDiff()
-        let networkHashRate = 0
-        if (currentDiff !== 0) {
-            networkHashRate = 1 / (currentDiff * DifficultyAdjuster.getTargetTime())
+        let networkHashRate = "Unknown"
+        function decimalPlacesString(n: number, places: number) {
+            const power = Math.pow(10, places)
+            return (Math.round(n * power) / power).toLocaleString()
         }
-        return { cpuHashRate: minerInfo.hashRate, networkHashRate: Math.round(networkHashRate), currentMinerAddress: minerInfo.address, cpuCount: minerInfo.cpuCount }
+        if (currentDiff !== 0) {
+            const hashesPerBlock = (1 / currentDiff)
+            const meanBlockTime = this.consensus.getTargetTime() / 1000
+            const hashesPerSecond = (hashesPerBlock / meanBlockTime)
+            if (hashesPerSecond > 20 * 1000 * 1000 * 1000) {
+                networkHashRate = `${decimalPlacesString(hashesPerSecond / (1000 * 1000 * 1000), 2)} GH/s`
+            } else if (hashesPerSecond > 20 * 1000 * 1000) {
+                networkHashRate = `${decimalPlacesString(hashesPerSecond / (1000 * 1000), 2)} MH/s`
+            } else if (hashesPerSecond > 20 * 1000) {
+                networkHashRate = `${decimalPlacesString(hashesPerSecond / 1000, 2)} KH/s`
+            } else {
+                networkHashRate = `${decimalPlacesString(hashesPerSecond, 2)} H/s`
+            }
+        }
+        return { cpuHashRate: minerInfo.hashRate, networkHashRate, currentMinerAddress: minerInfo.address, cpuCount: minerInfo.cpuCount }
     }
 
     public async setMiner(address: string): Promise<boolean> {
@@ -1196,12 +1213,12 @@ export class RestServer implements IRest {
         const blockTip = await this.consensus.getBlocksTip()
         totalAmount = totalAmount.add(hyconfromString((blockTip.height * 240).toString()))
 
-        const airdropAddr = await this.getAddressInfo(`H3nHqmqsamhY9LLm87GKLuXfke6gg8QmM`)
-        const icoAddr = await this.getAddressInfo(`H3ynYLh9SkRCTnH59ZdU9YzrzzPVL5R1K`)
-        const corpAddr = await this.getAddressInfo(`H8coFUhRwbY9wKhi6GGXQ2PzooqdE52c`)
-        const teamAddr = await this.getAddressInfo(`H3r7mH8PVCjJF2CUj8JYu8L4umkayCC1e`)
-        const bountyAddr = await this.getAddressInfo(`H278osmYQoWP8nnrvNypWB5YfDNk6Fuqb`)
-        const developAddr = await this.getAddressInfo(`H4C2pYMHygAtSungDKmZuHhfYzjkiAdY5`)
+        const airdropAddr = await this.getAddressInfo(`H3nHqmqsamhY9LLm87GKLuXfke6gg8QmM`) as IWalletAddress
+        const icoAddr = await this.getAddressInfo(`H3ynYLh9SkRCTnH59ZdU9YzrzzPVL5R1K`) as IWalletAddress
+        const corpAddr = await this.getAddressInfo(`H8coFUhRwbY9wKhi6GGXQ2PzooqdE52c`) as IWalletAddress
+        const teamAddr = await this.getAddressInfo(`H3r7mH8PVCjJF2CUj8JYu8L4umkayCC1e`) as IWalletAddress
+        const bountyAddr = await this.getAddressInfo(`H278osmYQoWP8nnrvNypWB5YfDNk6Fuqb`) as IWalletAddress
+        const developAddr = await this.getAddressInfo(`H4C2pYMHygAtSungDKmZuHhfYzjkiAdY5`) as IWalletAddress
 
         const circulatingSupply = totalAmount.sub(hyconfromString(airdropAddr.balance)).sub(hyconfromString(icoAddr.balance)).sub(hyconfromString(corpAddr.balance)).sub(hyconfromString(teamAddr.balance)).sub(hyconfromString(bountyAddr.balance)).sub(hyconfromString(developAddr.balance))
 
@@ -1311,6 +1328,24 @@ export class RestServer implements IRest {
         }
     }
 
+    public async isUncleBlock(blockHash: string): Promise<boolean | IResponseError> {
+        try {
+            const result = await this.consensus.isUncleBlock(Hash.decode(blockHash))
+            return Promise.resolve(result)
+        } catch (e) {
+            return e
+        }
+    }
+
+    public async getMiningReward(minerAddress: string, blockHash: string): Promise<string | IResponseError> {
+        try {
+            const result = await this.consensus.getMinedBlocks(new Address(minerAddress), 1, undefined, blockHash)
+            return result.length > 0 ? result[0].feeReward : undefined
+        } catch (e) {
+            return e
+        }
+    }
+
     private async prepareSendTx(fromAddress: Address, toAddress: string, amount: string, minerFee: string, txNonce?: number): Promise<{ address: Address, nonce: number }> {
         let checkAddr = false
         try {
@@ -1357,5 +1392,4 @@ export class RestServer implements IRest {
             throw 3
         }
     }
-
 }

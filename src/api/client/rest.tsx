@@ -106,7 +106,7 @@ export interface IMinedInfo {
 export interface IMiner {
     cpuHashRate: number
     cpuCount: number
-    networkHashRate: number
+    networkHashRate: string
     currentMinerAddress: string
 }
 
@@ -126,7 +126,7 @@ export interface IRest {
     // [Depreciated] changeAccount(name: string, represent: number): Promise<boolean>
     deleteWallet(name: string): Promise<boolean>
     generateWallet(Hwallet: IHyconWallet): Promise<string>
-    getAddressInfo(address: string): Promise<IWalletAddress>
+    getAddressInfo(address: string): Promise<IWalletAddress | IResponseError>
     getAllAccounts(name: string, password: string, startIndex: number): Promise<Array<{ address: string, balance: string }> | boolean>
     getBlock(hash: string): Promise<IBlock | IResponseError>
     getBlockList(index: number): Promise<{ blocks: IBlock[], length: number }>
@@ -171,4 +171,6 @@ export interface IRest {
     setBitboxPassword(password: string): Promise<boolean | number>
     createBitboxWallet(name: string, password: string): Promise<boolean | number>
     updateBitboxPassword(originalPwd: string, newPwd: string): Promise<boolean | number | { error: number, remain_attemp: string }>
+    isUncleBlock(blockHash: string): Promise<boolean | IResponseError>
+    getMiningReward(minerAddress: string, blockHash: string): Promise<string | IResponseError>
 }

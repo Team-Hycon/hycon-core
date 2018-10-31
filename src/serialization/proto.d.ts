@@ -317,6 +317,9 @@ export interface IBlockDB {
 
     /** BlockDB totalWork */
     totalWork?: number;
+
+    /** BlockDB uncle */
+    uncle?: boolean;
 }
 
 /** Represents a BlockDB. */
@@ -354,6 +357,9 @@ export class BlockDB implements IBlockDB {
 
     /** BlockDB totalWork. */
     public totalWork: number;
+
+    /** BlockDB uncle. */
+    public uncle: boolean;
 
     /**
      * Creates a new BlockDB instance using the specified properties.

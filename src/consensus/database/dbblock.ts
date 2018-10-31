@@ -16,6 +16,7 @@ export class DBBlock implements proto.IBlockDB {
     public pEMA: number
     public nextDifficulty: number
     public totalWork: number
+    public uncle: boolean
 
     constructor(dbBlock: proto.IBlockDB) {
         // Consensus Critical
@@ -63,6 +64,11 @@ export class DBBlock implements proto.IBlockDB {
         }
         if (block.totalWork !== undefined) {
             this.totalWork = block.totalWork
+        }
+        if (block.uncle !== undefined) {
+            this.uncle = block.uncle
+        } else {
+            this.uncle = false
         }
 
         this.height = block.height

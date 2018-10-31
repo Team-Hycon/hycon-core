@@ -706,6 +706,7 @@ $root.BlockDB = (function() {
      * @property {number|null} [pEMA] BlockDB pEMA
      * @property {number|null} [nextDifficulty] BlockDB nextDifficulty
      * @property {number|null} [totalWork] BlockDB totalWork
+     * @property {boolean|null} [uncle] BlockDB uncle
      */
 
     /**
@@ -796,6 +797,14 @@ $root.BlockDB = (function() {
     BlockDB.prototype.totalWork = 0;
 
     /**
+     * BlockDB uncle.
+     * @member {boolean} uncle
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.uncle = false;
+
+    /**
      * Creates a new BlockDB instance using the specified properties.
      * @function create
      * @memberof BlockDB
@@ -837,6 +846,8 @@ $root.BlockDB = (function() {
             writer.uint32(/* id 8, wireType 1 =*/65).double(message.nextDifficulty);
         if (message.totalWork != null && message.hasOwnProperty("totalWork"))
             writer.uint32(/* id 9, wireType 1 =*/73).double(message.totalWork);
+        if (message.uncle != null && message.hasOwnProperty("uncle"))
+            writer.uint32(/* id 10, wireType 0 =*/80).bool(message.uncle);
         return writer;
     };
 
@@ -897,6 +908,9 @@ $root.BlockDB = (function() {
                 break;
             case 9:
                 message.totalWork = reader.double();
+                break;
+            case 10:
+                message.uncle = reader.bool();
                 break;
             default:
                 reader.skipType(tag & 7);
@@ -962,6 +976,9 @@ $root.BlockDB = (function() {
         if (message.totalWork != null && message.hasOwnProperty("totalWork"))
             if (typeof message.totalWork !== "number")
                 return "totalWork: number expected";
+        if (message.uncle != null && message.hasOwnProperty("uncle"))
+            if (typeof message.uncle !== "boolean")
+                return "uncle: boolean expected";
         return null;
     };
 
@@ -998,6 +1015,8 @@ $root.BlockDB = (function() {
             message.nextDifficulty = Number(object.nextDifficulty);
         if (object.totalWork != null)
             message.totalWork = Number(object.totalWork);
+        if (object.uncle != null)
+            message.uncle = Boolean(object.uncle);
         return message;
     };
 
@@ -1024,6 +1043,7 @@ $root.BlockDB = (function() {
             object.pEMA = 0;
             object.nextDifficulty = 0;
             object.totalWork = 0;
+            object.uncle = false;
         }
         if (message.height != null && message.hasOwnProperty("height"))
             object.height = message.height;
@@ -1043,6 +1063,8 @@ $root.BlockDB = (function() {
             object.nextDifficulty = options.json && !isFinite(message.nextDifficulty) ? String(message.nextDifficulty) : message.nextDifficulty;
         if (message.totalWork != null && message.hasOwnProperty("totalWork"))
             object.totalWork = options.json && !isFinite(message.totalWork) ? String(message.totalWork) : message.totalWork;
+        if (message.uncle != null && message.hasOwnProperty("uncle"))
+            object.uncle = message.uncle;
         return object;
     };
 

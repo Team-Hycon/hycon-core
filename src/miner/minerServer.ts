@@ -1,12 +1,12 @@
 import { getLogger } from "log4js"
-import Long = require("long")
 import { Address } from "../common/address"
 import { Block } from "../common/block"
 import { BlockHeader } from "../common/blockHeader"
 import { ITxPool } from "../common/itxPool"
+import { Consensus } from "../consensus/consensus"
+import { IUncleCandidate } from "../consensus/consensusGhost"
 import { DBBlock } from "../consensus/database/dbblock"
 import { WorldState } from "../consensus/database/worldState"
-import { DifficultyAdjuster } from "../consensus/difficultyAdjuster"
 import { IConsensus } from "../consensus/iconsensus"
 import { globalOptions } from "../main"
 import { INetwork } from "../network/inetwork"
@@ -17,16 +17,6 @@ import { StratumServer } from "./stratumServer"
 const logger = getLogger("Miner")
 
 export class MinerServer {
-    public static async checkNonce(preHash: Uint8Array, nonce: Long, difficulty: number): Promise<boolean> {
-        // Consensus Critical
-        const buffer = Buffer.allocUnsafe(72)
-        buffer.fill(preHash, 0, 64)
-        buffer.writeUInt32LE(nonce.getLowBitsUnsigned(), 64)
-        buffer.writeUInt32LE(nonce.getHighBitsUnsigned(), 68)
-        const target = DifficultyAdjuster.getTarget(difficulty)
-        return DifficultyAdjuster.acceptable(await Hash.hashCryptonight(buffer), target)
-    }
-
     private txpool: ITxPool
     private consensus: IConsensus
     private network: INetwork
@@ -42,14 +32,13 @@ export class MinerServer {
         this.network = network
         this.stratumServer = new StratumServer(this, stratumPort)
         this.cpuMiner = new CpuMiner(this, cpuMiners)
-        this.consensus.on("candidate", (previousDBBlock: DBBlock, previousHash: Hash) => this.candidate(previousDBBlock, previousHash))
+        this.consensus.on("candidate", (previousDBBlock: DBBlock, previousHash: Hash, minerReward: number, uncleCandidates?: IUncleCandidate[]) => this.candidate(previousDBBlock, previousHash, minerReward, uncleCandidates))
     }
 
     public async submitBlock(block: Block) {
         this.stop()
-        if (await this.consensus.putBlock(block)) {
-            this.network.broadcastBlocks([block])
-        }
+        this.network.broadcastBlocks([block])
+        await this.consensus.putBlock(block)
     }
     public stop(): void {
         this.cpuMiner.stop()
@@ -65,7 +54,7 @@ export class MinerServer {
         this.cpuMiner.minerCount = count
     }
 
-    private candidate(previousDBBlock: DBBlock, previousHash: Hash): void {
+    private candidate(previousDBBlock: DBBlock, previousHash: Hash, minerReward: number, uncleCandidates: IUncleCandidate[] = []): void {
         if (globalOptions.minerAddress === undefined || globalOptions.minerAddress === "") {
             logger.info("Can't mine without miner address")
             return
@@ -76,18 +65,27 @@ export class MinerServer {
             return
         }
 
+        const height = previousDBBlock.height + 1
         const miner: Address = new Address(globalOptions.minerAddress)
-        logger.debug(`New Candidate Block Difficulty: 0x${previousDBBlock.nextDifficulty.toExponential()} Target: ${DifficultyAdjuster.getTarget(previousDBBlock.nextDifficulty, 32).toString("hex")}`)
+        const target = Consensus.getTarget(previousDBBlock.nextDifficulty, height)
+        logger.debug(`New Candidate Block Difficulty: 0x${previousDBBlock.nextDifficulty.toExponential()} Target: ${target.toString("hex")}`)
         clearInterval(this.intervalId)
-        this.createCandidate(previousDBBlock, previousHash, miner)
-        this.intervalId = setInterval(() => this.createCandidate(previousDBBlock, previousHash, miner), 2000)
 
+        const previousHashes = [previousHash]
+        for (const uncle of uncleCandidates) {
+            previousHashes.push(uncle.hash)
+        }
+        if (previousHashes.length > 1) {
+            logger.debug(`Mining next block with ${previousHashes.length - 1} uncle(s)`)
+        }
+        this.createCandidate(previousDBBlock, target, previousHashes, miner, minerReward, uncleCandidates)
+        this.intervalId = setInterval(() => this.createCandidate(previousDBBlock, target, previousHashes, miner, minerReward, uncleCandidates), 2000)
     }
 
-    private async createCandidate(previousDBBlock: DBBlock, previousHash: Hash, miner: Address) {
+    private async createCandidate(previousDBBlock: DBBlock, target: Buffer, previousHash: Hash[], miner: Address, minerReward: number, uncleCandidates?: IUncleCandidate[]) {
+        const height = previousDBBlock.height + 1
         const timeStamp = Math.max(Date.now(), previousDBBlock.header.timeStamp + 50)
-
-        const { stateTransition: { currentStateRoot }, validTxs, invalidTxs } = await this.worldState.next(previousDBBlock.header.stateRoot, miner)
+        const { stateTransition: { currentStateRoot }, validTxs, invalidTxs } = await this.worldState.next(previousDBBlock.header.stateRoot, miner, minerReward, undefined, height, uncleCandidates)
         this.txpool.removeTxs(invalidTxs)
         const block = new Block({
             header: new BlockHeader({
@@ -95,7 +93,7 @@ export class MinerServer {
                 merkleRoot: Block.calculateMerkleRoot(validTxs),
                 miner,
                 nonce: -1,
-                previousHash: [previousHash],
+                previousHash,
                 stateRoot: currentStateRoot,
                 timeStamp,
             }),
@@ -103,7 +101,7 @@ export class MinerServer {
         })
 
         const prehash = block.header.preHash()
-        this.cpuMiner.putWork(block, prehash, block.header.difficulty)
-        this.stratumServer.putWork(block, prehash, this.cpuMiner.minerCount)
+        this.cpuMiner.putWork(block, target, prehash)
+        this.stratumServer.putWork(block, target, prehash, this.cpuMiner.minerCount)
     }
 }

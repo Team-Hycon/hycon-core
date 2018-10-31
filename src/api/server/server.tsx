@@ -2,11 +2,11 @@ import * as bodyParser from "body-parser"
 import * as express from "express"
 import { getLogger } from "log4js"
 import opn = require("opn")
-import { matchRoutes, renderRoutes } from "react-router-config"
+import { matchRoutes } from "react-router-config"
 import { SignedTx } from "../../common/txSigned"
 import { globalOptions } from "../../main"
 import { RestManager } from "../../rest/restManager"
-import { App, routes } from "../client/app"
+import { routes } from "../client/app"
 import { indexRender } from "./index"
 import { RestServer } from "./restServer"
 const logger = getLogger("RestClient")
@@ -325,11 +325,9 @@ export class HttpServer {
         router.get("/getMinedInfo/:address/:blockHash/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMinedBlocks(req.params.address, req.params.blockHash, req.params.index))
         })
-
         router.get("/getLedgerWallet/:startIndex/:count", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getLedgerWallet(req.params.startIndex, req.params.count))
         })
-
         router.post("/sendTxWithLedger", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.sendTxWithLedger(
                 req.body.index,
@@ -343,15 +341,12 @@ export class HttpServer {
                     this.hyconServer.broadcastTxs(newTxs)
                 }))
         })
-
         router.get("/possibilityLedger", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.possibilityLedger())
         })
-
         router.get("/getMarketCap", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMarketCap())
         })
-
         router.post("/sendTxWithHDWallet", async (req: express.Request, res: express.Response) => {
             res.json(
                 await this.rest.sendTxWithHDWallet({
@@ -368,17 +363,14 @@ export class HttpServer {
                     }),
             )
         })
-
         router.get("/checkPasswordBitbox", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.checkPasswordBitbox())
         })
-
         router.post("/checkWalletBitbox", async (req: express.Request, res: express.Response) => {
             res.json(
                 await this.rest.checkWalletBitbox(req.body.password),
             )
         })
-
         router.post("/getBitboxWallet", async (req: express.Request, res: express.Response) => {
             res.json(
                 await this.rest.getBitboxWallet(req.body.password, req.body.startIndex, req.body.count),
@@ -400,17 +392,20 @@ export class HttpServer {
                     }),
             )
         })
-
         router.post("/setBitboxPassword", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.setBitboxPassword(req.body.password))
         })
-
         router.post("/createBitboxWallet", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.createBitboxWallet(req.body.name, req.body.password))
         })
-
         router.post("/updateBitboxPassword", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.updateBitboxPassword(req.body.originalPwd, req.body.newPwd))
+        })
+        router.get("/isUncleBlock/:blockHash", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.isUncleBlock(req.params.blockHash))
+        })
+        router.get("/getMiningReward/:minerAddress/:blockHash", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getMiningReward(req.params.minerAddress, req.params.blockHash))
         })
 
         this.app.use(`/api/${apiVersion}`, router)

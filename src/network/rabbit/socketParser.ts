@@ -53,6 +53,10 @@ export class SocketParser {
             throw new Error("Buffer too large")
         }
 
+        if (this.socket.destroyed) {
+            return;
+        }
+
         await this.sendLock.getLock()
         // this.lockLogTimer = setTimeout(() => logger.debug(`Long lock time in SocketParse.send`), 10000)
         this.writeBuffer.writeUInt32LE(route, 0)

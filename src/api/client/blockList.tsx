@@ -35,7 +35,7 @@ export class BlockList extends React.Component<any, any> {
         this.getRecentBlockList(this.state.index)
         this.intervalId = setInterval(() => {
             this.getRecentBlockList(this.state.index)
-        }, 10000)
+        }, 1000)
     }
 
     public getRecentBlockList(index: number) {
@@ -120,6 +120,7 @@ export class BlockList extends React.Component<any, any> {
                                 <th className="mdl-data-table__cell--non-numeric">Height</th>
                                 <th className="mdl-data-table__cell--non-numeric">Age</th>
                                 <th className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>Transactions</th>
+                                <th className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>Uncles</th>
                                 <th className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>Total Sent</th>
                                 <th className="mdl-data-table__cell--non-numeric">Relayed By</th>
                                 <th className="mdl-data-table__cell--numeric">Size(kB)</th>
@@ -127,7 +128,7 @@ export class BlockList extends React.Component<any, any> {
                         </thead>
                         <tbody>
                             {this.state.blocks.reverse().map((block: IBlock) => {
-                                return <BlockLine key={blockIndex++} block={block} />
+                                return <BlockLine key={blockIndex++} block={block} rest={this.state.rest} />
                             })}
                         </tbody>
                     </table>
@@ -147,7 +148,7 @@ export class BlockList extends React.Component<any, any> {
             event.preventDefault()
         } else if (!/^[a-zA-Z0-9]+$/.test(this.state.blockHash)) {
             event.preventDefault()
-            if (alert(`Please enter a valid block hash consisting of numbers and English`)) { window.location.reload() }
+            alert(`Please enter a valid block hash consisting of numbers and English`)
         } else {
             this.setState({ redirect: true })
         }

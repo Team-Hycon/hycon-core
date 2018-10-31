@@ -53,9 +53,9 @@ export class StratumServer {
         }
     }
 
-    public putWork(block: Block, prehash: Uint8Array, minerOffset: number) {
+    public putWork(block: Block, target: Buffer, prehash: Uint8Array, minerOffset: number) {
         try {
-            const job = this.newJob(block, prehash)
+            const job = this.newJob(block, target, prehash)
             let index = 0
             this.mapSocket.forEach((socket, key, map) => {
                 if (socket !== undefined) {
@@ -191,13 +191,12 @@ export class StratumServer {
         }
     }
 
-    private newJob(block: Block, prehash: Uint8Array): IJob {
+    private newJob(block: Block, target: Buffer, prehash: Uint8Array): IJob {
         this.jobId++
         if (this.jobId > 0x7FFFFFFF) { this.jobId = 0 }
         this.mapCandidateBlock.delete(this.jobId - this.maxMapCount)
         const prehashHex = Buffer.from(prehash as Buffer).toString("hex")
-        const target = DifficultyAdjuster.getTarget(block.header.difficulty, 32)
-        const targetHex = DifficultyAdjuster.getTarget(block.header.difficulty, 8).toString("hex")
+        const targetHex = target.slice(target.length - 8).toString("hex")
         const job = {
             block,
             id: this.jobId,

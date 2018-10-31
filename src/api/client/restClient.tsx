@@ -1,14 +1,12 @@
 import {
     IBlock,
     IHyconWallet,
-    ILocationDetails,
     IMinedInfo,
     IMiner,
     IPeer,
     IResponseError,
     IRest,
     ITxProp,
-    IUser,
     IWalletAddress,
 } from "./rest"
 // tslint:disable:no-console
@@ -619,5 +617,27 @@ export class RestClient implements IRest {
             .catch((err: Error) => {
                 console.log(err)
             }))
+    }
+
+    public isUncleBlock(blockHash: string): Promise<boolean | IResponseError> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/isUncleBlock/${blockHash}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(`Fail to isUncleBlock`)
+                    console.log(err)
+                }),
+        )
+    }
+
+    public getMiningReward(minerAddress: string, blockHash: string): Promise<string | IResponseError> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/getMiningReward/${minerAddress}/${blockHash}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(`Fail to getMiningReward`)
+                    console.log(err)
+                }),
+        )
     }
 }

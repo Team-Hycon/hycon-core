@@ -167,6 +167,11 @@ async function main() {
         await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
     }
 
+    if (conf.ghostHeight === undefined) {
+        conf.ghostHeight = 317713
+        await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
+    }
+
     if (globalOptions.cpuMiners > 0) {
         if (globalOptions.minerAddress === undefined || globalOptions.minerAddress === "") {
             try {

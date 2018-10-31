@@ -15,6 +15,7 @@ import { ITxDatabase } from "./itxDatabase"
 const TransactionDatabase = require("sqlite3-transactions").TransactionDatabase
 const sqlite = sqlite3.verbose()
 const logger = getLogger("TxDB")
+const NONCE_UPDATE_UNIT = 10000
 
 export class TxDatabase implements ITxDatabase {
     public db: sqlite3.Database
@@ -44,41 +45,45 @@ export class TxDatabase implements ITxDatabase {
         if (tipHeight !== undefined) {
             let status: BlockStatus
             let lastHeight = 0
-            const i = 0
             let lastHash = await this.getLastBlock()
-            while (lastHash !== undefined) {
-                status = await this.consensus.getBlockStatus(lastHash)
-                if (status === BlockStatus.MainChain) {
-                    lastHeight = await this.consensus.getBlockHeight(lastHash)
-                    break
-                }
-                const header = await this.consensus.getHeaderByHash(lastHash)
-                if (header instanceof BlockHeader) {
-                    lastHash = header.previousHash[0]
-                } else { break }
-            }
+            if (lastHash !== undefined) {
+                do {
+                    status = await this.consensus.getBlockStatus(lastHash)
+                    if (status === BlockStatus.MainChain) {
+                        lastHeight = await this.consensus.getBlockHeight(lastHash)
+                        break
+                    }
+                    const header = await this.consensus.getHeaderByHash(lastHash)
+                    if (header instanceof BlockHeader) {
+                        lastHash = header.previousHash[0]
+                    } else { break }
+                } while (lastHash !== undefined)
 
-            const existsNonce = await this.checkExistsNonce(lastHash.toString())
-            if (existsNonce !== 0) {
-                logger.info(`Since there is no nonce data in the Tx database, updating nonce will be started.`)
-                if (existsNonce === 1) {
-                    this.addColNonce()
-                }
-                const blocks = await this.consensus.getBlocksRange(0, lastHeight + 1)
-                for (const block of blocks) {
-                    await this.updateNonce(block.txs)
+                const existsNonce = await this.checkExistsNonce(lastHash.toString())
+                if (existsNonce !== 0) {
+                    logger.info(`Since there is no nonce data in the Tx database, updating nonce will be started.`)
+                    if (existsNonce === 1) {
+                        this.addColNonce()
+                    }
+
+                    const unit = lastHeight + 1 > NONCE_UPDATE_UNIT ? NONCE_UPDATE_UNIT : lastHeight + 1
+                    for (let i = 0; i < lastHeight + 1; i += unit) {
+                        const count = lastHeight + 1 > i + unit ? unit : lastHeight + 1 - i
+                        const blocks = await this.consensus.getBlocksRange(i, count)
+                        for (const block of blocks) {
+                            if (!block.header.merkleRoot.equals(Hash.emptyHash)) {
+                                await this.updateNonce(block.txs)
+                            }
+                        }
+                    }
+
                 }
             }
 
             if (lastHeight < tipHeight) {
                 const blocks = await this.consensus.getBlocksRange(lastHeight + 1)
                 for (const block of blocks) {
-                    const blockHash = new Hash(block.header)
-                    if (block instanceof Block) {
-                        await this.putTxs(blockHash, block.header.timeStamp, block.txs)
-                    } else {
-                        await this.putTxs(blockHash, block.header.timeStamp, block.txs)
-                    }
+                    await this.putTxs(new Hash(block.header), block.header.timeStamp, block.txs)
                 }
             }
         }
@@ -93,7 +98,7 @@ export class TxDatabase implements ITxDatabase {
                         return reject(err)
                     }
                     if (row === undefined) {
-                        return reject(undefined)
+                        return resolve(undefined)
                     }
                     hashData = row.blockhash
                     return resolve(Hash.decode(hashData))
@@ -337,7 +342,7 @@ export class TxDatabase implements ITxDatabase {
                 this.db.parallelize(() => {
                     for (const param of insertArray) {
                         insert.run(param)
-                        logger.info(`Update tx nonce / tx: ${param.$txhash}), nonce: ${param.$nonce}`)
+                        logger.debug(`Update tx nonce / tx: ${param.$txhash}), nonce: ${param.$nonce}`)
                     }
                 })
                 insert.finalize((error) => {

@@ -1,8 +1,12 @@
+import { Menu, MenuItem } from "@material-ui/core"
 import * as React from "react"
 import { Link } from "react-router-dom"
-import { IBlock, IRest } from "./rest"
+import { IBlock, IResponseError, IRest } from "./rest"
 interface IBlockLineView {
+    anchorEl: null
     block: IBlock
+    dialogUncleList: boolean
+    rest: IRest
     age?: IAge
 }
 interface IAge {
@@ -12,11 +16,16 @@ interface IAge {
     diffSec: number
 }
 export class BlockLine extends React.Component<any, any> {
+    public mounted: boolean = false
     public intervalId: any // NodeJS.Timer
-    constructor(props: any) {
+    constructor(props: IBlockLineView) {
         super(props)
         this.state = {
+            anchorEl: null,
             block: props.block,
+            dialogUncleList: false,
+            rest: props.rest,
+            uncles: [],
         }
     }
     public componentWillMount() {
@@ -26,6 +35,22 @@ export class BlockLine extends React.Component<any, any> {
         this.intervalId = setInterval(() => {
             this.getDiffDate()
         }, 1000)
+        this.mounted = true
+        this.state.rest.setLoading(true)
+        if (this.state.block.prevBlock.length > 1) {
+            this.state.rest.getBlock(this.state.block.hash)
+                .then((data: IBlock & IResponseError) => {
+                    this.state.rest.setLoading(false)
+                    if (this.mounted) {
+                        this.setState({
+                            uncles: data.prevBlock.split(",").slice(1),
+                        })
+                    }
+                })
+                .catch((e: Error) => {
+                    alert(e)
+                })
+        }
     }
     public componentWillUnmount() {
         clearInterval(this.intervalId)
@@ -85,16 +110,27 @@ export class BlockLine extends React.Component<any, any> {
                 </td>
                 <td className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>{this.state.block.txs.length}</td>
                 <td className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>
-                    {this.formatNumber(this.state.block.txSummary)} HYCON
+                    {this.state.block.prevBlock.length > 1 ? (this.state.block.prevBlock.length - 1) : 0}
                 </td>
+                <td className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>
+                    {this.formatNumber(this.state.block.txSummary)} HYCON
+                    </td>
                 <td className="mdl-data-table__cell--non-numeric">
                     <a href={`/address/${this.state.block.miner}`}>
                         {this.state.block.miner}
                     </a>
                 </td>
                 <td className="mdl-data-table__cell--numeric">{(this.state.block.size / 1000).toPrecision(3)}</td>
-                {/* <td /> */}
             </tr>
         )
+    }
+
+    private showUncles(event: any) {
+        this.setState({ anchorEl: event.currentTarget })
+    }
+    private handleClickEvent(event: any) {
+        if (event.currentTarget.length === 0 && !event.currentTarget) {
+            this.setState({ anchorEl: null })
+        }
     }
 }

@@ -2,7 +2,7 @@ import Base58 = require("base-58")
 import blake2b = require("blake2b")
 import { Block } from "../common/block"
 import { GenesisBlock } from "../common/blockGenesis"
-import { AnyBlockHeader, BlockHeader } from "../common/blockHeader"
+import { BlockHeader } from "../common/blockHeader"
 import { BaseBlockHeader, GenesisBlockHeader } from "../common/genesisHeader"
 import { Tx } from "../common/tx"
 import { GenesisTx } from "../common/txGenesis"
