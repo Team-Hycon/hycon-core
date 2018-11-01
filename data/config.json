@@ -8,6 +8,6 @@
     "minerAddress": "",
     "ghostHeight": 317713,
     "jabiruHeight": 444444,
-    "txPoolMaxAddresses": 36000,
-    "txPoolMaxTxsPerAddress": 64
+    "txPoolMaxAddresses": 3600,
+    "txPoolMaxTxsPerAddress": 1024
 }
