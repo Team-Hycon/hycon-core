@@ -330,6 +330,22 @@ export class RestV1Router implements IRestRouter {
         this.router.get("/possibilityLedger", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.possibilityLedger())
         })
+        this.router.get("/getTrezorWallet/:startIndex/:count", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getTrezorWallet(req.params.startIndex, req.params.count))
+        })
+        this.router.post("/sendTxWithTrezor", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.sendTxWithTrezor(
+                req.body.index,
+                req.body.from,
+                req.body.to,
+                req.body.amount,
+                req.body.fee,
+                req.body.txNonce,
+                async (tx: SignedTx) => {
+                    const newTxs = await this.hyconServer.txQueue.putTxs([tx])
+                    this.hyconServer.broadcastTxs(newTxs)
+                }))
+        })
         this.router.get("/getMarketCap", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMarketCap())
         })
