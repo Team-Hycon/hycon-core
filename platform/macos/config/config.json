@@ -4,5 +4,6 @@
     "dataRaw": "./data/raw",
     "dataRoot": "./data",
     "dataWallet": "./wallet",
-    "minerAddress": ""
+    "minerAddress": "",
+    "ghostHeight":317713
 }

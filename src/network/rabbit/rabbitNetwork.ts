@@ -68,7 +68,7 @@ export class RabbitNetwork implements INetwork {
         this.guid = new Hash(randomBytes(32)).toString()
         this.consensus.on("txs", (txs) => { this.broadcastTxs(txs) })
         this.consensus.on("blockBroadcast", (block: Block) => { this.broadcastBlocks([block]) })
-        this.consensus.on("missingUncles", (height: number, missingHashes: Hash[]) => { this.getHeadersByHashes(height, missingHashes) })
+        this.consensus.on("missingUncles", (height: number, missingHashes: Hash[]) => { this.getMissingUncles(height, missingHashes) })
         logger.info(`TcpNetwork Port=${port} Session Guid=${this.guid}`)
     }
 
@@ -316,17 +316,15 @@ export class RabbitNetwork implements INetwork {
         }
     }
 
-    private async getHeadersByHashes(height: number, missingHashes: Hash[]) {
-
+    private async getMissingUncles(height: number, missingUncles: Hash[]) {
         const peers = this.getPeers()
         for (const peer of peers) {
             const tipHeight = peer.getTipHeight()
             if (tipHeight === undefined || tipHeight < height) { continue }
             try {
-                const result = await peer.getHeadersByHashes(missingHashes)
-                if (missingHashes.length === result) { break }
+                if (await peer.getMissingUncles(missingUncles)) { break }
             } catch (e) {
-                logger.debug(`Could not get Headers by Hashes: ${e}`)
+                logger.debug(`Could not get get Missing Uncles : ${e}`)
             }
         }
     }

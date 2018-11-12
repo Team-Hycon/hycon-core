@@ -11,6 +11,7 @@ import { Hash } from "../util/hash"
 import { DBBlock } from "./database/dbblock"
 import { DBMined } from "./database/dbMined"
 import { DBTx } from "./database/dbtx"
+import { IMinedDB } from "./database/minedDatabase"
 import { TxValidity } from "./database/worldState"
 
 export interface IStatusChange { oldStatus?: BlockStatus, status?: BlockStatus, height?: number }
@@ -29,7 +30,7 @@ export interface IConsensus extends EventEmitter {
     getBlockByHash(hash: Hash): Promise<AnyBlock>
     getHeaderByHash(hash: Hash): Promise<AnyBlockHeader>
     getBlocksRange(fromHeight: number, count?: number): Promise<AnyBlock[]>
-    getBlocksRanges(fromHeight: number, count?: number): Promise<{ nakamotoBlocks: AnyBlock[], ghostBlocks: AnyBlock[] }>
+    getBlocksRanges(fromHeight: number, count?: number): Promise<{ nakamotoBlocks: AnyBlock[], ghostBlocks: AnyBlock[], uncles: IMinedDB[] }>
     getHeadersRange(fromHeight: number, count?: number): Promise<AnyBlockHeader[]>
     getHeadersChainRange(fromHeight: number, count?: number): Promise<AnyBlockHeader[]>
     getAccount(address: Address): Promise<Account>
@@ -38,6 +39,7 @@ export interface IConsensus extends EventEmitter {
     getNextTxs(address: Address, txHash: Hash, index: number, count?: number): Promise<DBTx[]>
     getNextTxsInBlock(blockHash: string, txHash: string, index: number, count?: number): Promise<DBTx[]>
     getMinedBlocks(address: Address, count?: number, index?: number, blockHash?: string): Promise<DBMined[]>
+    getMinedInfo(blockHash: string): Promise<DBMined | undefined>
     getBlockStatus(hash: Hash): Promise<BlockStatus>
     getBlocksTip(): { hash: Hash, height: number, totalwork: number }
     getCurrentDiff(): number

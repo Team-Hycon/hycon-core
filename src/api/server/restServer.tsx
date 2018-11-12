@@ -7,10 +7,11 @@ import { BlockHeader } from "../../common/blockHeader"
 import { ITxPool } from "../../common/itxPool"
 import { PrivateKey } from "../../common/privateKey"
 import { SignedTx } from "../../common/txSigned"
+import { DBMined } from "../../consensus/database/dbMined"
 import { DBTx } from "../../consensus/database/dbtx"
 import { IConsensus } from "../../consensus/iconsensus"
-import { globalOptions } from "../../main"
 import { setMiner } from "../../main"
+import { globalOptions } from "../../main"
 import { MinerServer } from "../../miner/minerServer"
 import { INetwork } from "../../network/inetwork"
 import { Hash } from "../../util/hash"
@@ -47,24 +48,62 @@ export class RestServer implements IRest {
 
     public createNewWallet(meta: ICreateWallet): Promise<IHyconWallet | IResponseError> {
         try {
+            const hyconWallet: IHyconWallet = meta
             if (meta.privateKey === undefined) {
-                if (meta.mnemonic === undefined) {
-                    meta.mnemonic = Wallet.getRandomMnemonic(meta.language)
-                }
+                if (meta.mnemonic === undefined) { meta.mnemonic = Wallet.getRandomMnemonic(meta.language) }
                 const wallet = Wallet.generateKeyWithMnemonic(meta.mnemonic, meta.language, meta.passphrase)
-
-                return Promise.resolve({
-                    mnemonic: meta.mnemonic,
+                Object.assign(hyconWallet, {
                     privateKey: wallet.privKey.toHexString(),
                     address: wallet.pubKey.address().toString(),
                 })
             } else {
-                const privateKey = new PrivateKey(Buffer.from(meta.privateKey, "hex"))
-                return Promise.resolve({
-                    privateKey: privateKey.toHexString(),
+                let privateKey: PrivateKey
+                if (meta.mnemonic) {
+                    privateKey = Wallet.generateKeyWithMnemonic(meta.mnemonic, meta.language, meta.passphrase).privKey
+                    if (privateKey.toHexString() !== meta.privateKey) {
+                        throw new Error("INVALID_PARAMETER : Mnemonic and PrivateKey does not match.")
+                    }
+                } else { delete hyconWallet.passphrase }
+                if (!privateKey) { privateKey = new PrivateKey(Buffer.from(meta.privateKey, "hex")) }
+                Object.assign(hyconWallet, {
                     address: privateKey.publicKey().address().toString(),
                 })
             }
+            return Promise.resolve(hyconWallet)
+        } catch (e) {
+            return Promise.resolve({
+                status: 400,
+                timestamp: Date.now(),
+                error: "INVALID_PARAMETER",
+                message: e.toString(),
+            })
+        }
+    }
+
+    public createNewHDWallet(meta: ICreateWallet): Promise<IHyconWallet | IResponseError> {
+        try {
+            const hyconWallet: IHyconWallet = meta
+            if (meta.rootKey === undefined) {
+                if (meta.mnemonic === undefined) { meta.mnemonic = Wallet.getRandomMnemonic(meta.language) }
+                const wallet = Wallet.generateHDWalletWithMnemonic(meta.mnemonic, meta.language, meta.passphrase)
+                Object.assign(hyconWallet, {
+                    rootKey: wallet.rootKey,
+                    address: meta.index !== undefined ? wallet.getAddressOfHDWallet(meta.index) : undefined,
+                })
+            } else {
+                let wallet: Wallet
+                if (meta.mnemonic) {
+                    wallet = Wallet.generateHDWalletWithMnemonic(meta.mnemonic, meta.language, meta.passphrase)
+                    if (wallet.rootKey !== meta.rootKey) {
+                        throw new Error("INVALID_PARAMETER : Mnemonic and RootKey does not match.")
+                    }
+                } else { delete hyconWallet.passphrase }
+                if (!wallet) { wallet = new Wallet(meta.rootKey) }
+                Object.assign(hyconWallet, {
+                    address: meta.index !== undefined ? wallet.getAddressOfHDWallet(meta.index) : undefined,
+                })
+            }
+            return Promise.resolve(hyconWallet)
         } catch (e) {
             return Promise.resolve({
                 status: 400,
@@ -333,7 +372,7 @@ export class RestServer implements IRest {
             })
         } catch (e) {
             return Promise.resolve({
-                status: 404,
+                status: 400,
                 timestamp: Date.now(),
                 error: "INVALID_PARAMETER",
                 message: e.toString(),
@@ -672,6 +711,36 @@ export class RestServer implements IRest {
                     address: address.toString(),
                     balance: account ? hycontoString(account.balance) : "0",
                     pendingAmount: hycontoString(pendingAmount),
+                })
+            }
+            return wallets
+        } catch (e) {
+            return Promise.resolve({
+                status: 404,
+                timestamp: Date.now(),
+                error: "NOT_FOUND",
+                message: "the wallet cannot be found",
+            })
+        }
+    }
+
+    public async getHDWalletFromRootKey(rootKey: string, index: number, count: number): Promise<IHyconWallet[] | IResponseError> {
+        try {
+            const addresses = Wallet.addressesFromRootKey(rootKey, index, count)
+            const wallets: IHyconWallet[] = []
+            let walletIndex = index ? index : 0
+            for (const address of addresses) {
+                const account = await this.consensus.getAccount(address)
+                const pendings = this.txPool.getTxsOfAddress(address)
+                let pendingAmount = Long.fromNumber(0)
+                for (const pending of pendings) {
+                    pendingAmount = pendingAmount.add(pending.amount).add(pending.fee)
+                }
+                wallets.push({
+                    address: address.toString(),
+                    balance: account ? hycontoString(account.balance) : "0",
+                    pendingAmount: hycontoString(pendingAmount),
+                    index: walletIndex++,
                 })
             }
             return wallets
@@ -1163,7 +1232,26 @@ export class RestServer implements IRest {
         }
     }
 
-    public async generateHDWallet(Hwallet: IHyconWallet): Promise<string> {
+    public async sendTxWithHDWalletRootKey(tx: { address: string, amount: string, minerFee: string, nonce?: number }, rootKey: string, index: number, queueTx?: Function): Promise<{ hash: string } | IResponseError> {
+        try {
+            const wallet = Wallet.getWalletFromRootKey(rootKey, index)
+            const walletAddress = wallet.pubKey.address()
+            const { address, nonce } = await this.prepareSendTx(walletAddress, tx.address, tx.amount, tx.minerFee, tx.nonce)
+            const signedTx = wallet.send(address, hyconfromString(tx.amount), nonce, hyconfromString(tx.minerFee))
+            if (queueTx) { queueTx(signedTx) } else { return Promise.reject(false) }
+            return { hash: (new Hash(signedTx)).toString() }
+        } catch (e) {
+            let message = e.toString()
+            if (e === 2) { message = "Invalid address: Please check 'To Address'" }
+            return Promise.resolve({
+                status: 400,
+                timestamp: Date.now(),
+                error: "INVALID_PARAMETER",
+                message,
+            })
+        }
+    }
+    public async generateHDWallet(Hwallet: IHyconWallet): Promise<string | IResponseError> {
         try {
             await Wallet.walletInit()
             if (Hwallet.name !== undefined && Hwallet.mnemonic !== undefined && Hwallet.language !== undefined) {
@@ -1174,10 +1262,20 @@ export class RestServer implements IRest {
                 await wallet.save(Hwallet.name, password, hint)
                 return Hwallet.name
             } else {
-                return Promise.reject("Information is missing.")
+                return Promise.resolve({
+                    status: 400,
+                    timestamp: Date.now(),
+                    error: "BAD_REQUEST",
+                    message: "missing parameters",
+                })
             }
         } catch (e) {
-            throw e
+            return Promise.resolve({
+                status: 409,
+                timestamp: Date.now(),
+                error: "CONFLICT",
+                message: e.toString(),
+            })
         }
     }
 
@@ -1337,10 +1435,10 @@ export class RestServer implements IRest {
         }
     }
 
-    public async getMiningReward(minerAddress: string, blockHash: string): Promise<string | IResponseError> {
+    public async getMiningReward(blockHash: string): Promise<string | IResponseError> {
         try {
-            const result = await this.consensus.getMinedBlocks(new Address(minerAddress), 1, undefined, blockHash)
-            return result.length > 0 ? result[0].feeReward : undefined
+            const result: DBMined | undefined = await this.consensus.getMinedInfo(blockHash)
+            return result && result.feeReward ? result.feeReward : undefined
         } catch (e) {
             return e
         }

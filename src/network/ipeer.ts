@@ -1,6 +1,6 @@
 
 import { Block } from "../common/block"
-import { AnyBlockHeader } from "../common/blockHeader"
+import { AnyBlockHeader, BlockHeader } from "../common/blockHeader"
 import { SignedTx } from "../common/txSigned"
 import { ITip } from "../consensus/sync"
 import * as proto from "../serialization/proto"
@@ -18,7 +18,7 @@ export interface IPeer {
     getBlockTxs(hashes: Hash[]): Promise<IBlockTxs[]>
     getHash(height: number): Promise<Hash | undefined>
     getBlocksByHashes(hashes: Hash[]): Promise<Block[]>
-    getHeadersByHashes(hashes: Hash[]): Promise<number>
+    getHeadersByHashes(hashes: Hash[]): Promise<BlockHeader[]>
     getBlocksByRange(fromHeight: number, count: number): Promise<Block[]>
     getHeadersByRange(fromHeight: number, count: number): Promise<AnyBlockHeader[]>
     getHTip(header?: boolean): Promise<{ hash: Hash, height: number, totalwork: number }>
@@ -26,6 +26,6 @@ export interface IPeer {
     getPeers(count: number): Promise<proto.IPeer[]>
     headerSync(remoteTip: ITip): Promise<void>
     txSync(remoteTip: ITip): Promise<void>
-    blockSync(remoteBlockTip: ITip): Promise<void>
     getTipHeight(): number | undefined
+    getMissingUncles(uncleHashes: Hash[]): Promise<boolean>
 }

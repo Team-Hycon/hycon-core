@@ -224,16 +224,17 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return blocks
     }
 
-    public async getHeadersByHashes(hashes: Hash[]): Promise<number> {
+    public async getHeadersByHashes(hashes: Hash[]): Promise<BlockHeader[]> {
         const { reply, packet } = await this.sendRequest({ getHeadersByHash: { hashes } })
         if (reply.getHeadersByHashReturn === undefined) {
             this.protocolError(new Error(`Reply has no 'getHeadersByHashReturn': ${JSON.stringify(reply)}`))
             throw new Error("Invalid response")
         }
+        const headers: BlockHeader[] = []
         for (const header of reply.getHeadersByHashReturn.headers) {
-            await this.consensus.putHeader(new BlockHeader(header))
+            headers.push(new BlockHeader(header))
         }
-        return reply.getHeadersByHashReturn.headers.length
+        return headers
     }
 
     public async getBlocksByRange(fromHeight: number, count: number): Promise<Block[]> {
@@ -264,16 +265,9 @@ export class RabbitPeer extends BasePeer implements IPeer {
     }
 
     public async headerSync(remoteTip: ITip) {
-        const startHeight = Math.min(this.consensus.getHtip().height, remoteTip.height)
-        const { height: commonHeight, hash: commonHash } = await this.commonSearch(startHeight, remoteTip.height - 1, BlockStatus.Header)
+        const { height: commonHeight, hash: commonHash } = await this.commonSearch(remoteTip.height, BlockStatus.Header)
         logger.debug(`Found Start Header=${commonHeight}`)
         return this.getHeaders(commonHeight, commonHash, remoteTip.height)
-    }
-    public async blockSync(remoteBlockTip: ITip) {
-        const startHeight = Math.min(this.consensus.getBtip().height, remoteBlockTip.height)
-        const { height: commonHeight, hash: commonHash } = await this.commonSearch(startHeight, remoteBlockTip.height - 1, BlockStatus.Block)
-        logger.debug(`Found Start Block=${commonHeight}`)
-        return this.getBlocks(commonHeight, commonHash, remoteBlockTip.height)
     }
 
     public async txSync(remoteTip: ITip) {
@@ -307,6 +301,17 @@ export class RabbitPeer extends BasePeer implements IPeer {
 
     public getTipHeight() {
         return this.bTip ? this.bTip.height : undefined
+    }
+
+    public async getMissingUncles(uncleHashes: Hash[]): Promise<boolean> {
+        const uncles = await this.getHeadersByHashes(uncleHashes)
+        if (uncles.length !== uncleHashes.length) { return false }
+        for (const uncle of uncles) {
+            await this.consensus.putHeader(uncle)
+        }
+        logger.info(`Put missing uncle headers : ${uncleHashes.map((hash) => hash.toString()).join(",")}`)
+        this.tipPoll()
+        return true
     }
 
     // this is called in BasePeer's onPacket
@@ -391,14 +396,9 @@ export class RabbitPeer extends BasePeer implements IPeer {
                 RabbitPeer.headerSync = this.headerSync(bTip).then(() => RabbitPeer.headerSync = undefined, () => RabbitPeer.headerSync = undefined)
             }
 
-            if (RabbitPeer.blockSync === undefined && this.consensus.getBtip().totalWork < bTip.totalwork) {
-                if (this.version > 5) {
-                    logger.debug(`Starting block tx download from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}`)
-                    RabbitPeer.blockSync = this.txSync(bTip).then(() => RabbitPeer.blockSync = undefined, () => RabbitPeer.blockSync = undefined)
-                } else {
-                    logger.debug(`Starting block download from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}`)
-                    RabbitPeer.blockSync = this.blockSync(bTip).then(() => RabbitPeer.blockSync = undefined, () => RabbitPeer.blockSync = undefined)
-                }
+            if (this.version > 5 && RabbitPeer.blockSync === undefined && this.consensus.getBtip().totalWork < bTip.totalwork) {
+                logger.debug(`Starting block tx download from ${this.socketBuffer.getIp()}:${this.socketBuffer.getPort()}`)
+                RabbitPeer.blockSync = this.txSync(bTip).then(() => RabbitPeer.blockSync = undefined, () => RabbitPeer.blockSync = undefined)
             }
         }
         const now = Date.now()
@@ -666,51 +666,48 @@ export class RabbitPeer extends BasePeer implements IPeer {
         return message
     }
 
-    private async commonSearch(startHeight: number, max: number, searchStatus: BlockStatus) {
-        let min: number
-        let i = 0
-        await this.search(startHeight, (height, status) => {
-            if (status === undefined || status === BlockStatus.Rejected) {
-                this.disconnect()
-                return undefined
-            }
+    private async commonSearch(remoteHeight: number, blockstatusheader: BlockStatus) {
+        const localHeight = this.consensus.getHtip().height
+        let donthave = remoteHeight
+        let have = 0
 
-            if (height <= 0 || status >= searchStatus) {
-                min = height
-                return undefined
+        let remoteHash = await this.getHash(localHeight)
+        let mystatus = await this.consensus.getBlockStatus(remoteHash)
+        if (mystatus >= blockstatusheader) {
+            have = localHeight
+            remoteHash = await this.getHash(localHeight + 1)
+            mystatus = await this.consensus.getBlockStatus(remoteHash)
+            if (mystatus >= blockstatusheader) {
+                have = localHeight + 1
             } else {
-                max = height
+                donthave = localHeight + 1
             }
-            i++
-            return Math.max(startHeight - Math.pow(2, i), 0)
-        })
-        logger.debug(`Found minimum height(${min})`)
+        } else {
+            donthave = localHeight
+        }
 
-        return this.search(Math.floor((min + max) / 2), (height, status) => {
-            if (height === min) {
-                return undefined
-            }
-
-            if (status === undefined || status === BlockStatus.Rejected) {
-                logger.debug(`Peer supplied rejected information`)
+        return this.search((have + donthave) >> 1, (height, status) => {
+            if (have + 1 >= donthave) { return }
+            if (status === BlockStatus.Rejected) {
+                logger.error(`Peer supplied rejected information`)
                 this.disconnect()
-                return undefined
+                return
             }
 
-            if (status >= searchStatus) {
-                min = height
+            if (status >= blockstatusheader) {
+                have = height
             } else {
-                max = height
+                donthave = height
             }
-            return Math.floor((min + max) / 2)
+
+            return Math.floor((have + donthave) / 2)
         })
     }
 
     private async search(height: number, update: (height: number, status?: BlockStatus) => number) {
         while (height !== undefined) {
             const hash = await this.getHash(height)
-            const status = hash === undefined ? undefined : await this.consensus.getBlockStatus(hash)
-            logger.debug(`Peer's block at height ${height} has status ${status}`)
+            const status = await this.consensus.getBlockStatus(hash)
             const newHeight = update(height, status)
             if (newHeight === undefined) {
                 return { height, hash }
@@ -735,6 +732,7 @@ export class RabbitPeer extends BasePeer implements IPeer {
                 if (previousHash.equals(header.previousHash[0])) {
                     this.validatePut(height, previousHash, result, header, BlockStatus.Header)
                     height++
+                    uncleCount = 0
                     previousHash = new Hash(header)
                 } else {
                     uncleCount++

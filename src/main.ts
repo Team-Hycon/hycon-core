@@ -99,6 +99,9 @@ if (globalOptions.str_port === 0) {
 if (globalOptions.verbose) {
     logger.level = "debug"
 }
+if (conf.ghostHeight === undefined) {
+    conf.ghostHeight = 317713
+}
 
 logger.info(`GenesisBlock=${conf.dataGenesis}`)
 logger.info(`Options=${JSON.stringify(globalOptions)}`)
@@ -164,11 +167,6 @@ async function main() {
 
     if (conf.txPoolMaxTxsPerAddress === undefined) {
         conf.txPoolMaxTxsPerAddress = 64
-        await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
-    }
-
-    if (conf.ghostHeight === undefined) {
-        conf.ghostHeight = 317713
         await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
     }
 

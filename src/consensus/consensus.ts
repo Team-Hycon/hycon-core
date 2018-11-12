@@ -13,7 +13,7 @@ import { globalOptions } from "../main"
 import { MAX_HEADER_SIZE } from "../network/rabbit/networkConstants"
 import conf = require("../settings")
 import { Hash } from "../util/hash"
-import { GhostConsensus, IUncleCandidate } from "./consensusGhost"
+import { GhostConsensus, IUncleCandidate, uncleReward } from "./consensusGhost"
 import { NakamotoConsensus } from "./consensusNakamoto"
 import { Account } from "./database/account"
 import { Database } from "./database/database"
@@ -98,7 +98,6 @@ export class Consensus extends EventEmitter implements IConsensus {
             await this.db.init()
             this.blockTip = await this.db.getBlockTip()
             this.headerTip = await this.db.getHeaderTip()
-
             if (this.txdb !== undefined) {
                 await this.txdb.init(this, this.blockTip === undefined ? undefined : this.blockTip.height)
             }
@@ -326,21 +325,43 @@ export class Consensus extends EventEmitter implements IConsensus {
         }
     }
 
-    public async getBlocksRanges(fromHeight: number): Promise<{ nakamotoBlocks: AnyBlock[], ghostBlocks: AnyBlock[] }> {
+    public async getBlocksRanges(fromHeight: number, count: number): Promise<{ nakamotoBlocks: AnyBlock[], ghostBlocks: AnyBlock[], uncles: IMinedDB[] }> {
         let nakamotoBlocks = [] as AnyBlock[]
-        let ghostBlocks = [] as AnyBlock[]
-        if (fromHeight > this.blockTip.height) { return { nakamotoBlocks, ghostBlocks } }
+        const ghostBlocks = [] as AnyBlock[]
+        const uncles = [] as IMinedDB[]
+        if (fromHeight > this.blockTip.height) { return { nakamotoBlocks, ghostBlocks, uncles } }
+        let totalCount = count
 
         if (fromHeight <= Consensus.lastNakamotoBlock) {
-            const count = this.blockTip.height > Consensus.lastNakamotoBlock ?
-                Consensus.lastNakamotoBlock - fromHeight + 1 : this.blockTip.height - fromHeight + 1
-            nakamotoBlocks = await this.getBlocksRange(fromHeight, count)
+            const blockCount = fromHeight + count - 1 <= Consensus.lastNakamotoBlock ? count : Consensus.lastNakamotoBlock - fromHeight + 1
+            nakamotoBlocks = await this.getBlocksRange(fromHeight, blockCount)
+            fromHeight += blockCount
+            totalCount -= blockCount
         }
-        if (this.blockTip.height > Consensus.lastNakamotoBlock) {
-            const from = fromHeight > Consensus.lastNakamotoBlock ? fromHeight : Consensus.lastNakamotoBlock + 1
-            ghostBlocks = await this.getBlocksRange(from)
+
+        if (totalCount > 0 && fromHeight > Consensus.lastNakamotoBlock) {
+            const dbblocks = await this.db.getDBBlocksRange(fromHeight, totalCount)
+            for (const dbblock of dbblocks) {
+                const block = await this.db.dbBlockToBlock(dbblock)
+                if (!(block.header instanceof BlockHeader) || !(block instanceof Block)) { continue }
+                ghostBlocks.push(block)
+                if (block.header.previousHash.length === 1) { continue }
+
+                // for saving mined information of uncle block
+                const uncleHashes = block.header.previousHash.slice(1)
+                for (const uncle of uncleHashes) {
+                    const uncleBlock = await this.db.getDBBlock(uncle)
+                    if (uncleBlock === undefined) { continue }
+                    uncles.push({
+                        blockhash: uncle,
+                        blocktime: uncleBlock.header.timeStamp,
+                        miner: (uncleBlock.header as BlockHeader).miner,
+                        reward: uncleReward(120e9, dbblock.height - uncleBlock.height),
+                    })
+                }
+            }
         }
-        return { nakamotoBlocks, ghostBlocks }
+        return { nakamotoBlocks, ghostBlocks, uncles }
     }
     public async getHeadersRange(fromHeight: number, count?: number): Promise<AnyBlockHeader[]> {
         try {
@@ -432,8 +453,12 @@ export class Consensus extends EventEmitter implements IConsensus {
             logger.error(`Fail to getMinedBlocks in consensus: ${e}`)
             return e
         }
-
     }
+    public getMinedInfo(blockHash: string): Promise<DBMined | undefined> {
+        if (!this.minedDatabase) { return undefined }
+        return this.minedDatabase.getMinedInfo(blockHash)
+    }
+
     public getBlockStatus(hash?: Hash): Promise<BlockStatus> {
         if (hash === undefined) {
             return Promise.resolve(BlockStatus.Nothing)
@@ -521,7 +546,6 @@ export class Consensus extends EventEmitter implements IConsensus {
                 }
                 await this.futureBlockQueue.waitUntil(header.timeStamp - TIMESTAMP_TOLERANCE)
             }
-
             return this.lock.critical(async () => {
                 const { oldStatus, status, dbBlock } = await this.process(hash, header, block)
 
@@ -560,7 +584,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                             const reward = candidateHeight <= Consensus.lastNakamotoBlock ? 240e9 : 120e9
                             let candidateUncles: IUncleCandidate[]
                             if (candidateHeight > Consensus.lastNakamotoBlock) {
-                                candidateUncles = this.ghostConsensus.getUncleCandidates(candidateHeight, hash)
+                                candidateUncles = await this.ghostConsensus.getUncleCandidates(candidateHeight, hash)
                                 if (candidateUncles.length > 0) {
                                     logger.debug(`Emitting candidate with ${candidateUncles.length} uncles`)
                                 }
@@ -637,19 +661,17 @@ export class Consensus extends EventEmitter implements IConsensus {
 
         let pushHeight = popStopHeight
         const removeTxs = [] as SignedTx[]
-        let minedMainBlockChange = [] as IMinedDB[]
-        let minedUncleChange = [] as IMinedDB[]
+        let minedBlockChange = [] as IMinedDB[]
         let validUncles = true
         while (newBlockHashes.length > 0) {
             hash = newBlockHashes.pop()
             block = newBlocks.pop()
             if (validUncles) {
                 const uncleHashes = block.header.previousHash.slice(1)
-                const validate = await this.ghostConsensus.validateUncles(deferredDB, uncleHashes, pushHeight, minedUncleChange)
+                const validate = await this.ghostConsensus.validateUncles(deferredDB, uncleHashes, pushHeight, minedBlockChange)
                 if (!validate) {
                     deferredDB.revert()
-                    minedMainBlockChange = []
-                    minedUncleChange = []
+                    minedBlockChange = []
                     validUncles = false
                 }
             }
@@ -660,7 +682,7 @@ export class Consensus extends EventEmitter implements IConsensus {
                 deferredDB.setHashAtHeight(pushHeight, hash)
                 for (const tx of block.txs) { removeTxs.push(tx) }
                 if (this.txdb) { await this.txdb.putTxs(hash, block.header.timeStamp, block.txs) }
-                minedMainBlockChange.push({
+                minedBlockChange.push({
                     blockhash: hash,
                     blocktime: block.header.timeStamp,
                     miner: block.header.miner,
@@ -683,7 +705,7 @@ export class Consensus extends EventEmitter implements IConsensus {
             this.emit("txs", popTxs)
             // This must not use await because of lock. So we used then.
             this.txPool.putTxs(popTxs).then(() => this.txPool.removeTxs(removeTxs))
-            if (this.minedDatabase) { this.minedDatabase.applyReorganize(minedMainBlockChange, minedUncleChange) }
+            if (this.minedDatabase) { this.minedDatabase.putMinedBlock(minedBlockChange) }
         }
         await deferredDB.commit()
         return validUncles

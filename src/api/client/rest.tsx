@@ -78,6 +78,8 @@ export interface ICreateWallet {
     mnemonic?: string
     language?: string
     privateKey?: string
+    rootKey?: string
+    index?: number
 }
 
 export interface IHyconWallet {
@@ -93,7 +95,9 @@ export interface IHyconWallet {
     language?: string
     pendingAmount?: string
     minedBlocks?: IMinedInfo[]
+    rootKey?: string // Related with HDwallet api, return IHyconWallet with rootKey
     index?: number
+    privateKey?: string // Related with wallet api, return IHyconWallet with privateKey
 }
 
 export interface IMinedInfo {
@@ -114,6 +118,7 @@ export interface IRest {
     loadingListener(callback: (loading: boolean) => void): void
     setLoading(loading: boolean): void
     // Exchange Featured
+    createNewHDWallet(meta: IHyconWallet): Promise<IHyconWallet | IResponseError>
     createNewWallet(meta: IHyconWallet): Promise<IHyconWallet | IResponseError>
     getWalletBalance(address: string): Promise<{ balance: string } | IResponseError>
     getWalletTransactions(address: string, nonce?: number): Promise<{ txs: ITxProp[] } | IResponseError>
@@ -161,8 +166,10 @@ export interface IRest {
     possibilityLedger(): Promise<boolean>
     getMarketCap(): Promise<{ totalSupply: string, circulatingSupply: string }>
     getHDWallet(name: string, password: string, index: number, count: number): Promise<IHyconWallet[] | IResponseError>
+    getHDWalletFromRootKey(rootKey: string, index: number, count: number): Promise<IHyconWallet[] | IResponseError>
     sendTxWithHDWallet(tx: { name: string, password: string, address: string, amount: string, minerFee: string, nonce?: number }, index: number, queueTx?: Function): Promise<{ res: boolean, case?: number }>
-    generateHDWallet(Hwallet: IHyconWallet): Promise<string>
+    generateHDWallet(Hwallet: IHyconWallet): Promise<string | IResponseError>
+    sendTxWithHDWalletRootKey(tx: { address: string, amount: string, minerFee: string, nonce?: number }, rootKey: string, index: number, queueTx?: Function): Promise<{ hash: string } | IResponseError>
     recoverHDWallet(Hwallet: IHyconWallet): Promise<string | boolean>
     checkPasswordBitbox(): Promise<boolean | number>
     checkWalletBitbox(password: string): Promise<boolean | number | { error: number, remain_attemp: string }>
@@ -172,5 +179,5 @@ export interface IRest {
     createBitboxWallet(name: string, password: string): Promise<boolean | number>
     updateBitboxPassword(originalPwd: string, newPwd: string): Promise<boolean | number | { error: number, remain_attemp: string }>
     isUncleBlock(blockHash: string): Promise<boolean | IResponseError>
-    getMiningReward(minerAddress: string, blockHash: string): Promise<string | IResponseError>
+    getMiningReward(blockHash: string): Promise<string | IResponseError>
 }

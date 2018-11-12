@@ -14,7 +14,7 @@ import { BlockStatus } from "../src/consensus/sync"
 import * as proto from "../src/serialization/proto"
 import { Hash } from "../src/util/hash"
 import { testAsync } from "./async"
-describe("Database init test", () => {
+xdescribe("Database init test", () => {
     let databse: Database
     beforeEach(() => {
         databse = new Database("garbage", "garbage")

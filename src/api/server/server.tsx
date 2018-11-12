@@ -53,6 +53,17 @@ export class HttpServer {
                 message: "resource not found",
             })
         })
+        this.app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+            if (error.status === 400) {
+                res.status(400)
+                res.json({
+                    status: 400,
+                    timestamp: Date.now(),
+                    error: "INVALID_JSON",
+                    message: error.message,
+                })
+            }
+        })
 
         if (options.nonLocal || globalOptions.public_rest === true) {
             this.app.listen(port, () => this.open(port))
@@ -250,6 +261,23 @@ export class HttpServer {
                 )
             })
 
+            router.post("/sendTxWithHDWallet", async (req: express.Request, res: express.Response) => {
+                res.json(
+                    await this.rest.sendTxWithHDWallet({
+                        name: req.body.name,
+                        password: req.body.password,
+                        address: req.body.address,
+                        amount: req.body.amount,
+                        minerFee: req.body.minerFee,
+                        nonce: req.body.nonce,
+                    }, req.body.index,
+                        async (tx: SignedTx) => {
+                            const newTxs = await this.hyconServer.txQueue.putTxs([tx])
+                            this.hyconServer.broadcastTxs(newTxs)
+                        }),
+                )
+            })
+
             router.post("/getHDWallet", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.getHDWallet(req.body.name, req.body.password, req.body.index, req.body.count),
@@ -279,6 +307,35 @@ export class HttpServer {
                         mnemonic: req.body.mnemonic,
                         language: req.body.language,
                     }),
+                )
+            })
+
+            router.post("/HDwallet", async (req: express.Request, res: express.Response) => {
+                res.json(await this.rest.createNewHDWallet({
+                    rootKey: req.body.rootKey,
+                    mnemonic: req.body.mnemonic,
+                    language: req.body.language,
+                    passphrase: req.body.passphrase,
+                    index: req.body.index,
+                }))
+            })
+            router.post("/getHDWalletFromRootKey", async (req: express.Request, res: express.Response) => {
+                res.json(
+                    await this.rest.getHDWalletFromRootKey(req.body.rootKey, req.body.index, req.body.count),
+                )
+            })
+            router.post("/sendTxWithHDWalletRootKey", async (req: express.Request, res: express.Response) => {
+                res.json(
+                    await this.rest.sendTxWithHDWalletRootKey({
+                        address: req.body.tx.address,
+                        amount: req.body.tx.amount,
+                        minerFee: req.body.tx.minerFee,
+                        nonce: req.body.tx.nonce,
+                    }, req.body.rootKey, req.body.index,
+                        async (tx: SignedTx) => {
+                            const newTxs = await this.hyconServer.txQueue.putTxs([tx])
+                            this.hyconServer.broadcastTxs(newTxs)
+                        }),
                 )
             })
         }
@@ -347,22 +404,6 @@ export class HttpServer {
         router.get("/getMarketCap", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMarketCap())
         })
-        router.post("/sendTxWithHDWallet", async (req: express.Request, res: express.Response) => {
-            res.json(
-                await this.rest.sendTxWithHDWallet({
-                    name: req.body.name,
-                    password: req.body.password,
-                    address: req.body.address,
-                    amount: req.body.amount,
-                    minerFee: req.body.minerFee,
-                    nonce: req.body.nonce,
-                }, req.body.index,
-                    async (tx: SignedTx) => {
-                        const newTxs = await this.hyconServer.txQueue.putTxs([tx])
-                        this.hyconServer.broadcastTxs(newTxs)
-                    }),
-            )
-        })
         router.get("/checkPasswordBitbox", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.checkPasswordBitbox())
         })
@@ -404,8 +445,8 @@ export class HttpServer {
         router.get("/isUncleBlock/:blockHash", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.isUncleBlock(req.params.blockHash))
         })
-        router.get("/getMiningReward/:minerAddress/:blockHash", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.getMiningReward(req.params.minerAddress, req.params.blockHash))
+        router.get("/getMiningReward/:blockHash", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getMiningReward(req.params.blockHash))
         })
 
         this.app.use(`/api/${apiVersion}`, router)

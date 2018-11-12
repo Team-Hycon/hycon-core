@@ -13,6 +13,7 @@ import { BlockStatus } from "../sync"
 import { DBMined } from "./dbMined"
 const sqlite = sqlite3.verbose()
 const logger = getLogger("MinedDB")
+const BLOCK_UPDATE_UNIT = 1000
 
 export interface IMinedDB { blockhash: Hash, blocktime: number, miner: Address, reward?: Long, txs?: SignedTx[] }
 export class MinedDatabase {
@@ -51,8 +52,18 @@ export class MinedDatabase {
             }
 
             if (lastHeight < tipHeight) {
-                const { nakamotoBlocks, ghostBlocks } = await this.consensus.getBlocksRanges(lastHeight + 1)
-                await this.putMinedBlock(nakamotoBlocks, ghostBlocks)
+                const startHeight = lastHeight + 1
+                const blocksCount = tipHeight - lastHeight
+                logger.info(`Since mined blocks(${blocksCount}) database need to be updated, updating mined information will be started from ${startHeight} to ${tipHeight}.`)
+
+                const unit = blocksCount < BLOCK_UPDATE_UNIT ? blocksCount : BLOCK_UPDATE_UNIT
+
+                let index = startHeight
+                while (index <= tipHeight) {
+                    const { nakamotoBlocks, ghostBlocks, uncles } = await this.consensus.getBlocksRanges(index, unit)
+                    index += unit
+                    await this.putInitialInfo(nakamotoBlocks, ghostBlocks, uncles)
+                }
             }
         }
     }
@@ -73,30 +84,13 @@ export class MinedDatabase {
         }
     }
 
-    public async applyReorganize(blocks: IMinedDB[], uncles: IMinedDB[]) {
+    public async putMinedBlock(minedArray: IMinedDB[]) {
         const insertArray: any[] = []
-        for (const block of blocks) {
-            if (block.txs === undefined || block.reward === undefined) { continue }
-            insertArray.push({
-                $blockhash: block.blockhash.toString(),
-                $blocktime: block.blocktime,
-                $feeReward: this.calculateFeeReward(block.reward, block.txs),
-                $miner: block.miner.toString(),
-            })
-        }
-        for (const uncle of uncles) {
-            if (uncle.reward === undefined) { continue }
-            insertArray.push({
-                $blockhash: uncle.blockhash.toString(),
-                $blocktime: uncle.blocktime,
-                $feeReward: hycontoString(uncle.reward),
-                $miner: uncle.miner.toString(),
-            })
-        }
+        this.insertToArray(insertArray, minedArray)
         await this.put(insertArray)
     }
 
-    public async putMinedBlock(nakamotoBlocks: AnyBlock[], ghostBlocks: AnyBlock[]): Promise<void> {
+    public async putInitialInfo(nakamotoBlocks: AnyBlock[], ghostBlocks: AnyBlock[], uncles: IMinedDB[]): Promise<void> {
         const insertArray: any[] = []
         const nakamotoLength = nakamotoBlocks.length
         const blocks = nakamotoBlocks.concat(ghostBlocks)
@@ -111,7 +105,18 @@ export class MinedDatabase {
                 $miner: block.header.miner.toString(),
             })
         }
+        this.insertToArray(insertArray, uncles)
         await this.put(insertArray)
+    }
+
+    public async getMinedInfo(blockHash: string): Promise<DBMined | undefined> {
+        const param = { $blockHash: blockHash }
+        return new Promise<DBMined | undefined>(async (resolved, rejected) => {
+            this.db.all(`SELECT blockhash, feeReward, blocktime, miner FROM mineddb WHERE blockHash = $blockHash LIMIT 1`, param, async (err: Error, rows: any) => {
+                if (rows === undefined || rows.length < 1) { return resolved(undefined) }
+                return resolved(new DBMined(rows[0].blockhash, rows[0].feeReward, rows[0].blocktime, rows[0].miner))
+            })
+        })
     }
 
     public async getMinedBlocks(address: Address, count: number, index: number, blockHash?: string, result: DBMined[] = []): Promise<DBMined[]> {
@@ -127,7 +132,7 @@ export class MinedDatabase {
         } else {
             query = `SELECT blockhash, feeReward, blocktime, miner FROM mineddb `
                 + `WHERE (blocktime <= (SELECT blocktime FROM mineddb WHERE blockhash = $blockhash)) AND (miner = $miner) ORDER BY blocktime DESC LIMIT $startIndex, $count`
-            Object.assign(params, { $blockhash: blockHash.toString() })
+            Object.assign(params, { $blockhash: blockHash })
         }
         return new Promise<DBMined[]>(async (resolved, rejected) => {
             this.db.all(query, params, async (err, rows) => {
@@ -170,7 +175,22 @@ export class MinedDatabase {
 
     private calculateFeeReward(reward: Long, txs: SignedTx[]): string {
         let feeReward = reward
-        for (const tx of txs) { feeReward = feeReward.add(tx.fee) }
+        if (reward.greaterThanOrEqual(Long.fromNumber(120e9)) && txs !== undefined) {
+            for (const tx of txs) { feeReward = feeReward.add(tx.fee) }
+        }
         return hycontoString(feeReward)
+    }
+
+    private insertToArray(insertArray: any[], minedArray: IMinedDB[]) {
+        for (const mined of minedArray) {
+            if (mined.reward === undefined) { continue }
+            // When reward information is less than 120e9, that means uncles information.
+            insertArray.push({
+                $blockhash: mined.blockhash.toString(),
+                $blocktime: mined.blocktime,
+                $feeReward: this.calculateFeeReward(mined.reward, mined.txs),
+                $miner: mined.miner.toString(),
+            })
+        }
     }
 }

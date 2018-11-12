@@ -42,6 +42,21 @@ export class RestClient implements IRest {
             }))
     }
 
+    public createNewHDWallet(meta: IHyconWallet): Promise<IHyconWallet | IResponseError> {
+        const headers = new Headers()
+        headers.append("Accept", "application/json")
+        headers.append("Content-Type", "application/json")
+        return Promise.resolve(fetch(`/api/${this.apiVersion}/HDwallet`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(meta),
+        })
+            .then((response) => response.json())
+            .catch((err: Error) => {
+                console.log(err)
+            }))
+    }
+
     public getWalletBalance(address: string): Promise<{ balance: string } | IResponseError> {
         return Promise.resolve(
             fetch(`/api/${this.apiVersion}/wallet/${address}/balance`)
@@ -471,6 +486,20 @@ export class RestClient implements IRest {
                 console.log(err)
             }))
     }
+    public getHDWalletFromRootKey(rootKey: string, index: number, count: number): Promise<IHyconWallet[] | IResponseError> {
+        const headers = new Headers()
+        headers.append("Accept", "application/json")
+        headers.append("Content-Type", "application/json")
+        return Promise.resolve(fetch(`/api/${this.apiVersion}/getHDWalletFromRootKey`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ rootKey, index, count }),
+        })
+            .then((response) => response.json())
+            .catch((err: Error) => {
+                console.log(err)
+            }))
+    }
 
     public async sendTxWithHDWallet(tx: { name: string, password: string, address: string, amount: string, minerFee: string, nonce?: number }, index: number, queueTx?: Function): Promise<{ res: boolean, case?: number }> {
         const headers = new Headers()
@@ -480,6 +509,20 @@ export class RestClient implements IRest {
             method: "POST",
             headers,
             body: JSON.stringify({ name: tx.name, password: tx.password, address: tx.address, amount: tx.amount, minerFee: tx.minerFee, nonce: tx.nonce, index }),
+        })
+            .then((response) => response.json())
+            .catch((err: Error) => {
+                console.log(err)
+            }))
+    }
+    public sendTxWithHDWalletRootKey(tx: { address: string, amount: string, minerFee: string, nonce?: number }, rootKey: string, index: number, queueTx?: Function): Promise<{ hash: string } | IResponseError> {
+        const headers = new Headers()
+        headers.append("Accept", "application/json")
+        headers.append("Content-Type", "application/json")
+        return Promise.resolve(fetch(`/api/${this.apiVersion}/sendTxWithHDWalletRootKey`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ address: tx.address, amount: tx.amount, minerFee: tx.minerFee, nonce: tx.nonce, rootKey, index }),
         })
             .then((response) => response.json())
             .catch((err: Error) => {
@@ -630,9 +673,9 @@ export class RestClient implements IRest {
         )
     }
 
-    public getMiningReward(minerAddress: string, blockHash: string): Promise<string | IResponseError> {
+    public getMiningReward(blockHash: string): Promise<string | IResponseError> {
         return Promise.resolve(
-            fetch(`/api/${this.apiVersion}/getMiningReward/${minerAddress}/${blockHash}`)
+            fetch(`/api/${this.apiVersion}/getMiningReward/${blockHash}`)
                 .then((response) => response.json())
                 .catch((err: Error) => {
                     console.log(`Fail to getMiningReward`)

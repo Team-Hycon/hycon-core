@@ -68,7 +68,7 @@ export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
                     })
                 if (this.state.block.miner === undefined) { return }
 
-                this.state.rest.getMiningReward(this.state.block.miner, this.state.hash)
+                this.state.rest.getMiningReward(this.state.hash)
                     .then((reward: string & IResponseError) => {
                         this.setState({ reward })
                     })

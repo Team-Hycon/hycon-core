@@ -163,7 +163,7 @@ export class GhostConsensus {
                 return false
             }
 
-            deferredDB.setUncle(uncleHash, true)
+            await deferredDB.setUncle(uncleHash, true)
             minedUncleChange.push({
                 blockhash: uncleHash,
                 blocktime: dbblock.header.timeStamp,
@@ -225,21 +225,22 @@ export class GhostConsensus {
         })
     }
 
-    public getUncleCandidates(candidateHeight: number, previousHash: Hash): IUncleCandidate[] {
-        const candidates = [] as IUncleCandidate[]
-
-        const startHeight = candidateHeight - maxUncleHeightDelta
-        for (let i = startHeight; candidates.length < maxNumberOfUncles && i < candidateHeight; i++) {
-            const candidateAtHeight = this.uncleCandidates.get(i)
-            if (candidateAtHeight === undefined) { continue }
-            for (const [hash, uncleCandidate] of candidateAtHeight) {
-                if (!previousHash.equals(uncleCandidate.hash)) {
-                    candidates.push(uncleCandidate)
-                    if (candidates.length >= maxNumberOfUncles) { break }
+    public async getUncleCandidates(candidateHeight: number, previousHash: Hash): Promise<IUncleCandidate[]> {
+        return this.candidateLock.critical(async () => {
+            const candidates = [] as IUncleCandidate[]
+            const startHeight = candidateHeight - maxUncleHeightDelta
+            for (let i = startHeight; candidates.length < maxNumberOfUncles && i < candidateHeight; i++) {
+                const candidateAtHeight = this.uncleCandidates.get(i)
+                if (candidateAtHeight === undefined) { continue }
+                for (const [hash, uncleCandidate] of candidateAtHeight) {
+                    if (!previousHash.equals(uncleCandidate.hash)) {
+                        candidates.push(uncleCandidate)
+                        if (candidates.length >= maxNumberOfUncles) { break }
+                    }
                 }
             }
-        }
-        return candidates
+            return candidates
+        })
     }
 
     private async processHeader(previousDBBlock: DBBlock, previousBlockStatus: BlockStatus, header: BlockHeader, hash: Hash, result: IPutResult): Promise<void> {
@@ -279,15 +280,6 @@ export class GhostConsensus {
                     this.recentHeaders.set(height, headersAtHeight)
                 }
                 headersAtHeight.push({ hash, height, miner: header.miner })
-
-                if (previousBlockStatus === BlockStatus.MainChain) {
-                    let uncleCandidatesAtHeight = this.uncleCandidates.get(height)
-                    if (uncleCandidatesAtHeight === undefined) {
-                        uncleCandidatesAtHeight = new Map<string, IUncleCandidate>()
-                        this.uncleCandidates.set(height, uncleCandidatesAtHeight)
-                    }
-                    uncleCandidatesAtHeight.set(hash.toString(), { hash, height, miner: header.miner })
-                }
             }
         })
 
