@@ -2,11 +2,11 @@ import { List } from "material-ui/List"
 import * as React from "react"
 import update = require("react-addons-update")
 import * as ReactPaginate from "react-paginate"
-import { Link } from "react-router-dom"
-import { IHyconWallet, IRest } from "./rest"
+import { IHyconWallet } from "./rest"
+import { RestClient } from "./restClient"
 import { WalletSummary } from "./walletSummary"
 interface IWalletListView {
-    rest: IRest
+    rest: RestClient
     wallets: IHyconWallet[]
 }
 export class WalletList extends React.Component<any, any> {

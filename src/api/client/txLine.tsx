@@ -1,9 +1,10 @@
 import { Button, Dialog, DialogTitle, Grid, Icon, IconButton } from "@material-ui/core"
 import * as React from "react"
 import { Link, Redirect } from "react-router-dom"
-import { IRest, ITxProp, IWalletAddress } from "./rest"
+import { ITxProp } from "./rest"
+import { RestClient } from "./restClient"
 interface ITxLineProps {
-    rest: IRest
+    rest: RestClient
     tx: ITxProp
     address?: string
     index?: string
@@ -11,7 +12,7 @@ interface ITxLineProps {
     walletType?: string
 }
 interface ITxLineView {
-    rest: IRest
+    rest: RestClient
     tx: ITxProp
     redirect?: boolean
     redirectWithHardwareWallet?: boolean

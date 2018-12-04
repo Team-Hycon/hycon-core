@@ -1,8 +1,7 @@
 import { Button, Card, CardContent, FormControl, Grid, Icon, Input, InputLabel, Select } from "@material-ui/core"
-import { Checkbox, Dialog, IconButton, MenuItem, TextField } from "material-ui"
+import { Dialog, IconButton, MenuItem, TextField } from "material-ui"
 import * as React from "react"
 import { Redirect } from "react-router"
-import { IBlock, IHyconWallet, IRest } from "./rest"
 import { encodingMnemonic } from "./stringUtil"
 
 export class RecoverWallet extends React.Component<any, any> {
@@ -11,7 +10,6 @@ export class RecoverWallet extends React.Component<any, any> {
     public errMsg2: string = "Invalid wallet name: the wallet name must be between 2 to 20 characters with no spaces. Use only English or number."
     public errMsg3: string = "Not matched password"
     public errMsg4: string = "Check your mnemonic words"
-    public errMsg5: string = "Fail to recover wallet"
     public pattern1 = /^[a-zA-Z0-9\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]{2,20}$/
     constructor(props: any) {
         super(props)

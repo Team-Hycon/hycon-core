@@ -1,3 +1,4 @@
+import * as Long from "long"
 import { AnyBlockHeader, BlockHeader } from "../../common/blockHeader"
 import { setGenesisBlockHeader } from "../../common/genesisHeader"
 import * as proto from "../../serialization/proto"
@@ -14,9 +15,12 @@ export class DBBlock implements proto.IBlockDB {
     public length?: number
     public tEMA: number
     public pEMA: number
+    public blockWorkEMA: number
     public nextDifficulty: number
+    public nextBlockDifficulty: number
     public totalWork: number
     public uncle: boolean
+    public totalSupply: Long
 
     constructor(dbBlock: proto.IBlockDB) {
         // Consensus Critical
@@ -37,9 +41,11 @@ export class DBBlock implements proto.IBlockDB {
         if (block.pEMA === undefined) {
             throw new Error("DBBlock pEMA is missing")
         }
+
         if (block.nextDifficulty === undefined) {
             throw new Error("DBBlock nextDifficulty is missing")
         }
+
         if (block.totalWork === undefined) {
             throw new Error("DBBlock totalWork is missing")
         }
@@ -59,8 +65,14 @@ export class DBBlock implements proto.IBlockDB {
         if (block.pEMA !== undefined) {
             this.pEMA = block.pEMA
         }
+        if (block.blockWorkEMA !== undefined) {
+            this.blockWorkEMA = block.blockWorkEMA
+        }
         if (block.nextDifficulty !== undefined) {
             this.nextDifficulty = block.nextDifficulty
+        }
+        if (block.nextBlockDifficulty !== undefined) {
+            this.nextBlockDifficulty = block.nextBlockDifficulty
         }
         if (block.totalWork !== undefined) {
             this.totalWork = block.totalWork
@@ -69,6 +81,9 @@ export class DBBlock implements proto.IBlockDB {
             this.uncle = block.uncle
         } else {
             this.uncle = false
+        }
+        if (block.totalSupply !== undefined) {
+            this.totalSupply = block.totalSupply instanceof Long ? block.totalSupply : Long.fromNumber(block.totalSupply, true)
         }
 
         this.height = block.height

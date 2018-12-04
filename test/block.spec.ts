@@ -99,15 +99,6 @@ describe("Block", () => {
         expect(undefTxs).toThrowError()
     })
 
-    it("recalculateMerkleRoot(): should call calculateMerkleRoot method", () => {
-        blk = new Block(protoBlk)
-        const merkle = new Hash(rb1)
-        const merkleSpy = spyOn(Block, "calculateMerkleRoot").and.returnValue(merkle)
-        blk.recalculateMerkleRoot()
-        expect(merkleSpy).toHaveBeenCalled()
-        expect(blk.header.merkleRoot).toEqual(merkle)
-    })
-
     it("encode(): should return encoded data", () => {
         const encoder = jasmine.createSpyObj("encoder", ["finish"])
         const encodeSpy = spyOn(proto.Block, "encode").and.returnValue(encoder)

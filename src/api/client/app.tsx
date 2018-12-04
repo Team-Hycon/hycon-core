@@ -8,7 +8,6 @@ import { BlockView } from "./blockView"
 import { Home } from "./home"
 import { MakeTransaction } from "./makeTransaction"
 import { PeersView } from "./peersView"
-import { IRest } from "./rest"
 import { Transaction } from "./transaction"
 import { TxPoolList } from "./txPoolList"
 import { TxView } from "./txView"
@@ -17,6 +16,7 @@ import { AddWallet } from "./addWallet"
 import { HardwareWalletView } from "./hardwareWalletView"
 import { MinerView } from "./minerView"
 import { RecoverWallet } from "./recoverWallet"
+import { RestClient } from "./restClient"
 import { WalletDetail } from "./walletDetail"
 import { WalletView } from "./walletView"
 
@@ -48,8 +48,8 @@ export const routes: RouteConfig[] = [
 ]
 
 // tslint:disable:no-shadowed-variable
-export class App extends React.Component<{ rest: IRest }, any> {
-    public rest: IRest
+export class App extends React.Component<{ rest: RestClient }, any> {
+    public rest: RestClient
     public blockView: ({ match }: RouteComponentProps<{ hash: string }>) => JSX.Element
     public home: ({ match }: RouteComponentProps<{}>) => JSX.Element
     public addressInfo: ({ match }: RouteComponentProps<{ hash: string }>) => JSX.Element
@@ -115,9 +115,7 @@ export class App extends React.Component<{ rest: IRest }, any> {
         this.peersView = ({ match }: RouteComponentProps<{}>) => (
             <PeersView rest={props.rest} />
         )
-        // this.peerDetails = ({ match }: RouteComponentProps<{ hash: string }>) => (
-        //     <PeerDetailsView hash={match.params.hash} rest={this.rest} />
-        // )
+
         this.wallet = ({ match }: RouteComponentProps<{}>) => (
             <WalletView rest={props.rest} />
         )

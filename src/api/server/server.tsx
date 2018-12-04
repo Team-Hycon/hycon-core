@@ -4,9 +4,11 @@ import { getLogger } from "log4js"
 import opn = require("opn")
 import { matchRoutes } from "react-router-config"
 import { SignedTx } from "../../common/txSigned"
-import { globalOptions } from "../../main"
+import { userOptions } from "../../main"
+import { Options } from "../../options"
 import { RestManager } from "../../rest/restManager"
 import { routes } from "../client/app"
+import { RestClient } from "../client/restClient"
 import { indexRender } from "./index"
 import { RestServer } from "./restServer"
 const logger = getLogger("RestClient")
@@ -18,12 +20,12 @@ export class HttpServer {
     public rest: RestServer
     public hyconServer: RestManager
 
-    constructor(hyconServer: RestManager, port: number = 2442, options: any) {
+    constructor(hyconServer: RestManager, port: number = 2442, options: Options) {
         this.app = express()
         this.config()
         this.app.all("/*", (req: express.Request, res: express.Response, next: express.NextFunction) => {
             // res.header("Access-Control-Allow-Origin", "localhost")
-            if (options.nonLocal || globalOptions.public_rest === true) {
+            if (options.nonLocal || userOptions.public_rest === true) {
                 res.header("Access-Control-Allow-Origin", "*")
             } else {
                 res.header("Access-Control-Allow-Origin", "https://wallet.hycon.io")
@@ -38,7 +40,7 @@ export class HttpServer {
             }
         })
         this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => this.reactRoute(req, res, next))
-        if (globalOptions.public_rest !== true) {
+        if (userOptions.public_rest !== true) {
             this.app.use(express.static("data/clientDist"))
             this.app.use(express.static("node_modules"))
         }
@@ -65,7 +67,7 @@ export class HttpServer {
             }
         })
 
-        if (options.nonLocal || globalOptions.public_rest === true) {
+        if (options.nonLocal || userOptions.public_rest === true) {
             this.app.listen(port, () => this.open(port))
         } else {
             this.app.listen(port, "localhost", () => this.open(port))
@@ -81,10 +83,11 @@ export class HttpServer {
         next: express.NextFunction,
     ) {
         const branches = matchRoutes(routes, req.url)
-        if (globalOptions.public_rest !== true && branches.length > 0) {
+        if (userOptions.public_rest !== true && branches.length > 0) {
             logger.info("react: " + req.url)
             const context: { url?: string } = {}
-            const page = indexRender(this.rest, req.url, context)
+            const rest = new RestClient()
+            const page = indexRender(rest, req.url, context)
             if (context.url) {
                 res.redirect(context.url, 301)
             } else {
@@ -100,7 +103,7 @@ export class HttpServer {
         let router: express.Router
         router = express.Router()
 
-        if (globalOptions.public_rest !== true) {
+        if (userOptions.public_rest !== true) {
             // Private, only available on local
             router.get("/wallet/", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getWalletList())
@@ -186,15 +189,6 @@ export class HttpServer {
             router.get("/getAllAccounts", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getAllAccounts(req.body.name, req.body.password, req.body.startIndex))
             })
-            router.get("/block/height/:height", async (req: express.Request, res: express.Response) => {
-                res.json(await this.rest.getBlockAtHeight(req.params.height))
-            })
-            router.get("/blockList/:index", async (req: express.Request, res: express.Response) => {
-                res.json(await this.rest.getBlockList(req.params.index))
-            })
-            router.get("/toptipHeight/", async (req: express.Request, res: express.Response) => {
-                res.json(await this.rest.getTopTipHeight())
-            })
             router.get("/getMnemonic/:lang", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getMnemonic(req.params.lang))
             })
@@ -205,10 +199,6 @@ export class HttpServer {
 
             router.get("/setMiner/:address", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.setMiner(req.params.address))
-            })
-
-            router.get("/startGPU", async (req: express.Request, res: express.Response) => {
-                res.json(await this.rest.startGPU())
             })
 
             router.get("/setMinerCount/:count", async (req: express.Request, res: express.Response) => {
@@ -351,14 +341,28 @@ export class HttpServer {
                     fee: req.body.fee,
                     nonce: req.body.nonce,
                     recovery: req.body.recovery,
+                    transitionSignature: req.body.transitionSignature,
+                    transitionRecovery: req.body.transitionRecovery,
                 }, async (tx: SignedTx) => {
                     const newTxs = await this.hyconServer.txQueue.putTxs([tx])
                     this.hyconServer.broadcastTxs(newTxs)
                 }),
             )
         })
-        router.get("/block/:hash", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.getBlock(req.params.hash))
+        router.get("/block/:hash/:txcount?", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getBlock(req.params.hash, req.params.txcount))
+        })
+        router.get("/block/height/:height", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getBlockAtHeight(req.params.height))
+        })
+        router.get("/blockList/:index", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getBlockList(req.params.index))
+        })
+        router.get("/toptipHeight/", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getTopTipHeight())
+        })
+        router.get("/getHTipHeight/", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getHTipHeight())
         })
         router.get("/address/:address", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getAddressInfo(req.params.address))
@@ -448,6 +452,9 @@ export class HttpServer {
         router.get("/getMiningReward/:blockHash", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMiningReward(req.params.blockHash))
         })
+        router.get("/getBlocksFromHeight/:from/:count", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getBlocksFromHeight(req.params.from, req.params.count))
+        })
 
         this.app.use(`/api/${apiVersion}`, router)
     }
@@ -457,7 +464,7 @@ export class HttpServer {
     }
 
     private open(port: number) {
-        if (globalOptions.noGUI === true) {
+        if (userOptions.noGUI === true) {
             return
         }
         const url = `http://localhost:${port}`

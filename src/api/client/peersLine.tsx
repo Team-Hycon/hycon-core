@@ -1,9 +1,9 @@
 import * as React from "react"
-import { Link } from "react-router-dom"
-import { IPeer, IRest } from "./rest"
+import { IPeer } from "./rest"
+import { RestClient } from "./restClient"
 
 interface IPeersLineView {
-    rest: IRest
+    rest: RestClient
     peer: IPeer
 }
 

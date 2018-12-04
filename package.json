@@ -1,6 +1,6 @@
 {
     "name": "hycon",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "HYCON Full-node",
     "main": "index.js",
     "bin": "build/src/main.js",
@@ -11,6 +11,7 @@
     "scripts": {
         "hycon": "./node_modules/.bin/ts-node src/main.ts --port=8148 --str_port=9081 --api --api_port=2442 --cpuMiners=1",
         "nogui": "./node_modules/.bin/ts-node src/main.ts --port=8148 --str_port=9081 --api --api_port=2442 --cpuMiners=1 --noGUI",
+        "testnet": "./node_modules/.bin/ts-node src/main.ts --port=8148 --str_port=9081 --api --api_port=2442 --cpuMiners=1 --noGUI --networkid=ouroboros --bootstrap",
         "seed": "./node_modules/.bin/ts-node src/main.ts --port=8148 --str_port=9081 --api --api_port=2442 --cpuMiners=0",
         "protogen": "pbjs -t static-module -w commonjs -o src/serialization/proto.js proto/main.proto &&  pbts -o src/serialization/proto.d.ts src/serialization/proto.js && ./src/serialization/trim_null.sh",
         "debug": "./node_modules/.bin/ts-node --inspect=9231 --inspect-brk src/main.ts  --port=8148 --str_port=9081 --cpuMiners=3 --api --api_port=2442 --networkid=`git rev-parse HEAD` --bootstrap",

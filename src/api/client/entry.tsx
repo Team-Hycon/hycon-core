@@ -2,7 +2,7 @@ import getMuiTheme from "material-ui/styles/getMuiTheme"
 import MuiThemeProvider from "material-ui/styles/MuiThemeProvider"
 import * as React from "react"
 import * as ReactDOM from "react-dom"
-import { BrowserRouter, HashRouter } from "react-router-dom"
+import { BrowserRouter } from "react-router-dom"
 import { App } from "./app"
 import { RestClient } from "./restClient"
 

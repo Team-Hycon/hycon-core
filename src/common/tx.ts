@@ -1,10 +1,23 @@
 import { getLogger } from "log4js"
 import * as Long from "long"
 import { Address } from "../common/address"
+import { userOptions } from "../main"
 import * as proto from "../serialization/proto"
+import { Hash } from "../util/hash"
 
 const logger = getLogger("Tx")
-
+export function signatureHash(tx: proto.ITx) {
+    const encoding = proto.Tx.encode({
+        amount: tx.amount,
+        fee: tx.fee,
+        from: tx.from,
+        networkid: userOptions.networkid,
+        nonce: tx.nonce,
+        to: tx.to,
+    }).finish()
+    const hash = Hash.hash(encoding)
+    return new Hash(hash)
+}
 export class Tx implements proto.ITx {
     public from: Address
     public to?: Address

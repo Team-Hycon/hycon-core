@@ -3,14 +3,13 @@ import "reflect-metadata"
 import { Connection, createConnection } from "typeorm"
 import { AsyncLock } from "../common/asyncLock"
 import * as proto from "../serialization/proto"
-import { IPeerDatabase } from "./ipeerDatabase"
+import { Network } from "./network"
 import { PeerModel } from "./peerModel"
-import { RabbitNetwork } from "./rabbit/rabbitNetwork"
 const logger = getLogger("PeerDb")
 
 const PEER_EXPIRATION_TIME = 1000 * 60 * 60 * 6
 
-export class PeerDatabase implements IPeerDatabase {
+export class PeerDatabase {
     private connection: Connection
     private dbLock: AsyncLock
     private readonly path: string
@@ -150,7 +149,7 @@ export class PeerDatabase implements IPeerDatabase {
     public async putPeers(peers: proto.IPeer[]) {
         for (let { host, port } of peers) {
             try {
-                host = RabbitNetwork.normalizeHost(host)
+                host = Network.normalizeHost(host)
                 const peerExist = await this.connection.manager.findOne(PeerModel, { where: { host, port } })
                 if (peerExist === undefined) {
                     const peerModel = new PeerModel()

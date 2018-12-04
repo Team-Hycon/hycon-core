@@ -21,4 +21,7 @@ message BlockDB {
     double nextDifficulty = 8;
     double totalWork = 9;
     bool uncle = 10; 
+    double nextBlockDifficulty = 11;
+    double blockWorkEMA = 12;
+    uint64 totalSupply = 13;
 }

@@ -7,6 +7,7 @@ import Icon from "@material-ui/core/Icon"
 import { Card, TextField } from "material-ui"
 import * as React from "react"
 import { Redirect } from "react-router"
+import { strictAdd, strictSub } from "./stringUtil"
 import { AddressBook } from "./addressBook"
 import { IHyconWallet } from "./rest"
 import { hyconfromString } from "./stringUtil"
@@ -83,8 +84,7 @@ export class Transaction extends React.Component<any, any> {
             alert("Please enter a number with up to 9 decimal places")
             return
         }
-
-        if (this.state.nonce === undefined && hyconfromString(this.state.amount).add(hyconfromString(this.state.minerFee)).greaterThan(hyconfromString(this.state.piggyBank).sub(hyconfromString(this.state.wallet.pendingAmount)))) {
+        if (this.state.nonce === undefined && strictAdd(hyconfromString(this.state.amount), hyconfromString(this.state.minerFee)).greaterThan(strictSub(hyconfromString(this.state.piggyBank), hyconfromString(this.state.wallet.pendingAmount)))) {
             alert("You can't spend the money you don't have")
             return
         }
@@ -96,11 +96,6 @@ export class Transaction extends React.Component<any, any> {
 
         if (this.state.amount <= 0) {
             alert("Enter a valid transaction amount")
-            return
-        }
-
-        if (this.state.wallet.address === this.state.address) {
-            alert("You cannot send HYCON to yourself")
             return
         }
 

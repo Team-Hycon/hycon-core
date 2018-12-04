@@ -1,5 +1,5 @@
 import { configure, getLogger } from "log4js"
-import { showHelp } from "./help"
+import { optionDefinitions, Options } from "./options"
 configure({
     appenders: {
 
@@ -21,101 +21,18 @@ configure({
 const logger = getLogger("Main")
 
 import commandLineArgs = require("command-line-args")
-// Alphabetical order
-const optionDefinitions = [
-    { name: "api", alias: "a", type: Boolean },
-    { name: "api_port", alias: "A", type: Number },
-    { name: "bootstrap", type: Boolean },
-    { name: "blockchain_info", alias: "B", type: String },
-    { name: "config", alias: "c", type: String },
-    { name: "cpuMiners", alias: "m", type: Number },
-    { name: "data", alias: "d", type: String },
-    { name: "disable_upnp", alias: "x", type: Boolean },
-    { name: "disable_nat", alias: "N", type: Boolean },
-    { name: "genesis", alias: "G", type: String },
-    { name: "help", alias: "h", type: Boolean },
-    { name: "lite", type: Boolean },
-    { name: "minerAddress", alias: "M", type: String },
-    { name: "networkid", alias: "n", type: String },
-    { name: "nonLocal", alias: "l", type: Boolean },
-    { name: "noGUI", type: Boolean },
-    { name: "peer", type: String, multiple: true, defaultOption: true },
-    { name: "port", alias: "p", type: Number },
-    { name: "postfix", alias: "P", type: String },
-    { name: "public_rest", alias: "R", type: Boolean },
-    { name: "str_port", alias: "s", type: Number },
-    { name: "verbose", alias: "v", type: Boolean, defaultOption: false },
-    { name: "visualize", alias: "V", type: Boolean },
-    { name: "wallet", alias: "W", type: Boolean },
-    { name: "writing", alias: "w", type: Boolean },
-]
+export const userOptions = new Options(commandLineArgs(optionDefinitions))
 
-import conf = require("./settings")
-export const globalOptions = commandLineArgs(optionDefinitions)
-
-if (globalOptions.help) {
-    showHelp()
-    process.exit(0)
-}
-
-if (globalOptions.cpuMiners === undefined) {
-    globalOptions.cpuMiners = 1
-}
-if (globalOptions.genesis !== undefined) {
-    conf.dataGenesis = globalOptions.genesis
-}
-if (globalOptions.api_port !== "") {
-    logger.info(`API Port=${globalOptions.api_port}`)
-}
-if (globalOptions.networkid === undefined) {
-    globalOptions.networkid = "hycon"
-}
-if (globalOptions.nonLocal === undefined) {
-    globalOptions.nonLocal = false
-}
-if (globalOptions.port === 0) {
-    globalOptions.port = 20000 + Math.floor(40000 * Math.random())
-}
-if (globalOptions.postfix === undefined) {
-    globalOptions.postfix = ""
-}
-
-if (globalOptions.data === undefined) {
-    globalOptions.data = ""
-} else {
-    const target: string = globalOptions.data
-    if (target.length > 0) {
-        const lastone: string = target.slice(target.length - 1, target.length)
-        if (lastone === "/" || lastone === "\\") {
-        } else {
-            globalOptions.data += "/"
-        }
-    }
-}
-
-if (globalOptions.str_port === 0) {
-    globalOptions.str_port = 20000 + Math.floor(40000 * Math.random())
-}
-if (globalOptions.verbose) {
+if (userOptions.verbose) {
     logger.level = "debug"
 }
-if (conf.ghostHeight === undefined) {
-    conf.ghostHeight = 317713
-}
-
-logger.info(`GenesisBlock=${conf.dataGenesis}`)
-logger.info(`Options=${JSON.stringify(globalOptions)}`)
-logger.info(`Verbose=${globalOptions.verbose}`)
-logger.info(`Port=${globalOptions.port}`)
-logger.info(`Stratum Port=${globalOptions.str_port}`)
-
-import * as fs from "fs-extra"
 import { Server } from "./server"
 import { Wallet } from "./wallet/wallet"
 // tslint:disable-next-line:no-var-requires
 const input = require("input")
-async function createDefaultWallet(): Promise<string> {
+export async function createDefaultWallet(): Promise<string> {
     logger.warn("An encrypted mining wallet will be created for you")
+    logger.warn("You can use the option --minerAddress=\"${your address}\" or modifi data/config.json file")
     await Wallet.walletInit()
     let password = ""
     while (true) {
@@ -135,62 +52,16 @@ async function createDefaultWallet(): Promise<string> {
     return address
 }
 
-export async function setMiner(address: string) {
-    globalOptions.minerAddress = conf.minerAddress = address
-    await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
-}
-
 async function main() {
-    let configChange = false
+    logger.info(`GenesisBlock=${userOptions.dataGenesis}`)
+    logger.info(`Options=${JSON.stringify(userOptions)}`)
+    logger.info(`Verbose=${userOptions.verbose}`)
+    logger.info(`Port=${userOptions.port}`)
+    logger.info(`Stratum Port=${userOptions.str_port}`)
+    await userOptions.setMiner()
 
-    if (globalOptions.os === undefined || globalOptions.os === "") {
-        globalOptions.os = conf.os
-    }
-
-    if (globalOptions.minerAddress === undefined || globalOptions.minerAddress === "") {
-        globalOptions.minerAddress = conf.minerAddress
-    }
-
-    if (globalOptions.minerAddress === undefined || globalOptions.minerAddress === "") {
-        try {
-            globalOptions.minerAddress = conf.minerAddress = await Wallet.getAddress("mining")
-            configChange = true
-        } catch (e) {
-
-        }
-    }
-
-    if (conf.txPoolMaxAddresses === undefined) {
-        conf.txPoolMaxAddresses = 36000
-        await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
-    }
-
-    if (conf.txPoolMaxTxsPerAddress === undefined) {
-        conf.txPoolMaxTxsPerAddress = 64
-        await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
-    }
-
-    if (globalOptions.cpuMiners > 0) {
-        if (globalOptions.minerAddress === undefined || globalOptions.minerAddress === "") {
-            try {
-                globalOptions.minerAddress = conf.minerAddress = await createDefaultWallet()
-                configChange = true
-            } catch (e) {
-                logger.error(`Failed to initialize default wallet: ${e}`)
-            }
-        }
-    }
-
-    if (configChange) {
-        await fs.writeFileSync("./data/config.json", JSON.stringify(conf))
-    }
-
-    if (globalOptions.lite === undefined || globalOptions.lite) {
-        const hycon = new Server()
-        hycon.run()
-    } else {
-        throw new Error("Lite node not implemented")
-    }
+    const hycon = new Server()
+    hycon.run()
 }
 
 main()

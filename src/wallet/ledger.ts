@@ -5,6 +5,8 @@ import Long = require("long")
 import { Address } from "../common/address"
 import { Tx } from "../common/tx"
 import { SignedTx } from "../common/txSigned"
+import { userOptions } from "../main"
+import proto = require("../serialization/proto")
 const logger = getLogger("Consensus")
 function hexToBytes(hex: string) {
     const bytes = []
@@ -36,17 +38,25 @@ export class Ledger {
         return addresses
     }
 
-    public static async sign(to: Address, amount: Long, nonce: number, fee: Long, index: number = 0): Promise<SignedTx> {
+    public static async sign(htipHeight: number, to: Address, amount: Long, nonce: number, fee: Long, index: number = 0): Promise<SignedTx> {
         try {
             const transport = await Transport.create()
             const hycon = new Hycon(transport)
             const from = await Ledger._getAddress(hycon, index)
             const tx = new Tx({ from, to, amount, fee, nonce })
-            const rawTxHex = bytesToHex(tx.encode())
+            let encoding
+            // 1544154600000 = Friday, December 7, 2018 12:50:00 PM GMT+09:00
+            // Switch to the new method a little earlier than the fork
+            if (htipHeight < userOptions.jabiruHeight - 30 && Date.now() <= 1544154600000) {
+                encoding = proto.Tx.encode({ from, to, amount, fee, nonce }).finish()
+            } else {
+                encoding = proto.Tx.encode({ from, to, amount, fee, nonce, networkid: userOptions.networkid }).finish()
+            }
+            const rawTxHex = bytesToHex(encoding)
             const signed = await hycon.signTransaction(`44'/1397'/0'/0/${index}`, rawTxHex)
             const sig = new Uint8Array(hexToBytes(signed.signature))
             logger.info(`Signed transaction with Ledger / From : ${from.toString()} / raw TxHex : ${rawTxHex} / Signature : ${signed.signature}`)
-            const stx = new SignedTx(new Tx({ from, to, amount, fee, nonce }), sig, signed.recovery)
+            const stx = new SignedTx(tx, sig, signed.recovery)
             await transport.close()
             return stx
         } catch (e) {

@@ -1,13 +1,12 @@
 import getMuiTheme from "material-ui/styles/getMuiTheme"
 import MuiThemeProvider from "material-ui/styles/MuiThemeProvider"
 import * as React from "react"
-import { ReactElement } from "react"
 import { renderToString } from "react-dom/server"
 import { StaticRouter } from "react-router"
 import { App } from "../client/app"
-import { RestServer } from "./restServer"
+import { RestClient } from "../client/restClient"
 export function indexRender(
-    rest: RestServer,
+    rest: RestClient,
     url: string,
     context: any,
 ): string {

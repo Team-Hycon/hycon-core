@@ -25,10 +25,19 @@ function toUint8Array(ob?: Tx | Block | GenesisBlock | GenesisBlockHeader | Bloc
             }
             return ob
         } else if (ob instanceof SignedTx || ob instanceof GenesisSignedTx) {
-            const usignedTx = Object.assign({}, ob)
-            delete usignedTx.recovery
-            delete usignedTx.signature
-            return Hash.hash(proto.Tx.encode(usignedTx).finish())
+            let unsignedTx = {
+                amount: ob.amount,
+                to: ob.to,
+            }
+            if (ob instanceof SignedTx) {
+                unsignedTx = Object.assign(unsignedTx, {
+                    fee: ob.fee,
+                    from: ob.from,
+                    nonce: ob.nonce,
+                })
+            }
+            const encoding = proto.Tx.encode(unsignedTx).finish()
+            return Hash.hash(encoding)
         } else if (ob instanceof Block || ob instanceof GenesisBlock) {
             return Hash.hash(ob.header.encode())
         } else if (ob instanceof Tx || ob instanceof BaseBlockHeader || ob instanceof BlockHeader || ob instanceof StateNode || ob instanceof Account || ob instanceof GenesisBlockHeader || ob instanceof GenesisTx) {

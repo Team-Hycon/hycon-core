@@ -1,9 +1,14 @@
 {
     "os" : "win",
     "dataGenesis": "./data/genesis.dat",
+    "dataExodus": "./data/exodusBlock.dat",
+    "dataExodusDB": "./data/exodusBlockDB.dat",
     "dataRaw": "./data/raw",
     "dataRoot": "./data",
     "dataWallet": "./wallet",
     "minerAddress": "",
-    "ghostHeight":317713
+    "ghostHeight": 317713,
+    "jabiruHeight": 444444,
+    "txPoolMaxAddresses": 36000,
+    "txPoolMaxTxsPerAddress": 64
 }

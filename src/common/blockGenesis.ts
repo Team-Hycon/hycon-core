@@ -1,15 +1,15 @@
 
 import * as fs from "fs"
 import { getLogger } from "log4js"
+import { userOptions } from "../main"
 import * as proto from "../serialization/proto"
-import conf = require("../settings")
 import { GenesisBlockHeader, setGenesisBlockHeader } from "./genesisHeader"
 import { GenesisSignedTx } from "./txGenesisSigned"
 
 const logger = getLogger("GenesisBlock")
 
 export class GenesisBlock implements proto.IBlock {
-    public static loadFromFile(path: string = conf.dataGenesis) {
+    public static loadFromFile(path: string = userOptions.dataGenesis) {
         try {
             const file = fs.readFileSync(path)
             return GenesisBlock.decode(file)

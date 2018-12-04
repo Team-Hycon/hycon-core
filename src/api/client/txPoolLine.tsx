@@ -1,8 +1,9 @@
 import * as React from "react"
 import { Link } from "react-router-dom"
-import { IRest, ITxProp } from "./rest"
+import { ITxProp } from "./rest"
+import { RestClient } from "./restClient"
 interface IBlockLineView {
-    rest: IRest
+    rest: RestClient
     tx: ITxProp
 }
 export class TxPoolLine extends React.Component<any, any> {

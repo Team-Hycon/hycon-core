@@ -9,7 +9,7 @@ export class PriorityQueue<T> {
         this.comparator = comparator
     }
 
-    public insert(value: T) {
+    public insert(value: T): boolean {
         // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < this.queue.length; i++) {
             const item = this.peek(i)
@@ -20,13 +20,15 @@ export class PriorityQueue<T> {
                 const lowerQueue = this.queue.slice(0, i)
                 lowerQueue.push(value)
                 this.queue = lowerQueue.concat(upperQueue)
-                return
+                return true
             }
         }
 
         if (this.queue.length < this.maxLength) {
             this.queue.push(value)
+            return true
         }
+        return false
     }
 
     public pop(index?: number): T {

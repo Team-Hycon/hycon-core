@@ -17,27 +17,6 @@ export class PublicKey {
         }
     }
 
-    public verify(tx: (SignedTx | GenesisSignedTx)): boolean {
-        // Consensus Critical
-        let txAddress: Address
-        if (tx instanceof SignedTx) {
-            txAddress = tx.from
-        } else {
-            txAddress = tx.to
-        }
-        const address = this.address()
-
-        if (!txAddress.equals(address)) { return false }
-        if (!tx.signature) { return false }
-
-        try {
-            const hash = new Hash(tx)
-            return secp256k1.verify(hash.toBuffer(), tx.signature, this.pubKey)
-        } catch (e) {
-            return false
-        }
-    }
-
     public address(): Address {
         // Consensus Critical
         const hash: Uint8Array = Hash.hash(this.pubKey)

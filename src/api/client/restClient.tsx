@@ -5,14 +5,13 @@ import {
     IMiner,
     IPeer,
     IResponseError,
-    IRest,
     ITxProp,
     IWalletAddress,
 } from "./rest"
 // tslint:disable:no-console
 // tslint:disable:ban-types
 // tslint:disable:object-literal-sort-keys
-export class RestClient implements IRest {
+export class RestClient {
 
     public apiVersion = "v1"
     public loading: boolean
@@ -155,9 +154,9 @@ export class RestClient implements IRest {
                 console.log(err)
             }))
     }
-    public getBlock(hash: string): Promise<IBlock | IResponseError> {
+    public getBlock(hash: string, txcount: number): Promise<IBlock | IResponseError> {
         return Promise.resolve(
-            fetch(`/api/${this.apiVersion}/block/${hash}`)
+            fetch(`/api/${this.apiVersion}/block/${hash}/${txcount}`)
                 .then((response) => response.json())
                 .catch((err: Error) => {
                     console.log(err)
@@ -177,6 +176,16 @@ export class RestClient implements IRest {
     public getTopTipHeight(): Promise<{ height: number }> {
         return Promise.resolve(
             fetch(`/api/${this.apiVersion}/topTipHeight`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(err)
+                }),
+        )
+    }
+
+    public getHTipHeight(): Promise<{ height: number }> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/getHTipHeight`)
                 .then((response) => response.json())
                 .catch((err: Error) => {
                     console.log(err)
@@ -676,6 +685,17 @@ export class RestClient implements IRest {
     public getMiningReward(blockHash: string): Promise<string | IResponseError> {
         return Promise.resolve(
             fetch(`/api/${this.apiVersion}/getMiningReward/${blockHash}`)
+                .then((response) => response.json())
+                .catch((err: Error) => {
+                    console.log(`Fail to getMiningReward`)
+                    console.log(err)
+                }),
+        )
+    }
+
+    public getBlocksFromHeight(from: number, count: number): Promise<{ blocks: IBlock[] } | IResponseError> {
+        return Promise.resolve(
+            fetch(`/api/${this.apiVersion}/getBlocksFromHeight/${from}/${count}`)
                 .then((response) => response.json())
                 .catch((err: Error) => {
                     console.log(`Fail to getMiningReward`)

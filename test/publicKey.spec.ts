@@ -38,21 +38,6 @@ describe("PublicKey", () => {
         expect(rSpy).toHaveBeenCalled()
     })
 
-    it("Verify method with incorrect tx parameter(from == address)", () => {
-        const equalSpy = spyOn(Address.prototype, "equals").and.returnValue(true)
-        const result = pubKey.verify(tx)
-        expect(secp256k1.verify).toHaveBeenCalled()
-        expect(equalSpy).toHaveBeenCalled()
-        expect(result).toBeTruthy()
-    })
-
-    it("Verify method with incorrect tx parameter(from != address)", () => {
-        const equalSpy = spyOn(Address.prototype, "equals").and.returnValue(false)
-        const result = pubKey.verify(tx)
-        expect(equalSpy).toHaveBeenCalled()
-        expect(result).toBeFalsy()
-    })
-
     it("Should return hashed address", () => {
         const hashSpy = spyOn(Hash, "hash").and.returnValue(randomBytes(32))
         pubKey.address()

@@ -1,7 +1,9 @@
 
 import { getLogger } from "log4js"
 import Long = require("long")
+import secp256k1 = require("secp256k1")
 import * as proto from "../serialization/proto"
+import { Hash } from "../util/hash"
 import { Address } from "./address"
 import { PublicKey } from "./publicKey"
 const logger = getLogger("TxGenesisSigned")
@@ -49,9 +51,14 @@ export class GenesisSignedTx implements proto.ITx {
     }
 
     public verify(): boolean {
+        // Consensus Critical
         try {
-            const pubkey = new PublicKey(this)
-            return pubkey.verify(this)
+            if (this.signature === undefined || this.recovery === undefined) { return false }
+            const hash = new Hash(this).toBuffer()
+            const pubKey = new PublicKey(secp256k1.recover(hash, this.signature, this.recovery))
+            const address = pubKey.address()
+            if (!this.to.equals(address)) { return false }
+            return secp256k1.verify(hash, this.signature, pubKey.pubKey)
         } catch (e) {
             return false
         }

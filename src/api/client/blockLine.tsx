@@ -1,12 +1,12 @@
-import { Menu, MenuItem } from "@material-ui/core"
 import * as React from "react"
 import { Link } from "react-router-dom"
-import { IBlock, IResponseError, IRest } from "./rest"
+import { IBlock } from "./rest"
+import { RestClient } from "./restClient"
 interface IBlockLineView {
     anchorEl: null
     block: IBlock
     dialogUncleList: boolean
-    rest: IRest
+    rest: RestClient
     age?: IAge
 }
 interface IAge {
@@ -25,32 +25,17 @@ export class BlockLine extends React.Component<any, any> {
             block: props.block,
             dialogUncleList: false,
             rest: props.rest,
-            uncles: [],
+            uncles: props.block.prevBlock.slice(1),
         }
     }
     public componentWillMount() {
         this.getDiffDate()
     }
     public componentDidMount() {
+        this.mounted = true
         this.intervalId = setInterval(() => {
             this.getDiffDate()
         }, 1000)
-        this.mounted = true
-        this.state.rest.setLoading(true)
-        if (this.state.block.prevBlock.length > 1) {
-            this.state.rest.getBlock(this.state.block.hash)
-                .then((data: IBlock & IResponseError) => {
-                    this.state.rest.setLoading(false)
-                    if (this.mounted) {
-                        this.setState({
-                            uncles: data.prevBlock.split(",").slice(1),
-                        })
-                    }
-                })
-                .catch((e: Error) => {
-                    alert(e)
-                })
-        }
     }
     public componentWillUnmount() {
         clearInterval(this.intervalId)
@@ -110,7 +95,7 @@ export class BlockLine extends React.Component<any, any> {
                 </td>
                 <td className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>{this.state.block.txs.length}</td>
                 <td className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>
-                    {this.state.block.prevBlock.length > 1 ? (this.state.block.prevBlock.length - 1) : 0}
+                    {this.state.uncles.length}
                 </td>
                 <td className="mdl-data-table__cell--numeric" style={{ paddingRight: "10%" }}>
                     {this.formatNumber(this.state.block.txSummary)} HYCON

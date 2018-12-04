@@ -1,7 +1,7 @@
 import * as ip from "ip"
 import { getLogger } from "log4js"
-import { globalOptions } from "../main"
-import { INetwork } from "./inetwork"
+import { userOptions } from "../main"
+import { Network } from "./network"
 const logger = getLogger("Upnp")
 
 export class UpnpServer {
@@ -14,8 +14,8 @@ export class UpnpServer {
     constructor(port: number) {
         UpnpServer.port = port
 
-        if (globalOptions.networkid) {
-            UpnpServer.networkid = globalOptions.networkid
+        if (userOptions.networkid) {
+            UpnpServer.networkid = userOptions.networkid
         }
 
         this.run()
@@ -37,9 +37,9 @@ export class UpnpServer {
 
 // tslint:disable-next-line:max-classes-per-file
 export class UpnpClient {
-    public rabbitNetwork: INetwork
+    public rabbitNetwork: Network
 
-    constructor(rabbitNetwork: INetwork) {
+    constructor(rabbitNetwork: Network) {
         this.rabbitNetwork = rabbitNetwork
         this.run()
     }
@@ -59,7 +59,6 @@ export class UpnpClient {
         }, 10 * 1000)
 
         client.on("response", async (headers: any, code: any, rdebug: any) => {
-            // const ipaddress = rdebug.address
             const regex = /(\S+):\/\/([\.\d]+):(\d+)/g
             const match = regex.exec(headers.LOCATION)
             if (match) {

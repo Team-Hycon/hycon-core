@@ -1,6 +1,6 @@
 import { getLogger } from "log4js"
 import * as natUpnp from "nat-upnp"
-import { INetwork } from "./inetwork"
+import { Network } from "./network"
 const client = natUpnp.createClient()
 const logger = getLogger("Nat")
 
@@ -36,9 +36,9 @@ export class NatUpnp {
 
     public publicPort: number
     private privatePort: number
-    private network: INetwork
+    private network: Network
 
-    constructor(port: number, net: INetwork) {
+    constructor(port: number, net: Network) {
         this.privatePort = port
         this.network = net
     }

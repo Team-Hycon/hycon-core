@@ -36,7 +36,7 @@ export class Wallet {
                 await fs.mkdir("./wallet/rootKey")
             } catch (error) {
                 logger.error(`Make Directory fail : ${error}`)
-                return Promise.reject(error)
+                throw (error)
             }
         }
         return Promise.resolve(undefined)
@@ -174,7 +174,7 @@ export class Wallet {
             return new Wallet(Buffer.from(decryptResult, "hex"))
         } catch (e) {
             logger.error("Fail to loadKeys : " + e)
-            return Promise.reject("Fail to loadKeys : " + e)
+            throw new Error(("Fail to loadKeys : " + e))
         }
     }
 
@@ -189,7 +189,7 @@ export class Wallet {
             return walletList
         } catch (e) {
             logger.error("Fail to loadKeys : " + e)
-            return Promise.reject("Fail to loadKeys : " + e)
+            throw new Error(("Fail to loadKeys : " + e))
         }
     }
 
@@ -229,7 +229,7 @@ export class Wallet {
             return ""
         } catch (e) {
             logger.error("Fail to get AddressList")
-            return Promise.reject("Fail to get AddressList")
+            throw new Error(("Fail to get AddressList"))
         }
     }
 
@@ -282,7 +282,7 @@ export class Wallet {
             return Promise.resolve(listArray)
         } catch (e) {
             logger.error(`Fail to getAllPubliclist : ${e}`)
-            return Promise.reject(e)
+            throw (e)
         }
     }
 
@@ -308,7 +308,7 @@ export class Wallet {
             return Promise.resolve({ walletList, length: keyList.length })
         } catch (e) {
             logger.error(`Fail to walletList : ${e}`)
-            return Promise.reject(e)
+            throw (e)
         }
     }
     public static async delete(name: string): Promise<boolean> {
@@ -331,7 +331,7 @@ export class Wallet {
             }
         } catch (e) {
             logger.error(`Fail to delete wallet : ${e}`)
-            return Promise.reject(e)
+            throw (e)
         }
     }
 
@@ -354,7 +354,7 @@ export class Wallet {
             return Promise.resolve(listArray)
         } catch (e) {
             logger.error(`Fail to getFavoriteList : ${e}`)
-            return Promise.reject(e)
+            throw (e)
         }
     }
 
@@ -379,7 +379,7 @@ export class Wallet {
             return Promise.resolve(true)
         } catch (e) {
             logger.error(`Fail to deleteFavorite : ${e}`)
-            return Promise.reject(e)
+            throw (e)
         }
     }
 

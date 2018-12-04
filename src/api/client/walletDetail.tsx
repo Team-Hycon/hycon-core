@@ -11,7 +11,7 @@ import { Login } from "./login"
 import { MinedBlockLine } from "./minedBlockLine"
 import { MultipleAccountsView } from "./multipleAccountsView"
 import { NotFound } from "./notFound"
-import { IHyconWallet, IMinedInfo, IResponseError, IRest, ITxProp, IWalletAddress } from "./rest"
+import { IHyconWallet, IMinedInfo, IResponseError, ITxProp } from "./rest"
 import { TxLine } from "./txLine"
 
 export class WalletDetail extends React.Component<any, any> {

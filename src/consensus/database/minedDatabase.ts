@@ -3,26 +3,36 @@ import Long = require("long")
 import * as sqlite3 from "sqlite3"
 import { hycontoString } from "../../api/client/stringUtil"
 import { Address } from "../../common/address"
-import { AnyBlock, Block } from "../../common/block"
 import { BlockHeader } from "../../common/blockHeader"
 import { SignedTx } from "../../common/txSigned"
 
+import { userOptions } from "../../main"
 import { Hash } from "../../util/hash"
-import { IConsensus } from "../iconsensus"
+import { Consensus } from "../consensus"
+import { GhostConsensus } from "../consensusGhost"
+import { JabiruConsensus } from "../consensusJabiru"
 import { BlockStatus } from "../sync"
+import { uncleReward } from "../uncleManager"
 import { DBMined } from "./dbMined"
+import { strictAdd } from "./worldState"
 const sqlite = sqlite3.verbose()
 const logger = getLogger("MinedDB")
-const BLOCK_UPDATE_UNIT = 1000
+const MINEDDB_BATCH_SIZE = 1000
 
 export interface IMinedDB { blockhash: Hash, blocktime: number, miner: Address, reward?: Long, txs?: SignedTx[] }
+export interface IMinedDBRow {
+    $blockhash: string,
+    $blocktime: number,
+    $feeReward: string,
+    $miner: string,
+}
 export class MinedDatabase {
     private db: sqlite3.Database
-    private consensus: IConsensus
+    private consensus: Consensus
     constructor(path: string) {
         this.db = new sqlite.Database(path + `sql`)
     }
-    public async init(consensus: IConsensus, tipHeight?: number) {
+    public async init(consensus: Consensus) {
         this.consensus = consensus
         this.db.serialize(() => {
             this.db.run(`PRAGMA synchronous = OFF;`)
@@ -34,37 +44,78 @@ export class MinedDatabase {
             this.db.run(`CREATE INDEX IF NOT EXISTS miner ON mineddb(miner);`)
             this.db.run(`CREATE INDEX IF NOT EXISTS blocktime ON mineddb(blocktime);`)
         })
-        if (tipHeight !== undefined) {
-            let status: BlockStatus
-            let lastHeight = 0
-            const i = 0
-            let lastHash = await this.getLastBlock()
-            while (lastHash !== undefined) {
-                status = await this.consensus.getBlockStatus(lastHash)
-                if (status === BlockStatus.MainChain) {
-                    lastHeight = await this.consensus.getBlockHeight(lastHash)
-                    break
+        setImmediate(async () => { await this.updateMinedDB() })
+    }
+    public async updateMinedDB() {
+        const tip = this.consensus.getBlocksTip()
+        try {
+            if (tip === undefined) { return }
+            const tipHeight = tip.height
+            if (tipHeight !== undefined) {
+                let lastHash = await this.getLastBlock()
+                lastHash = await this.consensus.findMainChainHash(lastHash)
+
+                let putArray: IMinedDBRow[] = []
+                let height = await this.consensus.getBlockHeight(lastHash)
+                while (height <= tipHeight) {
+                    const block = await this.consensus.getBlockByHash(lastHash)
+                    if (block === undefined || !(block.header instanceof BlockHeader)) {
+                        height++
+                        lastHash = await this.consensus.getHash(height)
+                        continue
+                    }
+                    const blockReward = height <= userOptions.jabiruHeight ? GhostConsensus.BLOCK_REWARD : JabiruConsensus.BLOCK_REWARD
+                    const uncles = block.header.previousHash.slice(1)
+                    for (const uncleHash of uncles) {
+                        const uncleHeight = await this.consensus.getBlockHeight(uncleHash)
+                        const uncle = await this.consensus.getHeaderByHash(uncleHash)
+                        if (uncle === undefined) {
+                            continue
+                        }
+                        const reward = uncleReward(blockReward, height - uncleHeight)
+
+                        if (!(uncle instanceof BlockHeader)) {
+                            continue
+                        }
+
+                        const miner = uncle.miner
+                        const uncleRow: IMinedDBRow = {
+                            $blockhash: uncleHash.toString(),
+                            $blocktime: uncle.timeStamp,
+                            $feeReward: hycontoString(reward),
+                            $miner: miner.toString(),
+                        }
+                        putArray.push(uncleRow)
+                    }
+
+                    let fee = Long.UZERO
+                    for (const tx of block.txs) {
+                        if (!(tx instanceof SignedTx)) { continue }
+                        fee = strictAdd(fee, tx.fee)
+                    }
+                    const blockRow: IMinedDBRow = {
+                        $blockhash: lastHash.toString(),
+                        $blocktime: block.header.timeStamp,
+                        $feeReward: hycontoString(strictAdd(Long.fromNumber(blockReward, true), fee)),
+                        $miner: block.header instanceof BlockHeader ? block.header.miner.toString() : "",
+                    }
+
+                    putArray.push(blockRow)
+                    if (putArray.length >= MINEDDB_BATCH_SIZE) {
+                        await this.put(putArray)
+                        putArray = []
+                    }
+                    height++
+                    lastHash = await this.consensus.getHash(height)
                 }
-                const header = await this.consensus.getHeaderByHash(lastHash)
-                if (header instanceof BlockHeader) {
-                    lastHash = header.previousHash[0]
-                } else { break }
-            }
-
-            if (lastHeight < tipHeight) {
-                const startHeight = lastHeight + 1
-                const blocksCount = tipHeight - lastHeight
-                logger.info(`Since mined blocks(${blocksCount}) database need to be updated, updating mined information will be started from ${startHeight} to ${tipHeight}.`)
-
-                const unit = blocksCount < BLOCK_UPDATE_UNIT ? blocksCount : BLOCK_UPDATE_UNIT
-
-                let index = startHeight
-                while (index <= tipHeight) {
-                    const { nakamotoBlocks, ghostBlocks, uncles } = await this.consensus.getBlocksRanges(index, unit)
-                    index += unit
-                    await this.putInitialInfo(nakamotoBlocks, ghostBlocks, uncles)
+                if (putArray.length > 0) {
+                    await this.put(putArray)
                 }
             }
+        } catch (e) {
+            logger.error(`Failed to putMinedBlock : ${e}`)
+        } finally {
+            setTimeout(async () => { await this.updateMinedDB() }, 25000)
         }
     }
 
@@ -82,31 +133,6 @@ export class MinedDatabase {
             logger.error(`Fail to getlastBlock : ${e}`)
             throw e
         }
-    }
-
-    public async putMinedBlock(minedArray: IMinedDB[]) {
-        const insertArray: any[] = []
-        this.insertToArray(insertArray, minedArray)
-        await this.put(insertArray)
-    }
-
-    public async putInitialInfo(nakamotoBlocks: AnyBlock[], ghostBlocks: AnyBlock[], uncles: IMinedDB[]): Promise<void> {
-        const insertArray: any[] = []
-        const nakamotoLength = nakamotoBlocks.length
-        const blocks = nakamotoBlocks.concat(ghostBlocks)
-        for (let i = 0; i < blocks.length; i++) {
-            const block = blocks[i]
-            if (!(block instanceof Block) || !(block.header instanceof BlockHeader)) { continue }
-            const reward = i < nakamotoLength ? Long.fromNumber(240e9) : Long.fromNumber(120e9)
-            insertArray.push({
-                $blockhash: (new Hash(block.header)).toString(),
-                $blocktime: block.header.timeStamp,
-                $feeReward: this.calculateFeeReward(reward, block.txs),
-                $miner: block.header.miner.toString(),
-            })
-        }
-        this.insertToArray(insertArray, uncles)
-        await this.put(insertArray)
     }
 
     public async getMinedInfo(blockHash: string): Promise<DBMined | undefined> {
@@ -171,26 +197,5 @@ export class MinedDatabase {
                 })
             })
         })
-    }
-
-    private calculateFeeReward(reward: Long, txs: SignedTx[]): string {
-        let feeReward = reward
-        if (reward.greaterThanOrEqual(Long.fromNumber(120e9)) && txs !== undefined) {
-            for (const tx of txs) { feeReward = feeReward.add(tx.fee) }
-        }
-        return hycontoString(feeReward)
-    }
-
-    private insertToArray(insertArray: any[], minedArray: IMinedDB[]) {
-        for (const mined of minedArray) {
-            if (mined.reward === undefined) { continue }
-            // When reward information is less than 120e9, that means uncles information.
-            insertArray.push({
-                $blockhash: mined.blockhash.toString(),
-                $blocktime: mined.blocktime,
-                $feeReward: this.calculateFeeReward(mined.reward, mined.txs),
-                $miner: mined.miner.toString(),
-            })
-        }
     }
 }

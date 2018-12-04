@@ -2,15 +2,16 @@ import Avatar from "material-ui/Avatar"
 import { ListItem } from "material-ui/List"
 import * as React from "react"
 import { Link } from "react-router-dom"
-import { IHyconWallet, IRest } from "./rest"
+import { IHyconWallet } from "./rest"
+import { RestClient } from "./restClient"
 interface IWalletSummaryProps {
     wallet: IHyconWallet
-    rest: IRest
+    rest: RestClient
     key: number
 }
 interface IWalletSummaryView {
     wallet: IHyconWallet
-    rest: IRest
+    rest: RestClient
     secondaryText: string
     isHDWallet: boolean
 }

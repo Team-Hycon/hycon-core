@@ -1,10 +1,11 @@
 import * as React from "react"
 import update = require("react-addons-update")
 import * as ReactPaginate from "react-paginate"
-import { IRest, ITxProp } from "./rest"
+import { ITxProp } from "./rest"
+import { RestClient } from "./restClient"
 import { TxPoolLine } from "./txPoolLine"
 interface ITxListView {
-    rest: IRest
+    rest: RestClient
     txs: ITxProp[]
 }
 export class TxPoolList extends React.Component<any, any> {

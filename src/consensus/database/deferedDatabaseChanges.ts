@@ -1,4 +1,5 @@
 import levelup = require("levelup")
+import { hycontoString } from "../../api/client/stringUtil"
 import { Hash } from "../../util/hash"
 import { BlockStatus } from "../sync"
 import { Database } from "./database"
@@ -47,24 +48,11 @@ export class DeferredDatabaseChanges {
     public setHashAtHeight(height: number, hash: Hash) {
         this.heightChanges.set(height, hash)
     }
+
     public setBlockTip(hash: Hash) {
         this.blockTip = hash
     }
 
-    public dbblocks() {
-        const uncles = [] as Array<{ hash: string, dbblock: DBBlock }>
-        for (const [hash, dbblock] of this.dbblockChanges) {
-            uncles.push({ hash, dbblock })
-        }
-        return uncles
-    }
-    public statuses() {
-        const heights = [] as Array<{ status: BlockStatus, hash: string }>
-        for (const [hash, status] of this.stateChanges) {
-            heights.push({ hash, status })
-        }
-        return heights
-    }
     public revert() {
         this.stateChanges.clear()
         this.heightChanges.clear()

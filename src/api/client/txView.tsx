@@ -1,10 +1,11 @@
 import * as React from "react"
 import { Link } from "react-router-dom"
 import { NotFound } from "./notFound"
-import { IRest, ITxProp } from "./rest"
+import { ITxProp } from "./rest"
+import { RestClient } from "./restClient"
 import { TxLine } from "./txLine"
 interface ITxProps {
-    rest: IRest
+    rest: RestClient
     hash: string
     tx: ITxProp,
     notFound: boolean

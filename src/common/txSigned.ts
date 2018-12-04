@@ -1,9 +1,16 @@
 import { getLogger } from "log4js"
 import * as Long from "long"
+import secp256k1 = require("secp256k1")
 import { Address } from "../common/address"
 import { PublicKey } from "../common/publicKey"
 import * as proto from "../serialization/proto"
+import { Hash } from "../util/hash"
+import { signatureHash } from "./tx"
+import { GenesisSignedTx } from "./txGenesisSigned"
 const logger = getLogger("TxSigned")
+
+export type AnySignedTx = (GenesisSignedTx | SignedTx)
+
 export class SignedTx implements proto.ITx {
     public static decode(data: Uint8Array): SignedTx {
         const stx = proto.Tx.decode(data)
@@ -16,21 +23,23 @@ export class SignedTx implements proto.ITx {
     public nonce: number
     public signature: Buffer
     public recovery: number
+    public transitionSignature: Buffer
+    public transitionRecovery: number
 
-    constructor(tx?: proto.ITx, signature?: Uint8Array, recovery?: number) {
-        if (tx) {
-            if (signature !== undefined) {
-                if (tx.signature === undefined) {
-                    tx.signature = signature
-                } else { throw new Error("Two signature information exists.") }
+    constructor(tx: proto.ITx, signature?: Uint8Array, recovery?: number) {
+        if (signature !== undefined) {
+            if (tx.signature !== undefined) {
+                throw new Error("Two signature information exists.")
             }
-            if (recovery !== undefined) {
-                if (tx.recovery === undefined) {
-                    tx.recovery = recovery
-                } else { throw new Error("Two recovery information exists.") }
-            }
-            this.set(tx)
+            tx.signature = signature
         }
+        if (recovery !== undefined) {
+            if (tx.recovery !== undefined) {
+                throw new Error("Two recovery information exists.")
+            }
+            tx.recovery = recovery
+        }
+        this.set(tx)
     }
 
     public set(stx: proto.ITx): void {
@@ -58,47 +67,34 @@ export class SignedTx implements proto.ITx {
             throw new Error("Protobuf problem with SignedTx (amount | fee) ")
         }
         this.nonce = stx.nonce
+
+        // After decode singedTx, if there isnt transitionSignatrue and transitionRecovery, they will be Buffer[0] and 0.
+        if (stx.transitionSignature !== undefined && stx.transitionSignature.length > 0) {
+            this.transitionSignature = Buffer.from(stx.transitionSignature as Buffer)
+            if (stx.transitionRecovery !== undefined) { this.transitionRecovery = stx.transitionRecovery }
+        }
+
         this.signature = Buffer.from(stx.signature as Buffer)
         this.recovery = stx.recovery
     }
-
-    public equals(tx: SignedTx): boolean {
-        if (!this.amount.equals(tx.amount)) {
-            return false
-        }
-        if (!this.fee.equals(tx.fee)) {
-            return false
-        }
-        if (this.nonce !== tx.nonce) {
-            return false
-        }
-        if (this.recovery !== tx.recovery) {
-            return false
-        }
-        if (this.to !== undefined && !this.to.equals(tx.to)) {
-            return false
-        }
-        if (this.to === undefined && tx.to !== undefined) {
-            return false
-        }
-        if (!this.from.equals(tx.from)) {
-            return false
-        }
-        if (!this.signature.equals(tx.signature)) {
-            return false
-        }
-        return true
-    }
-
     public encode(): Uint8Array {
         return proto.Tx.encode(this).finish()
     }
 
-    public verify(): boolean {
+    public verify(legacy: boolean): boolean {
         // Consensus Critical
         try {
-            const pubkey = new PublicKey(this)
-            return pubkey.verify(this)
+            if (this.signature === undefined || this.recovery === undefined) { return false }
+            let hash
+            if (legacy) {
+                hash = new Hash(this).toBuffer()
+            } else {
+                hash = signatureHash(this).toBuffer()
+            }
+            const pubKey = new PublicKey(secp256k1.recover(hash, this.signature, this.recovery))
+            const address = pubKey.address()
+            if (!this.from.equals(address)) { return false }
+            return secp256k1.verify(hash, this.signature, pubKey.pubKey)
         } catch (e) {
             return false
         }

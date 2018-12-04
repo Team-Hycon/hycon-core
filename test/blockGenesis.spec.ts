@@ -67,16 +67,16 @@ describe("Genesis Block Tests", () => {
         expect(setSpy).toHaveBeenCalled()
     })
 
-    it("encode() should return encoded block data using proto.Block.encode function", () => {
+    xit("encode() should return encoded block data using proto.Block.encode function", () => {
         const expected = new Buffer(32)
         const encoder = jasmine.createSpyObj<protobuf.Writer>("encoder", ["finish"])
         encoder.finish.and.returnValue(expected)
-        const encode = spyOn(proto.Block, "encode").and.returnValue(encoder)
+        const encode = spyOn(proto.GenesisBlock, "encode").and.returnValue(encoder)
         const gBlock = new GenesisBlock({ header, txs: [] })
         const encoded = gBlock.encode()
 
         expect(encoded).toBe(expected)
-        expect(proto.Block.encode).toHaveBeenCalled()
+        expect(proto.GenesisBlock.encode).toHaveBeenCalled()
         expect(encoder.finish).toHaveBeenCalled()
     })
 })

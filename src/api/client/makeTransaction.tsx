@@ -1,4 +1,4 @@
-import { CircularProgress, Dialog, DialogContent, FormControl, Input, InputLabel, Select } from "@material-ui/core"
+import { CircularProgress, Dialog, FormControl, Input, InputLabel, Select } from "@material-ui/core"
 import Button from "@material-ui/core/Button"
 import CardContent from "@material-ui/core/CardContent"
 import Grid from "@material-ui/core/Grid"
@@ -9,10 +9,12 @@ import update = require("react-addons-update")
 import { Redirect } from "react-router"
 import { AddressBook } from "./addressBook"
 import { MultipleAccountsView } from "./multipleAccountsView"
-import { IHyconWallet, IRest, IWalletAddress } from "./rest"
+import { IHyconWallet, IWalletAddress } from "./rest"
+import { RestClient } from "./restClient"
+import { strictAdd, strictSub } from "./stringUtil"
 import { hyconfromString } from "./stringUtil"
 interface IMakeTransactionProps {
-    rest: IRest
+    rest: RestClient
     walletType?: string
     address?: string
     name?: string
@@ -143,16 +145,12 @@ export class MakeTransaction extends React.Component<IMakeTransactionProps, any>
             alert("Please enter a number with up to 9 decimal places")
             return
         }
-        if (this.state.nonce === undefined && hyconfromString(this.state.amount).add(hyconfromString(this.state.minerFee)).greaterThan(hyconfromString(this.state.piggyBank).sub(hyconfromString(this.state.pendingAmount)))) {
+        if (this.state.nonce === undefined && strictAdd(hyconfromString(this.state.amount), hyconfromString(this.state.minerFee)).greaterThan(strictSub(hyconfromString(this.state.piggyBank), hyconfromString(this.state.pendingAmount)))) {
             alert("You can't spend the money you don't have")
             return
         }
         if (hyconfromString(this.state.minerFee).compare(hyconfromString("0")) === 0) {
             alert("Enter a valid miner fee")
-            return
-        }
-        if (this.state.fromAddress === this.state.address) {
-            alert("You cannot send HYCON to yourself")
             return
         }
         if (this.state.address === "" || this.state.address === undefined) {

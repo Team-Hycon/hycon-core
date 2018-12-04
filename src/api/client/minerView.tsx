@@ -3,13 +3,13 @@ import CardContent from "@material-ui/core/CardContent"
 import { Card, CircularProgress } from "material-ui"
 import * as React from "react"
 import update = require("react-addons-update")
-import { Link } from "react-router-dom"
-import { IHyconWallet, IMiner, IRest } from "./rest"
+import { IHyconWallet, IMiner } from "./rest"
+import { RestClient } from "./restClient"
 interface IMinerViewProps {
-    rest: IRest
+    rest: RestClient
 }
 interface IMinerView {
-    rest: IRest
+    rest: RestClient
     dialogOpen: boolean
     wallets: IHyconWallet[]
     isLoading: boolean
@@ -27,7 +27,6 @@ export class MinerView extends React.Component<IMinerViewProps, IMinerView> {
         this.setMinerAddress = this.setMinerAddress.bind(this)
         this.handleClose = this.handleClose.bind(this)
         this.handleListItemClick = this.handleListItemClick.bind(this)
-        this.startGPUMiner = this.startGPUMiner.bind(this)
         this.adjustCpuMiner = this.adjustCpuMiner.bind(this)
         this.minusCount = this.minusCount.bind(this)
         this.plusCount = this.plusCount.bind(this)
@@ -204,11 +203,5 @@ export class MinerView extends React.Component<IMinerViewProps, IMinerView> {
             })
         }
     }
-    private startGPUMiner() {
-        this.state.rest.startGPU().then((result: boolean) => {
-            if (!result) {
-                alert(`GPU binary file does not exist or GPU miner can not be executed because config is not set properly. Please try again.`)
-            }
-        })
-    }
+
 }

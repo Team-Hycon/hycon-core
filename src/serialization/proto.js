@@ -707,6 +707,9 @@ $root.BlockDB = (function() {
      * @property {number|null} [nextDifficulty] BlockDB nextDifficulty
      * @property {number|null} [totalWork] BlockDB totalWork
      * @property {boolean|null} [uncle] BlockDB uncle
+     * @property {number|null} [nextBlockDifficulty] BlockDB nextBlockDifficulty
+     * @property {number|null} [blockWorkEMA] BlockDB blockWorkEMA
+     * @property {number|Long|null} [totalSupply] BlockDB totalSupply
      */
 
     /**
@@ -805,6 +808,30 @@ $root.BlockDB = (function() {
     BlockDB.prototype.uncle = false;
 
     /**
+     * BlockDB nextBlockDifficulty.
+     * @member {number} nextBlockDifficulty
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.nextBlockDifficulty = 0;
+
+    /**
+     * BlockDB blockWorkEMA.
+     * @member {number} blockWorkEMA
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.blockWorkEMA = 0;
+
+    /**
+     * BlockDB totalSupply.
+     * @member {number|Long} totalSupply
+     * @memberof BlockDB
+     * @instance
+     */
+    BlockDB.prototype.totalSupply = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+    /**
      * Creates a new BlockDB instance using the specified properties.
      * @function create
      * @memberof BlockDB
@@ -848,6 +875,12 @@ $root.BlockDB = (function() {
             writer.uint32(/* id 9, wireType 1 =*/73).double(message.totalWork);
         if (message.uncle != null && message.hasOwnProperty("uncle"))
             writer.uint32(/* id 10, wireType 0 =*/80).bool(message.uncle);
+        if (message.nextBlockDifficulty != null && message.hasOwnProperty("nextBlockDifficulty"))
+            writer.uint32(/* id 11, wireType 1 =*/89).double(message.nextBlockDifficulty);
+        if (message.blockWorkEMA != null && message.hasOwnProperty("blockWorkEMA"))
+            writer.uint32(/* id 12, wireType 1 =*/97).double(message.blockWorkEMA);
+        if (message.totalSupply != null && message.hasOwnProperty("totalSupply"))
+            writer.uint32(/* id 13, wireType 0 =*/104).uint64(message.totalSupply);
         return writer;
     };
 
@@ -911,6 +944,15 @@ $root.BlockDB = (function() {
                 break;
             case 10:
                 message.uncle = reader.bool();
+                break;
+            case 11:
+                message.nextBlockDifficulty = reader.double();
+                break;
+            case 12:
+                message.blockWorkEMA = reader.double();
+                break;
+            case 13:
+                message.totalSupply = reader.uint64();
                 break;
             default:
                 reader.skipType(tag & 7);
@@ -979,6 +1021,15 @@ $root.BlockDB = (function() {
         if (message.uncle != null && message.hasOwnProperty("uncle"))
             if (typeof message.uncle !== "boolean")
                 return "uncle: boolean expected";
+        if (message.nextBlockDifficulty != null && message.hasOwnProperty("nextBlockDifficulty"))
+            if (typeof message.nextBlockDifficulty !== "number")
+                return "nextBlockDifficulty: number expected";
+        if (message.blockWorkEMA != null && message.hasOwnProperty("blockWorkEMA"))
+            if (typeof message.blockWorkEMA !== "number")
+                return "blockWorkEMA: number expected";
+        if (message.totalSupply != null && message.hasOwnProperty("totalSupply"))
+            if (!$util.isInteger(message.totalSupply) && !(message.totalSupply && $util.isInteger(message.totalSupply.low) && $util.isInteger(message.totalSupply.high)))
+                return "totalSupply: integer|Long expected";
         return null;
     };
 
@@ -1017,6 +1068,19 @@ $root.BlockDB = (function() {
             message.totalWork = Number(object.totalWork);
         if (object.uncle != null)
             message.uncle = Boolean(object.uncle);
+        if (object.nextBlockDifficulty != null)
+            message.nextBlockDifficulty = Number(object.nextBlockDifficulty);
+        if (object.blockWorkEMA != null)
+            message.blockWorkEMA = Number(object.blockWorkEMA);
+        if (object.totalSupply != null)
+            if ($util.Long)
+                (message.totalSupply = $util.Long.fromValue(object.totalSupply)).unsigned = true;
+            else if (typeof object.totalSupply === "string")
+                message.totalSupply = parseInt(object.totalSupply, 10);
+            else if (typeof object.totalSupply === "number")
+                message.totalSupply = object.totalSupply;
+            else if (typeof object.totalSupply === "object")
+                message.totalSupply = new $util.LongBits(object.totalSupply.low >>> 0, object.totalSupply.high >>> 0).toNumber(true);
         return message;
     };
 
@@ -1044,6 +1108,13 @@ $root.BlockDB = (function() {
             object.nextDifficulty = 0;
             object.totalWork = 0;
             object.uncle = false;
+            object.nextBlockDifficulty = 0;
+            object.blockWorkEMA = 0;
+            if ($util.Long) {
+                var long = new $util.Long(0, 0, true);
+                object.totalSupply = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+            } else
+                object.totalSupply = options.longs === String ? "0" : 0;
         }
         if (message.height != null && message.hasOwnProperty("height"))
             object.height = message.height;
@@ -1065,6 +1136,15 @@ $root.BlockDB = (function() {
             object.totalWork = options.json && !isFinite(message.totalWork) ? String(message.totalWork) : message.totalWork;
         if (message.uncle != null && message.hasOwnProperty("uncle"))
             object.uncle = message.uncle;
+        if (message.nextBlockDifficulty != null && message.hasOwnProperty("nextBlockDifficulty"))
+            object.nextBlockDifficulty = options.json && !isFinite(message.nextBlockDifficulty) ? String(message.nextBlockDifficulty) : message.nextBlockDifficulty;
+        if (message.blockWorkEMA != null && message.hasOwnProperty("blockWorkEMA"))
+            object.blockWorkEMA = options.json && !isFinite(message.blockWorkEMA) ? String(message.blockWorkEMA) : message.blockWorkEMA;
+        if (message.totalSupply != null && message.hasOwnProperty("totalSupply"))
+            if (typeof message.totalSupply === "number")
+                object.totalSupply = options.longs === String ? String(message.totalSupply) : message.totalSupply;
+            else
+                object.totalSupply = options.longs === String ? $util.Long.prototype.toString.call(message.totalSupply) : options.longs === Number ? new $util.LongBits(message.totalSupply.low >>> 0, message.totalSupply.high >>> 0).toNumber(true) : message.totalSupply;
         return object;
     };
 
@@ -10151,6 +10231,9 @@ $root.Tx = (function() {
      * @property {number|null} [nonce] Tx nonce
      * @property {Uint8Array|null} [signature] Tx signature
      * @property {number|null} [recovery] Tx recovery
+     * @property {Uint8Array|null} [transitionSignature] Tx transitionSignature
+     * @property {number|null} [transitionRecovery] Tx transitionRecovery
+     * @property {string|null} [networkid] Tx networkid
      */
 
     /**
@@ -10225,6 +10308,30 @@ $root.Tx = (function() {
     Tx.prototype.recovery = 0;
 
     /**
+     * Tx transitionSignature.
+     * @member {Uint8Array} transitionSignature
+     * @memberof Tx
+     * @instance
+     */
+    Tx.prototype.transitionSignature = $util.newBuffer([]);
+
+    /**
+     * Tx transitionRecovery.
+     * @member {number} transitionRecovery
+     * @memberof Tx
+     * @instance
+     */
+    Tx.prototype.transitionRecovery = 0;
+
+    /**
+     * Tx networkid.
+     * @member {string} networkid
+     * @memberof Tx
+     * @instance
+     */
+    Tx.prototype.networkid = "";
+
+    /**
      * Creates a new Tx instance using the specified properties.
      * @function create
      * @memberof Tx
@@ -10262,6 +10369,12 @@ $root.Tx = (function() {
             writer.uint32(/* id 6, wireType 2 =*/50).bytes(message.signature);
         if (message.recovery != null && message.hasOwnProperty("recovery"))
             writer.uint32(/* id 7, wireType 0 =*/56).uint32(message.recovery);
+        if (message.transitionSignature != null && message.hasOwnProperty("transitionSignature"))
+            writer.uint32(/* id 8, wireType 2 =*/66).bytes(message.transitionSignature);
+        if (message.transitionRecovery != null && message.hasOwnProperty("transitionRecovery"))
+            writer.uint32(/* id 9, wireType 0 =*/72).uint32(message.transitionRecovery);
+        if (message.networkid != null && message.hasOwnProperty("networkid"))
+            writer.uint32(/* id 10, wireType 2 =*/82).string(message.networkid);
         return writer;
     };
 
@@ -10316,6 +10429,15 @@ $root.Tx = (function() {
                 break;
             case 7:
                 message.recovery = reader.uint32();
+                break;
+            case 8:
+                message.transitionSignature = reader.bytes();
+                break;
+            case 9:
+                message.transitionRecovery = reader.uint32();
+                break;
+            case 10:
+                message.networkid = reader.string();
                 break;
             default:
                 reader.skipType(tag & 7);
@@ -10373,6 +10495,15 @@ $root.Tx = (function() {
         if (message.recovery != null && message.hasOwnProperty("recovery"))
             if (!$util.isInteger(message.recovery))
                 return "recovery: integer expected";
+        if (message.transitionSignature != null && message.hasOwnProperty("transitionSignature"))
+            if (!(message.transitionSignature && typeof message.transitionSignature.length === "number" || $util.isString(message.transitionSignature)))
+                return "transitionSignature: buffer expected";
+        if (message.transitionRecovery != null && message.hasOwnProperty("transitionRecovery"))
+            if (!$util.isInteger(message.transitionRecovery))
+                return "transitionRecovery: integer expected";
+        if (message.networkid != null && message.hasOwnProperty("networkid"))
+            if (!$util.isString(message.networkid))
+                return "networkid: string expected";
         return null;
     };
 
@@ -10425,6 +10556,15 @@ $root.Tx = (function() {
                 message.signature = object.signature;
         if (object.recovery != null)
             message.recovery = object.recovery >>> 0;
+        if (object.transitionSignature != null)
+            if (typeof object.transitionSignature === "string")
+                $util.base64.decode(object.transitionSignature, message.transitionSignature = $util.newBuffer($util.base64.length(object.transitionSignature)), 0);
+            else if (object.transitionSignature.length)
+                message.transitionSignature = object.transitionSignature;
+        if (object.transitionRecovery != null)
+            message.transitionRecovery = object.transitionRecovery >>> 0;
+        if (object.networkid != null)
+            message.networkid = String(object.networkid);
         return message;
     };
 
@@ -10457,6 +10597,9 @@ $root.Tx = (function() {
             object.nonce = 0;
             object.signature = options.bytes === String ? "" : [];
             object.recovery = 0;
+            object.transitionSignature = options.bytes === String ? "" : [];
+            object.transitionRecovery = 0;
+            object.networkid = "";
         }
         if (message.from != null && message.hasOwnProperty("from"))
             object.from = options.bytes === String ? $util.base64.encode(message.from, 0, message.from.length) : options.bytes === Array ? Array.prototype.slice.call(message.from) : message.from;
@@ -10478,6 +10621,12 @@ $root.Tx = (function() {
             object.signature = options.bytes === String ? $util.base64.encode(message.signature, 0, message.signature.length) : options.bytes === Array ? Array.prototype.slice.call(message.signature) : message.signature;
         if (message.recovery != null && message.hasOwnProperty("recovery"))
             object.recovery = message.recovery;
+        if (message.transitionSignature != null && message.hasOwnProperty("transitionSignature"))
+            object.transitionSignature = options.bytes === String ? $util.base64.encode(message.transitionSignature, 0, message.transitionSignature.length) : options.bytes === Array ? Array.prototype.slice.call(message.transitionSignature) : message.transitionSignature;
+        if (message.transitionRecovery != null && message.hasOwnProperty("transitionRecovery"))
+            object.transitionRecovery = message.transitionRecovery;
+        if (message.networkid != null && message.hasOwnProperty("networkid"))
+            object.networkid = message.networkid;
         return object;
     };
 

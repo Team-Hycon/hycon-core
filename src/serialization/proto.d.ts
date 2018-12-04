@@ -320,6 +320,15 @@ export interface IBlockDB {
 
     /** BlockDB uncle */
     uncle?: boolean;
+
+    /** BlockDB nextBlockDifficulty */
+    nextBlockDifficulty?: number;
+
+    /** BlockDB blockWorkEMA */
+    blockWorkEMA?: number;
+
+    /** BlockDB totalSupply */
+    totalSupply?: number|Long;
 }
 
 /** Represents a BlockDB. */
@@ -360,6 +369,15 @@ export class BlockDB implements IBlockDB {
 
     /** BlockDB uncle. */
     public uncle: boolean;
+
+    /** BlockDB nextBlockDifficulty. */
+    public nextBlockDifficulty: number;
+
+    /** BlockDB blockWorkEMA. */
+    public blockWorkEMA: number;
+
+    /** BlockDB totalSupply. */
+    public totalSupply: (number|Long);
 
     /**
      * Creates a new BlockDB instance using the specified properties.
@@ -4052,6 +4070,15 @@ export interface ITx {
 
     /** Tx recovery */
     recovery?: number;
+
+    /** Tx transitionSignature */
+    transitionSignature?: Uint8Array;
+
+    /** Tx transitionRecovery */
+    transitionRecovery?: number;
+
+    /** Tx networkid */
+    networkid?: string;
 }
 
 /** Represents a Tx. */
@@ -4083,6 +4110,15 @@ export class Tx implements ITx {
 
     /** Tx recovery. */
     public recovery: number;
+
+    /** Tx transitionSignature. */
+    public transitionSignature: Uint8Array;
+
+    /** Tx transitionRecovery. */
+    public transitionRecovery: number;
+
+    /** Tx networkid. */
+    public networkid: string;
 
     /**
      * Creates a new Tx instance using the specified properties.

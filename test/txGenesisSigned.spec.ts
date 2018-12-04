@@ -83,15 +83,6 @@ describe("GenesisSignedTx", () => {
         expect(encodeSpy).toHaveBeenCalled()
     })
 
-    it("verify(): should call secp256k1, verify method when tx is valid", () => {
-        const secpSpy = spyOn(secp256k1, "recover").and.returnValue(Buffer)
-        const verifySpy = spyOn(PublicKey.prototype, "verify")
-        tx = new GenesisSignedTx(protoTx)
-        tx.verify()
-        expect(secpSpy).toHaveBeenCalledBefore(verifySpy)
-        expect(verifySpy).toHaveBeenCalled()
-    })
-
     it("verify(): Exception - when tx is invalid", () => {
         protoTx.signature = randomBytes(10)
         tx = new GenesisSignedTx(protoTx)

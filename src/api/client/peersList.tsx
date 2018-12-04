@@ -1,10 +1,10 @@
 import * as React from "react"
-import { Link } from "react-router-dom"
 import { PeersLine } from "./peersLine"
-import { IPeer, IRest } from "./rest"
+import { IPeer } from "./rest"
+import { RestClient } from "./restClient"
 
 interface IPeerListView {
-    rest: IRest
+    rest: RestClient
     peers: IPeer[]
 }
 export class PeersList extends React.Component<any, any> {

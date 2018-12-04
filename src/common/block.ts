@@ -49,11 +49,6 @@ export class Block implements proto.IBlock {
             this.header.set(block.header)
         }
     }
-
-    public recalculateMerkleRoot(): void {
-        this.header.merkleRoot = Block.calculateMerkleRoot(this.txs)
-    }
-
     public encode(): Uint8Array {
         return proto.Block.encode(this).finish()
     }

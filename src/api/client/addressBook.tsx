@@ -1,7 +1,7 @@
-import { DialogTitle, Input, ListItemText } from "@material-ui/core"
+import { DialogTitle, Input } from "@material-ui/core"
 import Grid from "@material-ui/core/Grid"
 import Icon from "@material-ui/core/Icon"
-import { Avatar, IconButton, List, ListItem, TextField } from "material-ui"
+import { Avatar, IconButton, List, ListItem } from "material-ui"
 import * as React from "react"
 import update = require("react-addons-update")
 

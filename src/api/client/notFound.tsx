@@ -5,10 +5,6 @@ import { Link } from "react-router-dom"
 export class NotFound extends React.Component<any, any> {
     constructor(props: any) {
         super(props)
-        // this.state = {
-        //     name: props.name,
-        //     rest: props.rest,
-        // }
     }
     public render() {
         return (
@@ -24,5 +20,3 @@ export class NotFound extends React.Component<any, any> {
         )
     }
 }
-
-// export default NotFound

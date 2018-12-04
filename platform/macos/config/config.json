@@ -1,9 +1,0 @@
-{
-    "os" : "mac",
-    "dataGenesis": "./data/genesis.dat",
-    "dataRaw": "./data/raw",
-    "dataRoot": "./data",
-    "dataWallet": "./wallet",
-    "minerAddress": "",
-    "ghostHeight":317713
-}

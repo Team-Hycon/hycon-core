@@ -1,16 +1,17 @@
 import * as React from "react"
 import update = require("react-addons-update")
 import { NotFound } from "./notFound"
-import { IBlock, IResponseError, IRest, ITxProp } from "./rest"
+import { IBlock, IResponseError, ITxProp } from "./rest"
+import { RestClient } from "./restClient"
 import { TxLine } from "./txLine"
 interface IBlockProps {
-    rest: IRest
+    rest: RestClient
     hash: string
     notFound: boolean
 }
 
 interface IBlockViewState {
-    rest: IRest
+    rest: RestClient
     block?: IBlock
     txs: ITxProp[]
     hash: string
@@ -48,7 +49,7 @@ export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
         this.mounted = true
         this.state.rest.setLoading(true)
 
-        this.state.rest.getBlock(this.state.hash)
+        this.state.rest.getBlock(this.state.hash, 10)
             .then((data: IBlock & IResponseError) => {
                 this.state.rest.setLoading(false)
                 if (!data.txs) { this.setState({ notFound: true }); return }
@@ -64,13 +65,21 @@ export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
                 })
                 this.state.rest.isUncleBlock(this.state.hash)
                     .then((isUncle: boolean & IResponseError) => {
-                        this.setState({ isUncle })
+                        if (typeof (isUncle) === "boolean") {
+                            this.setState({ isUncle })
+                        } else {
+                            this.setState({ notFound: true }); return
+                        }
                     })
                 if (this.state.block.miner === undefined) { return }
 
                 this.state.rest.getMiningReward(this.state.hash)
                     .then((reward: string & IResponseError) => {
-                        this.setState({ reward })
+                        if (typeof (reward) === "string") {
+                            this.setState({ reward })
+                        } else {
+                            this.setState({ reward: "-" })
+                        }
                     })
                     .catch((e: Error) => {
                         this.setState({ reward: "-" })
@@ -185,7 +194,7 @@ export class BlockView extends React.Component<IBlockProps, IBlockViewState> {
                     </tbody>
                 </table>
 
-                {this.state.isUncle // Since uncle block has no tx, not need to show tx info
+                {this.state.isUncle || this.state.txs.length === 0 // Since uncle block has no tx, not need to show tx info
                     ? null
                     : (<table className="table_margined blockTable">
                         <thead>

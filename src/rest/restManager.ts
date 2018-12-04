@@ -1,19 +1,19 @@
 import { IResponseError } from "../api/client/rest"
 import { Address } from "../common/address"
-import { ITxPool } from "../common/itxPool"
+import { TxPool } from "../common/txPool"
 import { SignedTx } from "../common/txSigned"
-import { IConsensus } from "../consensus/iconsensus"
+import { Consensus } from "../consensus/consensus"
 import { MinerServer } from "../miner/minerServer"
-import { INetwork } from "../network/inetwork"
+import { Network } from "../network/network"
 import { Server } from "../server"
 export class RestManager {
     public subscription: Map<number, any> | undefined
 
-    public txQueue: ITxPool
+    public txQueue: TxPool
 
-    public consensus: IConsensus
+    public consensus: Consensus
 
-    public network: INetwork
+    public network: Network
     public miner: MinerServer
     private server: Server
     constructor(server: Server) {

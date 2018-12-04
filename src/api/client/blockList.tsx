@@ -5,11 +5,12 @@ import update = require("react-addons-update")
 import * as ReactPaginate from "react-paginate"
 import { Redirect } from "react-router-dom"
 import { BlockLine } from "./blockLine"
-import { IBlock, IRest } from "./rest"
-import { hyconfromString, hycontoString } from "./stringUtil"
+import { IBlock } from "./rest"
+import { RestClient } from "./restClient"
+import { hyconfromString, hycontoString, strictAdd } from "./stringUtil"
 
 interface IBlockListView {
-    rest: IRest
+    rest: RestClient
     blocks: IBlock[]
 }
 export class BlockList extends React.Component<any, any> {
@@ -41,28 +42,21 @@ export class BlockList extends React.Component<any, any> {
     public getRecentBlockList(index: number) {
         this.state.rest.getBlockList(index).then((result: { blocks: IBlock[], length: number }) => {
             for (const block of result.blocks) {
-                let sum = Long.fromInt(0)
+                let sum = Long.UZERO
                 for (const tx of block.txs) {
-                    sum = sum.add(hyconfromString(tx.amount))
+                    sum = strictAdd(sum, hyconfromString(tx.amount))
                 }
                 block.txSummary = hycontoString(sum)
             }
             this.setState({
                 blocks: update(
-                    this.state.blocks, {
-                        $splice: [[0, this.state.blocks.length]],
-                    },
+                    this.state.blocks, { $splice: [[0, this.state.blocks.length]] },
                 ),
             })
             this.setState({
                 blocks: update(
                     this.state.blocks, {
                         $push: result.blocks,
-                    },
-                ),
-                index: update(
-                    this.state.index, {
-                        $set: index,
                     },
                 ),
                 length: update(
@@ -138,6 +132,7 @@ export class BlockList extends React.Component<any, any> {
     }
 
     private handlePageClick = (data: any) => {
+        this.setState({ index: data.selected })
         this.getRecentBlockList(data.selected)
     }
     private handleBlockHash(data: any) {

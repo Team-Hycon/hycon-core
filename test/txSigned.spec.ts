@@ -53,8 +53,7 @@ describe("SignedTx", () => {
     })
 
     it("set(tx) : method should set property using parameter", () => {
-        tx = new SignedTx()
-        tx.set(protoTx)
+        tx = new SignedTx(protoTx)
         expect(tx.from).not.toBeUndefined()
         expect(tx.amount).not.toBeUndefined()
         expect(tx.fee).not.toBeUndefined()
@@ -70,15 +69,12 @@ describe("SignedTx", () => {
     })
 
     it("set(tx) Exception - when parameter is undefined / when (amount | fee) is (negative | signed Long)", () => {
-        tx = new SignedTx()
-
-        // When parameter is undefined
-        function undefFrom() { return tx.set({ amount: 4444, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
-        function undefAmt() { return tx.set({ fee: 333, from: addr1, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
-        function undefFee() { return tx.set({ amount: 4444, from: addr1, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
-        function undefNonce() { return tx.set({ amount: 4444, fee: 333, from: addr1, recovery: 1, signature: sign1, to: addr2 }) }
-        function undefSign() { return tx.set({ amount: 4444, fee: 333, from: addr1, nonce: 22, recovery: 1, to: addr2 }) }
-        function undefRecover() { return tx.set({ amount: 4444, fee: 333, from: addr1, nonce: 22, signature: sign1, to: addr2 }) }
+        function undefFrom() { return new SignedTx({ amount: 4444, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
+        function undefAmt() { return new SignedTx({ fee: 333, from: addr1, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
+        function undefFee() { return new SignedTx({ amount: 4444, from: addr1, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
+        function undefNonce() { return new SignedTx({ amount: 4444, fee: 333, from: addr1, recovery: 1, signature: sign1, to: addr2 }) }
+        function undefSign() { return new SignedTx({ amount: 4444, fee: 333, from: addr1, nonce: 22, recovery: 1, to: addr2 }) }
+        function undefRecover() { return new SignedTx({ amount: 4444, fee: 333, from: addr1, nonce: 22, signature: sign1, to: addr2 }) }
         expect(undefFrom).toThrowError()
         expect(undefAmt).toThrowError()
         expect(undefFee).toThrowError()
@@ -87,64 +83,23 @@ describe("SignedTx", () => {
         expect(undefRecover).toThrowError()
 
         // when amount or fee is negative
-        function negAmt() { return tx.set({ amount: Long.fromNumber(-4444, false), from: addr1, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
-        function negFee() { return tx.set({ amount: 4444, from: addr1, fee: Long.fromNumber(-333, false), nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
+        function negAmt() { return new SignedTx({ amount: Long.fromNumber(-4444, false), from: addr1, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
+        function negFee() { return new SignedTx({ amount: 4444, from: addr1, fee: Long.fromNumber(-333, false), nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
         expect(negAmt).toThrowError()
         expect(negFee).toThrowError()
 
         // when amount or fee is signed Long
-        function unsignAmt() { return tx.set({ amount: Long.fromNumber(333, false), from: addr1, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
-        function unsignFee() { return tx.set({ amount: 55555, from: addr1, fee: Long.fromNumber(22, false), nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
+        function unsignAmt() { return new SignedTx({ amount: Long.fromNumber(333, false), from: addr1, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
+        function unsignFee() { return new SignedTx({ amount: 55555, from: addr1, fee: Long.fromNumber(22, false), nonce: 22, recovery: 1, signature: sign1, to: addr2 }) }
         expect(unsignAmt).toThrowError()
         expect(unsignFee).toThrowError()
-    })
-
-    it("equals(tx) : Should return true or false if two SignedTxs are equal or not", () => {
-        tx = new SignedTx(protoTx)
-        expect(tx.equals(tx)).toBeTruthy()
-
-        const tx1 = new SignedTx({ amount: 55555, from: addr1, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr2 })
-        const tx2 = new SignedTx({ amount: 4444, from: addr1, fee: 22, nonce: 22, recovery: 1, signature: sign1, to: addr2 })
-        const tx3 = new SignedTx({ amount: 4444, from: addr1, fee: 333, nonce: 1, recovery: 1, signature: sign1, to: addr2 })
-        const tx4 = new SignedTx({ amount: 4444, from: addr1, fee: 333, nonce: 22, recovery: 22, signature: sign1, to: addr2 })
-        const tx5 = new SignedTx({ amount: 4444, from: addr1, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr1 })
-        const tx6 = new SignedTx({ amount: 4444, from: addr2, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr2 })
-        const tx7 = new SignedTx({ amount: 4444, from: addr1, fee: 333, nonce: 22, recovery: 1, signature: sign2, to: addr2 })
-        expect(tx.equals(tx1)).toBeFalsy()
-        expect(tx.equals(tx2)).toBeFalsy()
-        expect(tx.equals(tx3)).toBeFalsy()
-        expect(tx.equals(tx4)).toBeFalsy()
-        expect(tx.equals(tx5)).toBeFalsy()
-        expect(tx.equals(tx6)).toBeFalsy()
-        expect(tx.equals(tx7)).toBeFalsy()
-
-        protoTx.to = undefined
-        tx = new SignedTx(protoTx)
-        const tx8 = new SignedTx({ amount: 4444, from: addr1, fee: 333, nonce: 22, recovery: 1, signature: sign1, to: addr2 })
-        expect(tx.equals(tx8)).toBeFalsy()
     })
 
     it("encode(): should return encoded data", () => {
         const encoder = jasmine.createSpyObj("encoder", ["finish"])
         const encodeSpy = spyOn(proto.Tx, "encode").and.returnValue(encoder)
-        tx = new SignedTx()
+        tx = new SignedTx(protoTx)
         tx.encode()
         expect(encodeSpy).toHaveBeenCalled()
-    })
-
-    it("verify(): should call secp256k1, verify method when tx is valid", () => {
-        const secpSpy = spyOn(secp256k1, "recover").and.returnValue(Buffer)
-        const verifySpy = spyOn(PublicKey.prototype, "verify")
-        tx = new SignedTx(protoTx)
-        tx.verify()
-        expect(secpSpy).toHaveBeenCalledBefore(verifySpy)
-        expect(verifySpy).toHaveBeenCalled()
-    })
-
-    it("verify(): Exception - when tx is invalid", () => {
-        protoTx.signature = randomBytes(10)
-        tx = new SignedTx(protoTx)
-        const res = tx.verify()
-        expect(res).toBeFalsy()
     })
 })

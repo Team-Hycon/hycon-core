@@ -1,12 +1,11 @@
 import { getLogger } from "log4js"
 import Long = require("long")
 import { hyconfromString } from "../api/client/stringUtil"
-import { TxValidity } from "../consensus/database/worldState"
+import { strictAdd, TxValidity } from "../consensus/database/worldState"
+import { userOptions } from "../main"
 import { Server } from "../server"
-import conf = require("../settings")
 import { Hash } from "../util/hash"
 import { Address } from "./address"
-import { ITxPool } from "./itxPool"
 import { PriorityQueue } from "./priorityQueue"
 import { SignedTx } from "./txSigned"
 // tslint:disable-next-line:no-var-requires
@@ -19,8 +18,8 @@ interface ITxQueue {
     address: string
 }
 
-const TX_BROADCAST_NUMBER: number = 30
-export class TxPool implements ITxPool {
+const TX_BROADCAST_NUMBER: number = 4096
+export class TxPool {
     private server: Server
     private seenTxsSet: Set<string> = new Set<string>()
     private seenTxs: string[] = []
@@ -30,17 +29,19 @@ export class TxPool implements ITxPool {
     private maxAddresses: number
     private maxTxsPerAddress: number
     private accountMap: Map<string, ITxQueue>
+    private transitionWaiting: SignedTx[]
 
     constructor(server: Server, minFee?: Long) {
         this.server = server
-        this.maxTxsPerAddress = Number(conf.txPoolMaxTxsPerAddress)
-        this.maxAddresses = Number(conf.txPoolMaxAddresses)
+        this.transitionWaiting = []
+        this.maxTxsPerAddress = userOptions.txPoolMaxTxsPerAddress
+        this.maxAddresses = userOptions.txPoolMaxAddresses
         this.seenTxsSet = new Set<string>()
         this.seenTxs = []
         this.minFee = minFee === undefined ? Long.fromNumber(1, true) : minFee
         this.accountMap = new Map<string, ITxQueue>()
         this.pool = new PriorityQueue<ITxQueue>(this.maxAddresses, (a: ITxQueue, b: ITxQueue) => {
-            return a.sum.subtract(b.sum).toNumber()
+            return b.sum.compare(a.sum)
         })
         setInterval(() => {
             const txs: SignedTx[] = this.prepareForBroadcast()
@@ -69,13 +70,18 @@ export class TxPool implements ITxPool {
             for (const oldTx of oldTxs) {
                 this.seenTxsSet.delete(oldTx)
             }
-            this.seenTxsSet.add(newTxHash)
-            this.seenTxs.push(newTxHash)
+
+            // Put to SeenTxs only when transaction is invalid or inserted to queue
             if (tx.fee.lessThan(this.minFee)) {
+                this.putSeenTxs(newTxHash)
                 continue
             }
             const validity = await this.server.consensus.txValidity(tx)
             if (validity === TxValidity.Invalid) {
+                if (this.server.consensus.getLegacyTx() && tx.verify(false)) {
+                    this.transitionWaiting.push(tx)
+                }
+                this.putSeenTxs(newTxHash)
                 continue
             }
             const address = tx.from.toString()
@@ -83,9 +89,9 @@ export class TxPool implements ITxPool {
 
             if (itxqueue === undefined) {
                 const queue = new PriorityQueue<SignedTx>(this.maxTxsPerAddress, sortNonce)
-                itxqueue = { address, queue, sum: tx.fee }
+                itxqueue = { address, queue, sum: Long.UZERO }
+                if (!this.pool.insert(itxqueue)) { continue }
                 this.accountMap.set(address, itxqueue)
-                this.pool.insert(itxqueue)
             } else {
                 // Check if tx is already inserted
                 let duplicate = false
@@ -100,23 +106,27 @@ export class TxPool implements ITxPool {
                 if (duplicate) {
                     continue
                 }
-                itxqueue.sum = itxqueue.sum.add(tx.fee)
             }
             if (itxqueue.queue.length() === 0 && validity === TxValidity.Waiting) {
                 continue
             }
             if (itxqueue.queue.length() === 0) {
-                itxqueue.queue.insert(tx)
+                if (itxqueue.queue.insert(tx)) {
+                    itxqueue.sum = strictAdd(itxqueue.sum, tx.fee)
+                    this.putSeenTxs(newTxHash)
+                }
                 broadcastTxs.push(tx)
             } else {
                 const lastNonce: number = itxqueue.queue.peek(itxqueue.queue.length() - 1).nonce
                 if (tx.nonce - lastNonce <= 1) {
-                    itxqueue.queue.insert(tx)
+                    if (itxqueue.queue.insert(tx)) {
+                        itxqueue.sum = strictAdd(itxqueue.sum, tx.fee)
+                        this.putSeenTxs(newTxHash)
+                    }
                     broadcastTxs.push(tx)
                 }
             }
         }
-
         this.pool.resort()
 
         return broadcastTxs
@@ -131,6 +141,8 @@ export class TxPool implements ITxPool {
             }
             txqueue.queue.remove(tx, compareTxs)
             txqueue.sum = txqueue.sum.subtract(tx.fee)
+            const txHash = new Hash(tx).toString()
+            this.seenTxsSet.delete(txHash)
             if (txqueue.queue.length() <= 0) {
                 this.accountMap.delete(address)
                 this.pool.remove(txqueue)
@@ -141,13 +153,11 @@ export class TxPool implements ITxPool {
 
     public getTxs(count: number): SignedTx[] {
         const txs: SignedTx[] = []
-        for (const address of this.accountMap.keys()) {
-            const txqueue = this.accountMap.get(address)
+        for (const txqueue of this.pool.toArray()) {
             for (let i = 0; i < txqueue.queue.length(); i++) {
+                if (txs.length >= count) { return txs }
                 const tx = txqueue.queue.peek(i)
-                if (txs.length < count) {
-                    txs.push(tx)
-                }
+                txs.push(tx)
             }
         }
         return txs
@@ -158,19 +168,49 @@ export class TxPool implements ITxPool {
         let totalAmount = hyconfromString("0")
         let totalFee = hyconfromString("0")
         for (const tx of txs) {
-            totalAmount = totalAmount.add(tx.amount)
-            totalFee = totalFee.add(tx.fee)
+            totalAmount = strictAdd(totalAmount, tx.amount)
+            totalFee = strictAdd(totalFee, tx.fee)
         }
         let final = index + count
         final > txs.length ? final = txs.length : final = final
         return { txs: txs.slice(index, final), length: txs.length, totalAmount, totalFee }
     }
-    public getTxsOfAddress(address: Address): SignedTx[] {
+
+    // getTxsOfAddress is only for outside direction pending txs.
+    public getOutPendingAddress(address: Address): SignedTx[] {
         const txqueue = this.accountMap.get(address.toString())
         if (txqueue === undefined) {
             return []
         }
         return txqueue.queue.toArray()
+    }
+
+    // getAllPendingAddress is for all direction pending txs.
+    public getAllPendingAddress(address: Address): { pendings: SignedTx[], pendingAmount: Long } {
+        let pendingAmount = Long.UZERO
+        const pendings: SignedTx[] = []
+        for (const txqueue of this.pool.toArray()) {
+            for (let i = 0; i < txqueue.queue.length(); i++) {
+                const tx = txqueue.queue.peek(i)
+                if (tx.from.equals(address)) {
+                    pendingAmount = strictAdd(strictAdd(pendingAmount, tx.amount), tx.fee)
+                    pendings.push(tx)
+                } else if (tx.to.equals(address)) {
+                    pendings.push(tx)
+                }
+            }
+        }
+        return { pendings, pendingAmount }
+    }
+
+    public async transition() {
+        const transitionWaiting = this.transitionWaiting
+        this.transitionWaiting = []
+        for (const tx of transitionWaiting) {
+            const hash = new Hash(tx).toString()
+            this.seenTxsSet.delete(hash)
+        }
+        return this.putTxs(transitionWaiting)
     }
 
     private prepareForBroadcast(): SignedTx[] {
@@ -200,6 +240,11 @@ export class TxPool implements ITxPool {
         }
 
         return broadcast
+    }
+
+    private putSeenTxs(hash: string) {
+        this.seenTxsSet.add(hash)
+        this.seenTxs.push(hash)
     }
 
 }

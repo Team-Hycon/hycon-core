@@ -2,8 +2,9 @@ import * as BitBox from "@glosfer/bitbox-app-hycon"
 import HDKey = require("hdkey")
 import { Address } from "../common/address"
 import { PublicKey } from "../common/publicKey"
-import { Tx } from "../common/tx"
+import { signatureHash, Tx } from "../common/tx"
 import { SignedTx } from "../common/txSigned"
+import { userOptions } from "../main"
 import { Hash } from "../util/hash"
 // tslint:disable-next-line:no-var-requires
 const { hid } = require("@glosfer/bitbox-nodejs")
@@ -128,7 +129,7 @@ export class Bitbox {
         }
     }
 
-    public async sign(from: Address, index: number, password: string, to: Address, amount: Long, nonce: number, fee: Long): Promise<SignedTx> {
+    public async sign(htipHeight: number, from: Address, index: number, password: string, to: Address, amount: Long, nonce: number, fee: Long): Promise<SignedTx> {
         try {
             const isSetted = await this.checkWalletSetting(password)
             if (!isSetted) { this.close(); throw BitboxError.NOTFOUND_WALLET }
@@ -136,7 +137,14 @@ export class Bitbox {
             const address = publicKey.address()
             if (!address.equals(from)) { this.close(); throw BitboxError.INVALID_ADDRESS }
             const tx = new Tx({ from, to, amount, fee, nonce })
-            const txHash = new Hash(tx)
+            let txHash
+            // TODO : set fork time. 1544108400000 = 2018/12/07 0:0:0
+            // 1544194800000 = 2018/12/8
+            if (htipHeight < userOptions.jabiruHeight - 30 && Date.now() <= 1544154600000) {
+                txHash = new Hash(tx)
+            } else {
+                txHash = signatureHash(tx)
+            }
             const response: BitBox.IResponseSign = await this.bitbox.sign(`m/44'/1397'/0'/0/${index}`, txHash.toHex())
             if (!response.sign) { this.close(); throw BitboxError.FAIL_SIGN }
             const sign = Buffer.from(response.sign[0].sig, "hex")

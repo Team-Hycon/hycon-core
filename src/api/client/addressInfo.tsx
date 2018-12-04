@@ -5,17 +5,18 @@ import update = require("react-addons-update")
 import { Redirect } from "react-router"
 import { MinedBlockLine } from "./minedBlockLine"
 import { NotFound } from "./notFound"
-import { IMinedInfo, IRest, ITxProp, IWalletAddress } from "./rest"
+import { IMinedInfo, ITxProp, IWalletAddress } from "./rest"
+import { RestClient } from "./restClient"
 import { TxLine } from "./txLine"
 interface IAddressProps {
-    rest: IRest
+    rest: RestClient
     hash: string
     name?: string
     selectedAccount?: string
     walletType?: string
 }
 interface IAddressView {
-    rest: IRest
+    rest: RestClient
     redirectTxView: boolean
     hash: string
     txs: ITxProp[],

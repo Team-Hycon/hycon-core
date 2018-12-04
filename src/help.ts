@@ -1,4 +1,3 @@
-import { RabbitNetwork } from "./network/rabbit/rabbitNetwork"
 // tslint:disable-next-line:no-var-requires
 const printMessage = require("print-message")
 

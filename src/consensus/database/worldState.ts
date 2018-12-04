@@ -5,17 +5,33 @@ import rocksdb = require("rocksdb")
 import { hycontoString } from "../../api/client/stringUtil"
 import { Address } from "../../common/address"
 import { AsyncLock } from "../../common/asyncLock"
-import { GenesisBlock } from "../../common/blockGenesis"
-import { ITxPool } from "../../common/itxPool"
+import { TxPool } from "../../common/txPool"
 import { SignedTx } from "../../common/txSigned"
+import * as proto from "../../serialization/proto"
 import { Hash } from "../../util/hash"
-import { IUncleCandidate, uncleReward } from "../consensusGhost"
+import { IUncleCandidate, uncleReward } from "../uncleManager"
 import { Account } from "./account"
 import { DBState } from "./dbState"
 import { NodeRef } from "./nodeRef"
 import { StateNode } from "./stateNode"
 
 const logger = getLogger("WorldState")
+
+export function strictAdd(a: Long, b: Long) {
+    const maxB = Long.MAX_UNSIGNED_VALUE.subtract(a)
+    const maxA = Long.MAX_UNSIGNED_VALUE.subtract(b)
+    if (b.greaterThan(maxB) || a.greaterThan(maxA)) {
+        throw new Error("Overflow")
+    }
+    return a.add(b)
+}
+
+export function strictSub(a: Long, b: Long) {
+    if (a.lessThan(b) || b.greaterThan(a)) {
+        throw new Error("Underflow")
+    }
+    return a.sub(b)
+}
 
 export enum TxValidity {
     Invalid,
@@ -58,8 +74,8 @@ export interface IStateTransition { currentStateRoot: Hash, batch: DBState[], ma
 export class WorldState {
     private accountDB: levelup.LevelUp
     private accountLock: AsyncLock
-    private txPool: ITxPool
-    constructor(path: string, txPool: ITxPool) {
+    private txPool: TxPool
+    constructor(path: string, txPool: TxPool) {
         const rocks: any = rocksdb(path)
         this.accountDB = levelup(rocks)
         this.accountLock = new AsyncLock()
@@ -89,46 +105,46 @@ export class WorldState {
         }
     }
     public async validateTx(stateRoot: Hash, tx: SignedTx): Promise<TxValidity> {
-        if (tx.from.equals(tx.to)) {
-            return TxValidity.Invalid
-        }
-        const fromAccount = await this.getAccount(stateRoot, tx.from)
-        if (fromAccount === undefined || fromAccount.nonce >= tx.nonce) {
-            return TxValidity.Invalid
-        }
-        if (fromAccount.balance.lessThan(tx.amount.add(tx.fee))) {
-            return TxValidity.Invalid
-        }
-        if (fromAccount.nonce + 1 === tx.nonce) {
-            return TxValidity.Valid
-        }
-        if (fromAccount.nonce + 1 < tx.nonce) {
-            return TxValidity.Waiting
-        }
+        try {
 
+            if (tx.from.equals(tx.to)) {
+                return TxValidity.Invalid
+            }
+            const fromAccount = await this.getAccount(stateRoot, tx.from)
+            if (fromAccount === undefined || fromAccount.nonce >= tx.nonce) {
+                return TxValidity.Invalid
+            }
+            const total = strictAdd(tx.amount, tx.fee)
+            if (fromAccount.balance.lessThan(total)) {
+                return TxValidity.Invalid
+            }
+            if (fromAccount.nonce + 1 === tx.nonce) {
+                return TxValidity.Valid
+            }
+            if (fromAccount.nonce + 1 < tx.nonce) {
+                return TxValidity.Waiting
+            }
+        } catch (e) {
+            logger.debug(e)
+            return TxValidity.Invalid
+        }
         return TxValidity.Invalid
     }
 
-    public async first(genesis: GenesisBlock): Promise<IStateTransition> {
-        try {
-            // TODO: Support more complex genesis blocks
-            const batch: DBState[] = []
-            const mapAccount: Map<string, DBState> = new Map<string, DBState>()
-            const stateNode = new StateNode()
-            genesis.txs.sort((a, b) => a.to[0] - b.to[0])
+    public async initialize(startBlock: proto.GenesisBlock) {
+        const batch: DBState[] = []
+        const changes: any[] = []
+        const mapAccount: Map<string, DBState> = new Map<string, DBState>()
+        const mapIndex: Map<string, number> = new Map<string, number>()
 
-            for (const tx of genesis.txs) {
-                if (!tx.verify()) { continue }
-                const toAccount = new Account({ balance: +tx.amount, nonce: 0 })
-                const toAccountHash = this.put(batch, mapAccount, toAccount)
-                const nodeRef = new NodeRef({ address: tx.to, child: toAccountHash })
-                stateNode.nodeRefs.push(nodeRef)
-            }
-            const currentStateRoot = this.put(batch, mapAccount, stateNode)
-            return { currentStateRoot, batch, mapAccount }
-        } catch (e) {
-            logger.error(`Fail to init : ${e}`)
+        for (const tx of startBlock.txs) {
+            const address = new Address(tx.to)
+            const account = new Account({ balance: tx.amount, nonce: tx.nonce })
+            this.putChange({ address, account }, mapIndex, changes)
         }
+
+        const stateRoot = await this.putAccount(batch, mapAccount, changes)
+        return { stateRoot, batch, mapAccount }
     }
 
     public async next(previousState: Hash, minerAddress: Address, minerReward: number, txs?: SignedTx[], height?: number, uncles: IUncleCandidate[] = []): Promise<{ stateTransition: IStateTransition, validTxs: SignedTx[], invalidTxs: SignedTx[] }> {
@@ -154,7 +170,7 @@ export class WorldState {
                         break
                     case TxValidity.Valid:
                         validTxs.push(tx)
-                        fees = fees.add(tx.fee)
+                        fees = strictAdd(fees, tx.fee)
                         break
                 }
             }
@@ -163,11 +179,11 @@ export class WorldState {
                 const uncleAccount = await this.getModifiedAccount(uncle.miner, previousState, mapIndex, changes)
                 const heightDelta = height - uncle.height
                 const reward = uncleReward(minerReward, heightDelta)
-                uncleAccount.account.balance = uncleAccount.account.balance.add(reward)
+                uncleAccount.account.balance = strictAdd(uncleAccount.account.balance, reward)
                 this.putChange(uncleAccount, mapIndex, changes)
             }
             const miner = await this.getModifiedAccount(minerAddress, previousState, mapIndex, changes)
-            miner.account.balance = miner.account.balance.add(fees)
+            miner.account.balance = strictAdd(miner.account.balance, fees)
             this.putChange(miner, mapIndex, changes)
 
             const currentStateRoot = await this.putAccount(batch, mapAccount, changes, previousState)
@@ -199,7 +215,7 @@ export class WorldState {
         return state
     }
 
-    public async putPending(pendings: DBState[], mapAccount: Map<string, DBState>): Promise<undefined> {
+    public async putPending(pendings: DBState[], mapAccount: Map<string, DBState>) {
         // Consensus Critical
         const mapDBChildren: Map<string, DBState> = new Map<string, DBState>()
         const dbChildren: DBState[] = []
@@ -264,13 +280,13 @@ export class WorldState {
                 return TxValidity.Waiting
             }
 
-            const total = tx.amount.add(tx.fee)
+            const total = strictAdd(tx.amount, tx.fee)
             if (from.account.balance.lessThan(total)) {
                 logger.debug(`Tx ${new Hash(tx)} Rejected: The balance (${hycontoString(from.account.balance)}) is insufficient (${hycontoString(tx.amount)} + ${hycontoString(tx.fee)} = ${hycontoString(total)})`)
                 return TxValidity.Invalid
             }
 
-            from.account.balance = from.account.balance.sub(total)
+            from.account.balance = strictSub(from.account.balance, total)
             from.account.nonce++
             if (tx.to === undefined) {
                 logger.warn(`TX ${new Hash(tx).toString()} burned ${hycontoString(tx.amount)} HYC from ${tx.from.toString()}`)
@@ -278,7 +294,7 @@ export class WorldState {
 
                 const to = await this.getModifiedAccount(tx.to, previousState, mapIndex, changes)
 
-                to.account.balance = to.account.balance.add(tx.amount)
+                to.account.balance = strictAdd(to.account.balance, tx.amount)
 
                 this.putChange(to, mapIndex, changes)
 
