@@ -349,11 +349,11 @@ export class HttpServer {
                 }),
             )
         })
-        router.get("/block/:hash/:txcount?", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.getBlock(req.params.hash, req.params.txcount))
-        })
         router.get("/block/height/:height", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlockAtHeight(req.params.height))
+        })
+        router.get("/block/:hash/:txcount?", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getBlock(req.params.hash, req.params.txcount))
         })
         router.get("/blockList/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlockList(req.params.index))
