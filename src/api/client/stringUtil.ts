@@ -29,7 +29,7 @@ export function hyconfromString(val: string): Long {
     let hycon = Long.fromString(arr[0], true).multiply(Math.pow(10, 9)).toUnsigned()
     if (arr.length > 1) {
         arr[1] = arr[1].length > 9 ? arr[1].slice(0, 9) : arr[1]
-        const subCon = Long.fromString(arr[1], true).multiply(Math.pow(10, 9 - arr[1].length))
+        const subCon = Long.fromString(arr[1], true).multiply(Math.pow(10, 9 - arr[1].length)).toUnsigned()
         hycon = strictAdd(hycon, subCon)
     }
     return hycon.toUnsigned()
