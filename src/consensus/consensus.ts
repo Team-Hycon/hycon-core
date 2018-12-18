@@ -22,7 +22,7 @@ import { DBBlock } from "./database/dbblock"
 import { DBMined } from "./database/dbMined"
 import { DBTx } from "./database/dbtx"
 import { DeferredDatabaseChanges } from "./database/deferedDatabaseChanges"
-import { IMinedDB, MinedDatabase } from "./database/minedDatabase"
+import { MinedDatabase } from "./database/minedDatabase"
 import { TxDatabase } from "./database/txDatabase"
 import { TxValidity, WorldState } from "./database/worldState"
 import { strictAdd } from "./database/worldState"
@@ -689,17 +689,15 @@ export class Consensus extends EventEmitter {
 
         let pushHeight = popStopHeight
         const removeTxs = [] as SignedTx[]
-        let minedBlockChange = [] as IMinedDB[]
         let validUncles = true
         while (newBlockHashes.length > 0) {
             hash = newBlockHashes.pop()
             block = newBlocks.pop()
             if (validUncles) {
                 const uncleHashes = block.header.previousHash.slice(1)
-                const validate = await this.uncleManager.validateUncles(deferredDB, uncleHashes, pushHeight, minedBlockChange)
+                const validate = await this.uncleManager.validateUncles(deferredDB, uncleHashes, pushHeight)
                 if (!validate) {
                     deferredDB.revert()
-                    minedBlockChange = []
                     validUncles = false
                 }
             }
@@ -709,7 +707,6 @@ export class Consensus extends EventEmitter {
                 blockStatus = BlockStatus.MainChain
                 deferredDB.setHashAtHeight(pushHeight, hash)
                 for (const tx of block.txs) { removeTxs.push(tx) }
-                this.emit("block", block)
             } else {
                 // Invalid uncles - Abort Reorganization, mark block and subsequent Blocks statuses as invalid
                 logger.warn(`block(${hash.toString()}) Marked as invalid during reorganization`)

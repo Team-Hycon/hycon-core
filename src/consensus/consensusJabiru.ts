@@ -204,17 +204,13 @@ export class JabiruConsensus {
     }
 
     private async processBlock(block: Block, hash: Hash, header: BlockHeader, previousDBBlock: DBBlock, result: IPutResult): Promise<void> {
-        // Consensus Critical
-        const height = previousDBBlock.height + 1
         const uncles = await this.processUncles(header, previousDBBlock, result)
-        if (!uncles) {
-            return
-        }
+        if (!uncles) { return }
 
         result.dbBlock.blockWorkEMA = uncles.blockWorkEMA
         const hashesPerSecond = uncles.blockWorkEMA / result.dbBlock.tEMA
         result.dbBlock.nextBlockDifficulty = 1 - Math.pow(0.5, 1 / (JabiruConsensus.TARGET_MEDIAN_TIME * hashesPerSecond))
-        logger.debug(`Block ${result.dbBlock.height}: ${result.dbBlock.blockWorkEMA.toFixed(1)} H / ${(result.dbBlock.tEMA / 1000).toFixed(1)}s = ${(result.dbBlock.blockWorkEMA * 1000 / result.dbBlock.tEMA).toFixed(1)}H/s`)
+        logger.debug(`Block(${new Hash(header)}) ${result.dbBlock.height}: ${result.dbBlock.blockWorkEMA.toFixed(1)} H / ${(result.dbBlock.tEMA / 1000).toFixed(1)}s = ${(result.dbBlock.blockWorkEMA * 1000 / result.dbBlock.tEMA).toFixed(1)}H/s`)
 
         if (header.difficulty !== previousDBBlock.nextBlockDifficulty) {
             logger.warn(`Rejecting block(${hash.toString()}): Block Difficulty(${header.difficulty}) did not meet the uncle adjusted difficulty(${previousDBBlock.nextBlockDifficulty})`)
@@ -226,7 +222,8 @@ export class JabiruConsensus {
         if (result.status !== BlockStatus.Block) {
             return
         }
-        result.dbBlock.totalWork += uncles.totalWorkAdjustment
+
+        logger.debug(`Block(${new Hash(header)}) ${result.dbBlock.height} total Work : ${result.dbBlock.totalWork} / prev(${new Hash(previousDBBlock.header)}) total Work : ${previousDBBlock.totalWork}`)
         return
     }
 }

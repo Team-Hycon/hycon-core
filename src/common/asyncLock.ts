@@ -1,7 +1,3 @@
-import { getLogger } from "log4js"
-
-const logger = getLogger("Network")
-
 interface ILockCallBack { resolve: () => void, reject: (e: any) => void, timeoutTimer: NodeJS.Timer }
 export class AsyncLock {
     private locked: number

@@ -65,7 +65,7 @@ export class UncleManager {
 
     }
 
-    public async validateUncles(deferredDB: DeferredDatabaseChanges, uncleHashes: Hash[], height: number, minedUncleChange: IMinedDB[]) {
+    public async validateUncles(deferredDB: DeferredDatabaseChanges, uncleHashes: Hash[], height: number) {
         const uncleStatusPromises = uncleHashes.map((hash) => deferredDB.getBlockStatus(hash))
         const uncleStatuses = await Promise.all(uncleStatusPromises)
         for (const uncleStatus of uncleStatuses) {
@@ -114,13 +114,6 @@ export class UncleManager {
             }
 
             await deferredDB.setUncle(uncleHash, true)
-            const targetReward = this.consensus.getReward(height)
-            minedUncleChange.push({
-                blockhash: uncleHash,
-                blocktime: dbblock.header.timeStamp,
-                miner: (dbblock.header as BlockHeader).miner,
-                reward: uncleReward(targetReward, height - dbblock.height),
-            })
             return true
         })
         const uncleValidPrevious = await Promise.all(uncleValidPreviousPromises)
