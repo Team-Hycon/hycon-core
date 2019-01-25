@@ -311,81 +311,11 @@ export class RestV1Router implements IRestRouter {
         this.router.get("/getMinedInfo/:address/:blockHash/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMinedBlocks(req.params.address, req.params.blockHash, req.params.index))
         })
-        this.router.get("/getLedgerWallet/:startIndex/:count", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.getLedgerWallet(req.params.startIndex, req.params.count))
-        })
-        this.router.post("/sendTxWithLedger", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.sendTxWithLedger(
-                req.body.index,
-                req.body.from,
-                req.body.to,
-                req.body.amount,
-                req.body.fee,
-                req.body.txNonce,
-                async (tx: SignedTx) => {
-                    const newTxs = await this.hyconServer.txQueue.putTxs([tx])
-                    this.hyconServer.broadcastTxs(newTxs)
-                }))
-        })
         this.router.get("/possibilityLedger", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.possibilityLedger())
         })
-        this.router.get("/getTrezorWallet/:startIndex/:count", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.getTrezorWallet(req.params.startIndex, req.params.count))
-        })
-        this.router.post("/sendTxWithTrezor", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.sendTxWithTrezor(
-                req.body.index,
-                req.body.from,
-                req.body.to,
-                req.body.amount,
-                req.body.fee,
-                req.body.txNonce,
-                async (tx: SignedTx) => {
-                    const newTxs = await this.hyconServer.txQueue.putTxs([tx])
-                    this.hyconServer.broadcastTxs(newTxs)
-                }))
-        })
         this.router.get("/getMarketCap", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMarketCap())
-        })
-        this.router.get("/checkPasswordBitbox", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.checkPasswordBitbox())
-        })
-        this.router.post("/checkWalletBitbox", async (req: express.Request, res: express.Response) => {
-            res.json(
-                await this.rest.checkWalletBitbox(req.body.password),
-            )
-        })
-        this.router.post("/getBitboxWallet", async (req: express.Request, res: express.Response) => {
-            res.json(
-                await this.rest.getBitboxWallet(req.body.password, req.body.startIndex, req.body.count),
-            )
-        })
-        this.router.post("/sendTxWithBitbox", async (req: express.Request, res: express.Response) => {
-            res.json(
-                await this.rest.sendTxWithBitbox({
-                    from: req.body.from,
-                    password: req.body.password,
-                    address: req.body.address,
-                    amount: req.body.amount,
-                    minerFee: req.body.minerFee,
-                    nonce: req.body.nonce,
-                }, req.body.index,
-                    async (tx: SignedTx) => {
-                        const newTxs = await this.hyconServer.txQueue.putTxs([tx])
-                        this.hyconServer.broadcastTxs(newTxs)
-                    }),
-            )
-        })
-        this.router.post("/setBitboxPassword", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.setBitboxPassword(req.body.password))
-        })
-        this.router.post("/createBitboxWallet", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.createBitboxWallet(req.body.name, req.body.password))
-        })
-        this.router.post("/updateBitboxPassword", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.updateBitboxPassword(req.body.originalPwd, req.body.newPwd))
         })
         this.router.get("/isUncleBlock/:blockHash", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.isUncleBlock(req.params.blockHash))
