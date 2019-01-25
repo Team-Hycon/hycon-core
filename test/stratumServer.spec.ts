@@ -1,11 +1,9 @@
 import { } from "jasmine"
-import * as net from "net"
 import { MinerServer } from "../src/miner/minerServer"
 import { StratumServer } from "../src/miner/stratumServer"
-import { testAsync } from "./async"
 const stratum = require("stratum")
 const LibStratum = stratum.Server
-
+process.env.NODE_ENV = "test"
 describe("StratumServer", () => {
     let stratumServer: StratumServer
     let minerServerSpy: jasmine.SpyObj<MinerServer>

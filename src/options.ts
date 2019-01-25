@@ -83,7 +83,7 @@ export class Options {
     public readonly jabiruHeight: number = 0
     public readonly txPoolMaxAddresses: number = 36000
     public readonly txPoolMaxTxsPerAddress: number = 64
-    public readonly config: string =""
+    public readonly config: string = ""
 
     constructor(userOptions: commandLineArgs.CommandLineOptions) {
 

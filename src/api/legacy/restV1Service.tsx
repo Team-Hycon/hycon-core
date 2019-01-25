@@ -1,3 +1,4 @@
+import { getMnemonic, hyconfromString, hycontoString, strictAdd, strictSub, zeroPad } from "@glosfer/hyconjs-util"
 import { getLogger } from "log4js"
 import * as Long from "long"
 import { Address } from "../../common/address"
@@ -20,13 +21,12 @@ import { Bitbox } from "../../wallet/bitbox"
 import { Ledger } from "../../wallet/ledger"
 import { Wallet } from "../../wallet/wallet"
 import { IBlock, ICreateWallet, IHyconWallet, IMinedInfo, IMiner, IPeer, IResponseError, ITxProp, IWalletAddress } from "../client/rest"
-import { hyconfromString, hycontoString, strictAdd, strictSub, zeroPad } from "../client/stringUtil"
-const logger = getLogger("RestServer")
+const logger = getLogger("RestV1Service")
 
 // tslint:disable:object-literal-sort-keys
 // tslint:disable:ban-types
 // tslint:disable:no-bitwise
-export class RestServer {
+export class RestV1Service {
     private consensus: Consensus
     private txPool: TxPool
     private network: Network
@@ -551,7 +551,7 @@ export class RestServer {
 
                 const account = await this.consensus.getAccount(address)
                 const pendings = this.txPool.getOutPendingAddress(address)
-                let pendingAmount = Long.fromNumber(0)
+                let pendingAmount = Long.UZERO
                 for (const pending of pendings) {
                     pendingAmount = strictAdd(pendingAmount, strictAdd(pending.amount, pending.fee))
                 }
@@ -580,7 +580,7 @@ export class RestServer {
             for (const address of addresses) {
                 const account = await this.consensus.getAccount(address)
                 const pendings = this.txPool.getOutPendingAddress(address)
-                let pendingAmount = Long.fromNumber(0)
+                let pendingAmount = Long.UZERO
                 for (const pending of pendings) {
                     pendingAmount = strictAdd(pendingAmount, strictAdd(pending.amount, pending.fee))
                 }
@@ -613,7 +613,7 @@ export class RestServer {
                     const address = new Address(wallet.address)
                     const account = await this.consensus.getAccount(address)
                     const pendings = this.txPool.getOutPendingAddress(address)
-                    let pendingAmount = Long.fromNumber(0, true)
+                    let pendingAmount = Long.UZERO
                     for (const pending of pendings) {
                         pendingAmount = strictAdd(pendingAmount, strictAdd(pending.amount, pending.fee))
                     }
@@ -947,7 +947,7 @@ export class RestServer {
             for (const address of addresses) {
                 const account = await this.consensus.getAccount(address)
                 const pendings = this.txPool.getOutPendingAddress(address)
-                let pendingAmount = Long.fromNumber(0)
+                let pendingAmount = Long.UZERO
                 for (const pending of pendings) {
                     pendingAmount = strictAdd(pendingAmount, strictAdd(pending.amount, pending.fee))
                 }

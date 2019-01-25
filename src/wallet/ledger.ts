@@ -1,3 +1,5 @@
+import "babel-polyfill"
+
 import Hycon from "@glosfer/hw-app-hycon"
 import Transport from "@ledgerhq/hw-transport-node-hid"
 import { getLogger } from "log4js"

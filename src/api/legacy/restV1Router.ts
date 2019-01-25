@@ -1,114 +1,39 @@
-import * as bodyParser from "body-parser"
 import * as express from "express"
 import { getLogger } from "log4js"
-import opn = require("opn")
-import { matchRoutes } from "react-router-config"
 import { SignedTx } from "../../common/txSigned"
 import { userOptions } from "../../main"
-import { Options } from "../../options"
 import { RestManager } from "../../rest/restManager"
-import { routes } from "../client/app"
-import { RestClient } from "../client/restClient"
-import { indexRender } from "./index"
-import { RestServer } from "./restServer"
-const logger = getLogger("RestClient")
-const apiVersion = "v1"
-
+import { IRestRouter } from "../interface/iRestRouter"
+import { RestV1Service } from "./restV1Service"
+const logger = getLogger("RestV1Router")
 // tslint:disable:object-literal-sort-keys
-export class HttpServer {
-    public app: express.Application
-    public rest: RestServer
+export class RestV1Router implements IRestRouter {
+    public rest: RestV1Service
+    public readonly version: string = "v1"
+    public readonly rootPath: string = ""
+
     public hyconServer: RestManager
 
-    constructor(hyconServer: RestManager, port: number = 2442, options: Options) {
-        this.app = express()
-        this.config()
-        this.app.all("/*", (req: express.Request, res: express.Response, next: express.NextFunction) => {
-            // res.header("Access-Control-Allow-Origin", "localhost")
-            if (options.nonLocal || userOptions.public_rest === true) {
-                res.header("Access-Control-Allow-Origin", "*")
-            } else {
-                res.header("Access-Control-Allow-Origin", "https://wallet.hycon.io")
-            }
-            res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE")
-            res.header("Access-Control-Allow-Headers", "Content-type, Accept")
-            res.header("X-FRAME-OPTIONS", "DENY")
-            if (req.method === "OPTIONS") {
-                res.status(200).end()
-            } else {
-                next()
-            }
-        })
-        this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => this.reactRoute(req, res, next))
-        if (userOptions.public_rest !== true) {
-            this.app.use(express.static("data/clientDist"))
-            this.app.use(express.static("node_modules"))
-        }
-        this.routeRest()
-        this.rest = new RestServer(hyconServer.consensus, hyconServer.network, hyconServer.txQueue, hyconServer.miner)
-        this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-            res.status(404)
-            res.json({
-                status: 404,
-                timestamp: Date.now(),
-                error: "INVALID_ROUTE",
-                message: "resource not found",
-            })
-        })
-        this.app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-            if (error.status === 400) {
-                res.status(400)
-                res.json({
-                    status: 400,
-                    timestamp: Date.now(),
-                    error: "INVALID_JSON",
-                    message: error.message,
-                })
-            }
-        })
+    private router: express.Router
 
-        if (options.nonLocal || userOptions.public_rest === true) {
-            this.app.listen(port, () => this.open(port))
-        } else {
-            this.app.listen(port, "localhost", () => this.open(port))
-        }
-
+    constructor(rest: RestV1Service, hyconServer: RestManager) {
+        this.rest = rest
         this.hyconServer = hyconServer
-        logger.info(">>>>>>> Started RESTful API")
+        this.router = express.Router()
+        this.routeRest()
     }
 
-    public reactRoute(
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction,
-    ) {
-        const branches = matchRoutes(routes, req.url)
-        if (userOptions.public_rest !== true && branches.length > 0) {
-            logger.info("react: " + req.url)
-            const context: { url?: string } = {}
-            const rest = new RestClient()
-            const page = indexRender(rest, req.url, context)
-            if (context.url) {
-                res.redirect(context.url, 301)
-            } else {
-                res.send(page)
-            }
-        } else {
-            logger.debug("other: " + req.url)
-            next()
-        }
+    public getRouter() {
+        return this.router
     }
 
     public routeRest() {
-        let router: express.Router
-        router = express.Router()
-
         if (userOptions.public_rest !== true) {
             // Private, only available on local
-            router.get("/wallet/", async (req: express.Request, res: express.Response) => {
+            this.router.get("/wallet/", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getWalletList())
             })
-            router.post("/wallet", async (req: express.Request, res: express.Response) => {
+            this.router.post("/wallet", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.createNewWallet({
                     privateKey: req.body.privateKey,
                     mnemonic: req.body.mnemonic,
@@ -117,14 +42,14 @@ export class HttpServer {
                 }))
             })
 
-            router.get("/wallet/:idx", async (req: express.Request, res: express.Response) => {
+            this.router.get("/wallet/:idx", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getWalletList(req.params.idx))
             })
 
-            router.get("/wallet/:address/balance", async (req: express.Request, res: express.Response) => {
+            this.router.get("/wallet/:address/balance", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getWalletBalance(req.params.address))
             })
-            router.put("/wallet/:address/callback", async (req: express.Request, res: express.Response) => {
+            this.router.put("/wallet/:address/callback", async (req: express.Request, res: express.Response) => {
                 res.json(await this.hyconServer.createSubscription({
                     address: req.params.address,
                     url: req.body.url,
@@ -132,17 +57,17 @@ export class HttpServer {
                     to: req.body.to,
                 }))
             })
-            router.delete("/wallet/:address/callback/:id", async (req: express.Request, res: express.Response) => {
+            this.router.delete("/wallet/:address/callback/:id", async (req: express.Request, res: express.Response) => {
                 res.json(await this.hyconServer.deleteSubscription(req.params.address, req.params.id))
             })
-            router.get("/wallet/:address/txs/:nonce?", async (req: express.Request, res: express.Response) => {
+            this.router.get("/wallet/:address/txs/:nonce?", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getWalletTransactions(req.params.address, req.params.nonce))
             })
 
-            router.get("/wallet/detail/:name", async (req: express.Request, res: express.Response) => {
+            this.router.get("/wallet/detail/:name", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getWalletDetail(req.params.name))
             })
-            router.post("/recoverWallet", async (req: express.Request, res: express.Response) => {
+            this.router.post("/recoverWallet", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.recoverWallet({
                         name: req.body.name,
@@ -154,7 +79,7 @@ export class HttpServer {
                     }),
                 )
             })
-            router.post("/signedtx", async (req: express.Request, res: express.Response) => {
+            this.router.post("/signedtx", async (req: express.Request, res: express.Response) => {
                 logger.debug("Route triggered")
                 res.json(
                     await this.rest.outgoingSignedTx({
@@ -170,10 +95,10 @@ export class HttpServer {
                 )
             })
 
-            router.get("/deleteWallet/:name", async (req: express.Request, res: express.Response) => {
+            this.router.get("/deleteWallet/:name", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.deleteWallet(req.params.name))
             })
-            router.post("/generateWallet", async (req: express.Request, res: express.Response) => {
+            this.router.post("/generateWallet", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.generateWallet({
                         name: req.body.name,
@@ -186,56 +111,56 @@ export class HttpServer {
                 )
             })
 
-            router.get("/getAllAccounts", async (req: express.Request, res: express.Response) => {
+            this.router.get("/getAllAccounts", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getAllAccounts(req.body.name, req.body.password, req.body.startIndex))
             })
-            router.get("/getMnemonic/:lang", async (req: express.Request, res: express.Response) => {
+            this.router.get("/getMnemonic/:lang", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getMnemonic(req.params.lang))
             })
 
-            router.get("/getMiner", async (req: express.Request, res: express.Response) => {
+            this.router.get("/getMiner", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getMiner())
             })
 
-            router.get("/setMiner/:address", async (req: express.Request, res: express.Response) => {
+            this.router.get("/setMiner/:address", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.setMiner(req.params.address))
             })
 
-            router.get("/setMinerCount/:count", async (req: express.Request, res: express.Response) => {
+            this.router.get("/setMinerCount/:count", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.setMinerCount(req.params.count))
             })
 
-            router.get("/favorites", async (req: express.Request, res: express.Response) => {
+            this.router.get("/favorites", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getFavoriteList())
             })
-            router.get("/favorites/add/:alias/:address", async (req: express.Request, res: express.Response) => {
+            this.router.get("/favorites/add/:alias/:address", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.addFavorite(req.params.alias, req.params.address))
             })
-            router.get("/favorites/delete/:alias", async (req: express.Request, res: express.Response) => {
+            this.router.get("/favorites/delete/:alias", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.deleteFavorite(req.params.alias))
             })
 
-            router.post("/addWalletFile", async (req: express.Request, res: express.Response) => {
+            this.router.post("/addWalletFile", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.addWalletFile(req.body.name, req.body.password, req.body.key))
             })
 
-            router.get("/hint/:name", async (req: express.Request, res: express.Response) => {
+            this.router.get("/hint/:name", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getHint(req.params.name))
             })
 
-            router.get("/dupleName/:name", async (req: express.Request, res: express.Response) => {
+            this.router.get("/dupleName/:name", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.checkDupleName(req.params.name))
             })
 
-            router.get("/peerList", async (req: express.Request, res: express.Response) => {
+            this.router.get("/peerList", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getPeerList())
             })
 
-            router.get("/peerConnected/:index", async (req: express.Request, res: express.Response) => {
+            this.router.get("/peerConnected/:index", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.getPeerConnected(req.params.index))
             })
 
-            router.post("/transaction", async (req: express.Request, res: express.Response) => {
+            this.router.post("/transaction", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.sendTx({
                         name: req.body.name,
@@ -251,7 +176,7 @@ export class HttpServer {
                 )
             })
 
-            router.post("/sendTxWithHDWallet", async (req: express.Request, res: express.Response) => {
+            this.router.post("/sendTxWithHDWallet", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.sendTxWithHDWallet({
                         name: req.body.name,
@@ -268,13 +193,13 @@ export class HttpServer {
                 )
             })
 
-            router.post("/getHDWallet", async (req: express.Request, res: express.Response) => {
+            this.router.post("/getHDWallet", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.getHDWallet(req.body.name, req.body.password, req.body.index, req.body.count),
                 )
             })
 
-            router.post("/generateHDWallet", async (req: express.Request, res: express.Response) => {
+            this.router.post("/generateHDWallet", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.generateHDWallet({
                         name: req.body.name,
@@ -287,7 +212,7 @@ export class HttpServer {
                 )
             })
 
-            router.post("/recoverHDWallet", async (req: express.Request, res: express.Response) => {
+            this.router.post("/recoverHDWallet", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.recoverHDWallet({
                         name: req.body.name,
@@ -300,7 +225,7 @@ export class HttpServer {
                 )
             })
 
-            router.post("/HDwallet", async (req: express.Request, res: express.Response) => {
+            this.router.post("/HDwallet", async (req: express.Request, res: express.Response) => {
                 res.json(await this.rest.createNewHDWallet({
                     rootKey: req.body.rootKey,
                     mnemonic: req.body.mnemonic,
@@ -309,12 +234,12 @@ export class HttpServer {
                     index: req.body.index,
                 }))
             })
-            router.post("/getHDWalletFromRootKey", async (req: express.Request, res: express.Response) => {
+            this.router.post("/getHDWalletFromRootKey", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.getHDWalletFromRootKey(req.body.rootKey, req.body.index, req.body.count),
                 )
             })
-            router.post("/sendTxWithHDWalletRootKey", async (req: express.Request, res: express.Response) => {
+            this.router.post("/sendTxWithHDWalletRootKey", async (req: express.Request, res: express.Response) => {
                 res.json(
                     await this.rest.sendTxWithHDWalletRootKey({
                         address: req.body.tx.address,
@@ -331,7 +256,7 @@ export class HttpServer {
         }
 
         // Public, always available
-        router.post("/tx", async (req: express.Request, res: express.Response) => {
+        this.router.post("/tx", async (req: express.Request, res: express.Response) => {
             res.json(
                 await this.rest.outgoingTx({
                     signature: req.body.signature,
@@ -349,47 +274,47 @@ export class HttpServer {
                 }),
             )
         })
-        router.get("/block/height/:height", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.getBlockAtHeight(req.params.height))
-        })
-        router.get("/block/:hash/:txcount?", async (req: express.Request, res: express.Response) => {
+        this.router.get("/block/:hash/:txcount?", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlock(req.params.hash, req.params.txcount))
         })
-        router.get("/blockList/:index", async (req: express.Request, res: express.Response) => {
+        this.router.get("/block/height/:height", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getBlockAtHeight(req.params.height))
+        })
+        this.router.get("/blockList/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlockList(req.params.index))
         })
-        router.get("/toptipHeight/", async (req: express.Request, res: express.Response) => {
+        this.router.get("/toptipHeight/", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getTopTipHeight())
         })
-        router.get("/getHTipHeight/", async (req: express.Request, res: express.Response) => {
+        this.router.get("/getHTipHeight/", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getHTipHeight())
         })
-        router.get("/address/:address", async (req: express.Request, res: express.Response) => {
+        this.router.get("/address/:address", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getAddressInfo(req.params.address))
         })
-        router.get("/language", async (req: express.Request, res: express.Response) => {
+        this.router.get("/language", async (req: express.Request, res: express.Response) => {
             res.json("error TS2339: Property 'getLanguage' does not exist on type 'RestServer'.")
             // res.json(await this.rest.getLanguage())
         })
-        router.get("/tx/:hash", async (req: express.Request, res: express.Response) => {
+        this.router.get("/tx/:hash", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getTx(req.params.hash))
         })
-        router.get("/txList/:index", async (req: express.Request, res: express.Response) => {
+        this.router.get("/txList/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getPendingTxs(req.params.index))
         })
-        router.get("/nextTxs/:address/:txHash/:index", async (req: express.Request, res: express.Response) => {
+        this.router.get("/nextTxs/:address/:txHash/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getNextTxs(req.params.address, req.params.txHash, req.params.index))
         })
-        router.get("/nextTxsInBlock/:blockhash/:txHash/:index", async (req: express.Request, res: express.Response) => {
+        this.router.get("/nextTxsInBlock/:blockhash/:txHash/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getNextTxsInBlock(req.params.blockhash, req.params.txHash, req.params.index))
         })
-        router.get("/getMinedInfo/:address/:blockHash/:index", async (req: express.Request, res: express.Response) => {
+        this.router.get("/getMinedInfo/:address/:blockHash/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMinedBlocks(req.params.address, req.params.blockHash, req.params.index))
         })
-        router.get("/getLedgerWallet/:startIndex/:count", async (req: express.Request, res: express.Response) => {
+        this.router.get("/getLedgerWallet/:startIndex/:count", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getLedgerWallet(req.params.startIndex, req.params.count))
         })
-        router.post("/sendTxWithLedger", async (req: express.Request, res: express.Response) => {
+        this.router.post("/sendTxWithLedger", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.sendTxWithLedger(
                 req.body.index,
                 req.body.from,
@@ -402,26 +327,26 @@ export class HttpServer {
                     this.hyconServer.broadcastTxs(newTxs)
                 }))
         })
-        router.get("/possibilityLedger", async (req: express.Request, res: express.Response) => {
+        this.router.get("/possibilityLedger", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.possibilityLedger())
         })
-        router.get("/getMarketCap", async (req: express.Request, res: express.Response) => {
+        this.router.get("/getMarketCap", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMarketCap())
         })
-        router.get("/checkPasswordBitbox", async (req: express.Request, res: express.Response) => {
+        this.router.get("/checkPasswordBitbox", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.checkPasswordBitbox())
         })
-        router.post("/checkWalletBitbox", async (req: express.Request, res: express.Response) => {
+        this.router.post("/checkWalletBitbox", async (req: express.Request, res: express.Response) => {
             res.json(
                 await this.rest.checkWalletBitbox(req.body.password),
             )
         })
-        router.post("/getBitboxWallet", async (req: express.Request, res: express.Response) => {
+        this.router.post("/getBitboxWallet", async (req: express.Request, res: express.Response) => {
             res.json(
                 await this.rest.getBitboxWallet(req.body.password, req.body.startIndex, req.body.count),
             )
         })
-        router.post("/sendTxWithBitbox", async (req: express.Request, res: express.Response) => {
+        this.router.post("/sendTxWithBitbox", async (req: express.Request, res: express.Response) => {
             res.json(
                 await this.rest.sendTxWithBitbox({
                     from: req.body.from,
@@ -437,39 +362,23 @@ export class HttpServer {
                     }),
             )
         })
-        router.post("/setBitboxPassword", async (req: express.Request, res: express.Response) => {
+        this.router.post("/setBitboxPassword", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.setBitboxPassword(req.body.password))
         })
-        router.post("/createBitboxWallet", async (req: express.Request, res: express.Response) => {
+        this.router.post("/createBitboxWallet", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.createBitboxWallet(req.body.name, req.body.password))
         })
-        router.post("/updateBitboxPassword", async (req: express.Request, res: express.Response) => {
+        this.router.post("/updateBitboxPassword", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.updateBitboxPassword(req.body.originalPwd, req.body.newPwd))
         })
-        router.get("/isUncleBlock/:blockHash", async (req: express.Request, res: express.Response) => {
+        this.router.get("/isUncleBlock/:blockHash", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.isUncleBlock(req.params.blockHash))
         })
-        router.get("/getMiningReward/:blockHash", async (req: express.Request, res: express.Response) => {
+        this.router.get("/getMiningReward/:blockHash", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getMiningReward(req.params.blockHash))
         })
-        router.get("/getBlocksFromHeight/:from/:count", async (req: express.Request, res: express.Response) => {
+        this.router.get("/getBlocksFromHeight/:from/:count", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlocksFromHeight(req.params.from, req.params.count))
-        })
-
-        this.app.use(`/api/${apiVersion}`, router)
-    }
-
-    public config() {
-        this.app.use(bodyParser.json())
-    }
-
-    private open(port: number) {
-        if (userOptions.noGUI === true) {
-            return
-        }
-        const url = `http://localhost:${port}`
-        opn(url).catch(() => {
-            logger.warn(`Could not open UI, please visit ${url}`)
         })
     }
 }

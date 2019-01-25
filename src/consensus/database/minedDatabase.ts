@@ -1,11 +1,11 @@
 import { getLogger } from "log4js"
 import Long = require("long")
 import * as sqlite3 from "sqlite3"
-import { hycontoString } from "../../api/client/stringUtil"
 import { Address } from "../../common/address"
 import { BlockHeader } from "../../common/blockHeader"
 import { SignedTx } from "../../common/txSigned"
 
+import { hycontoString, strictAdd } from "@glosfer/hyconjs-util"
 import { userOptions } from "../../main"
 import { Hash } from "../../util/hash"
 import { Consensus } from "../consensus"
@@ -14,7 +14,6 @@ import { JabiruConsensus } from "../consensusJabiru"
 import { BlockStatus } from "../sync"
 import { uncleReward } from "../uncleManager"
 import { DBMined } from "./dbMined"
-import { strictAdd } from "./worldState"
 const sqlite = sqlite3.verbose()
 const logger = getLogger("MinedDB")
 const MINEDDB_BATCH_SIZE = 1000

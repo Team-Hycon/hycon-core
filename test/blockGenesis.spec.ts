@@ -1,10 +1,11 @@
 import { randomBytes } from "crypto"
 import * as fs from "fs"
 import { } from "jasmine"
-import Long = require("long")
+
 import { GenesisBlock } from "../src/common/blockGenesis"
 import { GenesisSignedTx } from "../src/common/txGenesisSigned"
 import * as proto from "../src/serialization/proto"
+process.env.NODE_ENV = "test"
 describe("Genesis Block Tests", () => {
     let header: proto.IBlockHeader
     const gTx: jasmine.SpyObj<GenesisSignedTx> = jasmine.createSpyObj("GTX", ["verify"])

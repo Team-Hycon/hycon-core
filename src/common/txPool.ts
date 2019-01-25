@@ -1,7 +1,7 @@
+import { hyconfromString, strictAdd } from "@glosfer/hyconjs-util"
 import { getLogger } from "log4js"
 import Long = require("long")
-import { hyconfromString } from "../api/client/stringUtil"
-import { strictAdd, TxValidity } from "../consensus/database/worldState"
+import { TxValidity } from "../consensus/database/worldState"
 import { userOptions } from "../main"
 import { Server } from "../server"
 import { Hash } from "../util/hash"
@@ -151,11 +151,11 @@ export class TxPool {
         this.pool.resort()
     }
 
-    public getTxs(count: number): SignedTx[] {
+    public getTxs(count?: number): SignedTx[] {
         const txs: SignedTx[] = []
         for (const txqueue of this.pool.toArray()) {
             for (let i = 0; i < txqueue.queue.length(); i++) {
-                if (txs.length >= count) { return txs }
+                if (count !== undefined && txs.length >= count) { return txs }
                 const tx = txqueue.queue.peek(i)
                 txs.push(tx)
             }
@@ -186,7 +186,7 @@ export class TxPool {
     }
 
     // getAllPendingAddress is for all direction pending txs.
-    public getAllPendingAddress(address: Address): { pendings: SignedTx[], pendingAmount: Long } {
+    public getAllPendingAddress(address: Address, count?: number): { pendings: SignedTx[], pendingAmount: Long } {
         let pendingAmount = Long.UZERO
         const pendings: SignedTx[] = []
         for (const txqueue of this.pool.toArray()) {
@@ -197,6 +197,9 @@ export class TxPool {
                     pendings.push(tx)
                 } else if (tx.to.equals(address)) {
                     pendings.push(tx)
+                }
+                if (count !== undefined && pendings.length >= count) {
+                    return { pendings, pendingAmount }
                 }
             }
         }

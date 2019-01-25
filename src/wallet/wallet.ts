@@ -1,3 +1,4 @@
+import { encodingMnemonic } from "@glosfer/hyconjs-util"
 import * as bip39 from "bip39"
 import blake2b = require("blake2b")
 import * as crypto from "crypto"
@@ -5,7 +6,6 @@ import * as fs from "fs-extra"
 import HDKey = require("hdkey")
 import { getLogger } from "log4js"
 import secp256k1 = require("secp256k1")
-import { encodingMnemonic } from "../api/client/stringUtil"
 import { Address } from "../common/address"
 import { PrivateKey } from "../common/privateKey"
 import { PublicKey } from "../common/publicKey"

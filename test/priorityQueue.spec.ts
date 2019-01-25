@@ -1,5 +1,5 @@
 import { PriorityQueue } from "../src/common/priorityQueue"
-
+process.env.NODE_ENV = "test"
 describe("PriorityQueue", () => {
     const maxLength = 10
 

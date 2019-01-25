@@ -1,7 +1,7 @@
+import { hyconfromString, hycontoString, strictAdd } from "@glosfer/hyconjs-util"
 import { getLogger } from "log4js"
 import Long = require("long")
 import * as sqlite3 from "sqlite3"
-import { hyconfromString, hycontoString } from "../../api/client/stringUtil"
 import { Address } from "../../common/address"
 import { AnySignedTx, SignedTx } from "../../common/txSigned"
 import { Hash } from "../../util/hash"
@@ -9,7 +9,6 @@ import { START_HEIGHT } from "../consensus"
 import { Consensus } from "../consensus"
 import { BlockStatus } from "../sync"
 import { DBTx } from "./dbtx"
-import { strictAdd } from "./worldState"
 // tslint:disable-next-line:no-var-requires
 const TransactionDatabase = require("sqlite3-transactions").TransactionDatabase
 const sqlite = sqlite3.verbose()
@@ -148,53 +147,35 @@ export class TxDatabase {
         await this.put(insertArray)
     }
 
-    public async getLastTxs(address: Address, result: DBTx[] = [], pageNumber: number = 0, count?: number): Promise<DBTx[]> {
+    public async getTxsInBlock(blockHash: string, result: DBTx[] = [], index: number = 0, count: number = 10): Promise<{ txs: DBTx[], amount: string, fee: string, length: number }> {
+        const params: IGetParam = {
+            $blockhash: blockHash.toString(),
+        }
+        const query = `SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime, nonce FROM txdb WHERE blockhash = $blockhash ORDER BY blocktime, nonce DESC`
+
+        const { amount, fee, idx, results } = await this.getMainChainTxs(query, params, count, index)
+        result = result.concat(results)
+        return { txs: result, amount: hycontoString(amount), fee: hycontoString(fee), length: idx }
+    }
+
+    public async getLastTxs(address: Address, result: DBTx[] = [], pageNumber: number = 0, count: number): Promise<DBTx[]> {
         const params: IGetParam = {
             $address: address.toString(),
             $count: count - result.length,
             $startIndex: pageNumber * count,
         }
         const query = `SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime, nonce FROM txdb WHERE txto = $address OR txfrom = $address ORDER BY blocktime DESC, nonce DESC LIMIT $startIndex, $count`
-        const rows = await this.get(this.db, query, params)
-        for (const row of rows) {
-            const status = await this.consensus.getBlockStatus(Hash.decode(row.blockhash))
-            if (status === BlockStatus.MainChain) {
-                result.push(new DBTx(row.txhash, row.blockhash, row.txto, row.txfrom, row.amount, row.fee, row.blocktime, row.nonce))
-            }
-            if (result.length === count) { break }
-        }
-        if (rows.length < count) {
-            return result
-        }
+        const { getLength, results } = await this.getMainChainTxs(query, params, count)
+        result = result.concat(results)
+        if (getLength < count) { return result }
+
         if (result.length < count) {
             result = await this.getLastTxs(address, result, ++pageNumber, count)
         }
         return result
     }
 
-    public async getTxsInBlock(blockHash: string, result: DBTx[] = [], index: number = 0, count: number = 10): Promise<{ txs: DBTx[], amount: string, fee: string, length: number }> {
-        const params: IGetParam = {
-            $blockhash: blockHash.toString(),
-        }
-        const query = `SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime, nonce FROM txdb WHERE blockhash = $blockhash ORDER BY blocktime, nonce DESC`
-        const rows = await this.get(this.db, query, params)
-        let amount = Long.UZERO
-        let fee = Long.UZERO
-        for (const row of rows) {
-            const status = await this.consensus.getBlockStatus(Hash.decode(row.blockhash))
-            if (status === BlockStatus.MainChain) {
-                amount = strictAdd(amount, hyconfromString(row.amount))
-                fee = strictAdd(fee, hyconfromString(row.fee))
-                if (index < count) {
-                    result.push(new DBTx(row.txhash, row.blockhash, row.txto, row.txfrom, row.amount, row.fee, row.blocktime, row.nonce))
-                }
-                ++index
-            }
-        }
-        return { txs: result, amount: hycontoString(amount), fee: hycontoString(fee), length: index }
-    }
-
-    public async getNextTxs(address: Address, txHash: Hash, result: DBTx[] = [], pageNumber: number = 1, count?: number): Promise<DBTx[]> {
+    public async getNextTxs(address: Address, txHash: Hash, result: DBTx[] = [], pageNumber: number, count: number): Promise<DBTx[]> {
         const params: IGetParam = {
             $address: address.toString(),
             $count: count - result.length,
@@ -202,17 +183,10 @@ export class TxDatabase {
             $txhash: txHash.toString(),
         }
         const query = `SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime, nonce FROM txdb WHERE (blocktime <= (SELECT blocktime FROM txdb WHERE txhash = $txhash)) AND (txto = $address OR txfrom = $address) ORDER BY blocktime DESC, nonce DESC LIMIT $startIndex, $count`
-        const rows = await this.get(this.db, query, params)
-        for (const row of rows) {
-            const status = await this.consensus.getBlockStatus(Hash.decode(row.blockhash))
-            if (status === BlockStatus.MainChain) {
-                result.push(new DBTx(row.txhash, row.blockhash, row.txto, row.txfrom, row.amount, row.fee, row.blocktime, row.nonce))
-            }
-            if (result.length === count) { break }
-        }
-        if (rows.length < count) {
-            return result
-        }
+        const { getLength, results } = await this.getMainChainTxs(query, params, count)
+        result = result.concat(results)
+        if (getLength < count) { return result }
+
         if (result.length < count) {
             result = await this.getNextTxs(address, txHash, result, ++pageNumber, count)
         }
@@ -220,7 +194,7 @@ export class TxDatabase {
 
     }
 
-    public async getNextTxsInBlock(blockHash: string, txHash: string, result: DBTx[], idx: number, count?: number): Promise<DBTx[]> {
+    public async getNextTxsInBlock(blockHash: string, txHash: string, result: DBTx[], idx: number, count: number): Promise<DBTx[]> {
         const params: IGetParam = {
             $blockhash: blockHash.toString(),
             $count: count - result.length,
@@ -228,17 +202,10 @@ export class TxDatabase {
             $txhash: txHash,
         }
         const query = `SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime, nonce FROM txdb WHERE (blocktime <= (SELECT blocktime FROM txdb WHERE txhash = $txhash)) AND (blockhash = $blockhash) ORDER BY blocktime DESC, nonce DESC LIMIT $startIndex, $count`
-        const rows = await this.get(this.db, query, params)
-        for (const row of rows) {
-            const status = await this.consensus.getBlockStatus(Hash.decode(row.blockhash))
-            if (status === BlockStatus.MainChain) {
-                result.push(new DBTx(row.txhash, row.blockhash, row.txto, row.txfrom, row.amount, row.fee, row.blocktime, row.nonce))
-            }
-            if (result.length === count) { break }
-        }
-        if (rows.length < count) {
-            return result
-        }
+        const { getLength, results } = await this.getMainChainTxs(query, params, count)
+        result = result.concat(results)
+        if (getLength < count) { return result }
+
         if (result.length < count) {
             result = await this.getNextTxsInBlock(blockHash, txHash, result, ++idx, count)
         }
@@ -247,38 +214,32 @@ export class TxDatabase {
 
     public async getTx(key: Hash): Promise<{ tx: DBTx, confirmation: number } | undefined> {
         const params: IGetParam = { $txhash: key.toString() }
-        let tx: DBTx
         const query = `SELECT txhash, txto, txfrom, amount, fee, blockhash, blocktime, nonce FROM txdb WHERE txhash = $txhash LIMIT 1`
-        const row = await this.get(this.db, query, params)
-        if (row === undefined || row.length < 1) { return undefined }
-        tx = new DBTx(row[0].txhash, row[0].blockhash, row[0].txto, row[0].txfrom, row[0].amount, row[0].fee, row[0].blocktime, row[0].nonce)
-        const height = await this.consensus.getBlockHeight(Hash.decode(tx.blockhash))
+        const rows: DBTx[] = await this.getDBTxs(query, params)
+        if (rows === undefined || rows.length < 1) { return undefined }
+
+        const height = await this.consensus.getBlockHeight(Hash.decode(rows[0].blockhash))
         const tip = this.consensus.getBlocksTip()
+        if (tip === undefined) { return undefined }
+
         const confirmation = tip.height - height
-        return { tx, confirmation }
+        return { tx: rows[0], confirmation }
     }
 
     public async getBurnAmount(): Promise<{ amount: Long }> {
-        return new Promise<{ amount: Long }>(async (resolved, rejected) => {
-            this.db.all(`select amount from txdb where txto = '🔥'`, async (err: Error, rows: any) => {
-                let amount: Long = Long.UZERO
-                if (rows !== undefined) {
-                    for (const row of rows) {
-                        amount = strictAdd(amount, Long.fromNumber(rows.amount, true))
-                    }
-                }
-                return resolved({ amount })
-            })
-        })
+        let amount: Long = Long.UZERO
+        const query = `select amount from txdb where txto = '🔥'`
+        const rows = await this.get(query)
+        for (const row of rows) {
+            amount = strictAdd(amount, hyconfromString(row.amount))
+        }
+        return { amount }
     }
     private async put(insertArray: ITxDBRow[]) {
         const insertsql = `INSERT OR REPLACE INTO txdb (txhash, blockhash, txto, txfrom, amount, fee, blocktime, nonce) VALUES ($txhash, $blockhash, $txto, $txfrom, $amount, $fee, $blocktime, $nonce)`
         return new Promise<void>((resolve, reject) => {
             const insert = this.db.prepare(insertsql, (err) => {
-                if (err) {
-                    reject(err)
-                    return
-                }
+                if (err) { return reject(err) }
                 this.db.parallelize(() => {
                     for (const param of insertArray) { insert.run(param) }
                 })
@@ -289,12 +250,47 @@ export class TxDatabase {
         })
     }
 
-    private async get(db: sqlite3.Database, query: string, params: IGetParam): Promise<ITxDBRowResult[]> {
+    private async getDBTxs(query: string, params: IGetParam): Promise<DBTx[]> {
+        const results: DBTx[] = []
+        const rows = await this.get(query, params)
+        for (const row of rows) {
+            const amount = hycontoString(hyconfromString(row.amount))
+            const fee = row.fee !== null ? hycontoString(hyconfromString(row.fee)) : "0"
+            const dbtx = new DBTx(row.txhash, row.blockhash, row.txto, row.txfrom, amount, fee, row.blocktime, row.nonce)
+            results.push(dbtx)
+        }
+        return results
+    }
+
+    private async get(query: string, params: IGetParam = {}): Promise<ITxDBRowResult[]> {
         return new Promise<ITxDBRowResult[]>(async (resolve, reject) => {
-            db.all(query, params, async (err: Error, rows: any) => {
+            this.db.all(query, params, async (err: Error, rows: any) => {
                 if (err) { return reject(err) }
                 return resolve(rows)
             })
         })
     }
+
+    private async getMainChainTxs(query: string, params: IGetParam, count: number, index?: number): Promise<{ amount: Long, fee: Long, getLength: number, idx: number, results: DBTx[] }> {
+        const txs: DBTx[] = await this.getDBTxs(query, params)
+        let amount = Long.UZERO
+        let fee = Long.UZERO
+        const results = []
+        for (const tx of txs) {
+            const status = await this.consensus.getBlockStatus(Hash.decode(tx.blockhash))
+            if (status === BlockStatus.MainChain) {
+                if (index !== undefined) {
+                    amount = strictAdd(amount, hyconfromString(tx.amount))
+                    fee = strictAdd(fee, hyconfromString(tx.fee))
+                    if (index < count) { results.push(tx) }
+                    ++index
+                } else {
+                    results.push(tx)
+                    if (results.length === count) { break }
+                }
+            }
+        }
+        return { amount, fee, getLength: txs.length, idx: index, results }
+    }
+
 }

@@ -56,10 +56,10 @@ export class App extends React.Component<{ rest: RestClient }, any> {
     public txView: ({ match }: RouteComponentProps<{ hash: string }>) => JSX.Element
     public txPool: ({ match }: RouteComponentProps<{}>) => JSX.Element
 
-    public transaction: ({ match }: RouteComponentProps<{ name: string, nonce: number }>) => JSX.Element
-    public maketransaction: ({ match }: RouteComponentProps<{ walletType: string, nonce: number }>) => JSX.Element
-    public maketransactionIndex: ({ match }: RouteComponentProps<{ walletType: string, address: string, selectedAccount: string, nonce: number }>) => JSX.Element
-    public maketransactionHDWallet: ({ match }: RouteComponentProps<{ walletType: string, name: string, address: string, selectedAccount: string, nonce: number }>) => JSX.Element
+    public transaction: ({ match }: RouteComponentProps<{ name: string, nonce: string }>) => JSX.Element
+    public maketransaction: ({ match }: RouteComponentProps<{ walletType: string, nonce: string }>) => JSX.Element
+    public maketransactionIndex: ({ match }: RouteComponentProps<{ walletType: string, address: string, selectedAccount: string, nonce: string }>) => JSX.Element
+    public maketransactionHDWallet: ({ match }: RouteComponentProps<{ walletType: string, name: string, address: string, selectedAccount: string, nonce: string }>) => JSX.Element
     public peersView: ({ match }: RouteComponentProps<{}>) => JSX.Element
 
     public wallet: ({ match }: RouteComponentProps<{}>) => JSX.Element
@@ -100,16 +100,16 @@ export class App extends React.Component<{ rest: RestClient }, any> {
         this.txPool = ({ match }: RouteComponentProps<{}>) => (
             <TxPoolList rest={this.rest} />
         )
-        this.transaction = ({ match }: RouteComponentProps<{ name: string, nonce: number }>) => (
+        this.transaction = ({ match }: RouteComponentProps<{ name: string, nonce: string }>) => (
             <Transaction name={match.params.name} rest={this.rest} nonce={match.params.nonce} />
         )
-        this.maketransaction = ({ match }: RouteComponentProps<{ walletType: string, nonce: number }>) => (
+        this.maketransaction = ({ match }: RouteComponentProps<{ walletType: string, nonce: string }>) => (
             <MakeTransaction walletType={match.params.walletType} rest={this.rest} nonce={match.params.nonce} />
         )
-        this.maketransactionIndex = ({ match }: RouteComponentProps<{ walletType: string, address: string, selectedAccount: string, nonce: number }>) => (
+        this.maketransactionIndex = ({ match }: RouteComponentProps<{ walletType: string, address: string, selectedAccount: string, nonce: string }>) => (
             <MakeTransaction walletType={match.params.walletType} rest={this.rest} address={match.params.address} selectedAccount={match.params.selectedAccount} nonce={match.params.nonce} />
         )
-        this.maketransactionHDWallet = ({ match }: RouteComponentProps<{ walletType: string, name: string, address: string, selectedAccount: string, nonce: number }>) => (
+        this.maketransactionHDWallet = ({ match }: RouteComponentProps<{ walletType: string, name: string, address: string, selectedAccount: string, nonce: string }>) => (
             <MakeTransaction rest={this.rest} walletType={match.params.walletType} name={match.params.name} address={match.params.address} selectedAccount={match.params.selectedAccount} nonce={match.params.nonce} />
         )
         this.peersView = ({ match }: RouteComponentProps<{}>) => (

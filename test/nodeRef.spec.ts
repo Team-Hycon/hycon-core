@@ -2,6 +2,9 @@ import { randomBytes } from "crypto"
 import * as Long from "long"
 import { NodeRef } from "../src/consensus/database/nodeRef"
 import * as proto from "../src/serialization/proto"
+
+process.env.NODE_ENV = "test"
+
 describe("NodeRef test", () => {
     let nodeRef: NodeRef
     let protoNodeRef: proto.INodeRef

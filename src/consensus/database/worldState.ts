@@ -1,8 +1,8 @@
+import { hycontoString, strictAdd, strictSub } from "@glosfer/hyconjs-util"
 import levelup = require("levelup")
 import { getLogger } from "log4js"
 import Long = require("long")
 import rocksdb = require("rocksdb")
-import { hycontoString } from "../../api/client/stringUtil"
 import { Address } from "../../common/address"
 import { AsyncLock } from "../../common/asyncLock"
 import { TxPool } from "../../common/txPool"
@@ -16,22 +16,6 @@ import { NodeRef } from "./nodeRef"
 import { StateNode } from "./stateNode"
 
 const logger = getLogger("WorldState")
-
-export function strictAdd(a: Long, b: Long) {
-    const maxB = Long.MAX_UNSIGNED_VALUE.subtract(a)
-    const maxA = Long.MAX_UNSIGNED_VALUE.subtract(b)
-    if (b.greaterThan(maxB) || a.greaterThan(maxA)) {
-        throw new Error("Overflow")
-    }
-    return a.add(b)
-}
-
-export function strictSub(a: Long, b: Long) {
-    if (a.lessThan(b) || b.greaterThan(a)) {
-        throw new Error("Underflow")
-    }
-    return a.sub(b)
-}
 
 export enum TxValidity {
     Invalid,

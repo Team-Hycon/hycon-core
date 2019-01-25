@@ -1,5 +1,5 @@
 import { DBMined } from "../src/consensus/database/dbMined"
-
+process.env.NODE_ENV = "test"
 describe("DBMined", () => {
     it("constructor() : should set property using parameters", () => {
         const dbMined = new DBMined("blockHash", "123.123", 1528786237654, "minerAddress")

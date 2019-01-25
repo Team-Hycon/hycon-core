@@ -1,18 +1,13 @@
+import { hyconfromString } from "@glosfer/hyconjs-util"
 import { randomBytes } from "crypto"
-import * as fs from "fs"
 import { } from "jasmine"
 import secp256k1 = require("secp256k1")
-import { hyconfromString } from "../src/api/client/stringUtil"
 import { Address } from "../src/common/address"
 import { PrivateKey } from "../src/common/privateKey"
 import { PublicKey } from "../src/common/publicKey"
 import { Tx } from "../src/common/tx"
-import { GenesisTx } from "../src/common/txGenesis"
-import { GenesisSignedTx } from "../src/common/txGenesisSigned"
 import { SignedTx } from "../src/common/txSigned"
-import * as proto from "../src/serialization/proto"
-import { Wallet } from "../src/wallet/wallet"
-
+process.env.NODE_ENV = "test"
 describe("PrivateKey", () => {
     const buffer = randomBytes(32)
     const privKey1 = new PrivateKey()

@@ -124,7 +124,7 @@ export class WalletView extends React.Component<any, any> {
                 <Dialog open={this.state.dialog2} style={{ textAlign: "center" }} onClose={() => { this.setState({ dialog2: false }) }}>
                     <h4 style={{ color: "grey" }}><Icon style={{ color: "grey", marginRight: "10px" }}>send</Icon>Make transaction</h4>
                     <div style={{ width: "32em" }}>
-                        <FormLabel component="legend">Select wallet to use</FormLabel>
+                        <FormLabel>Select wallet to use</FormLabel>
                         <RadioGroup style={{ width: "70%", margin: "auto" }} aria-label="walletType" name="walletType" value={this.state.walletType} onChange={(data) => { this.handleInputChange(data) }}>
                             <FormControlLabel value="local" control={<Radio />} label="Local wallet (Key File)" />
                             <FormControlLabel value="ledger" control={<Radio />} label="Hardware wallet (Ledger)" />
@@ -156,7 +156,7 @@ export class WalletView extends React.Component<any, any> {
                 <Dialog open={this.state.hardwareDialog} onClose={() => { this.setState({ hardwareDialog: false }) }}>
                     <DialogTitle id="simple-dialog-title" style={{ textAlign: "center" }}><Icon style={{ marginRight: "10px", color: "grey" }}>account_balance_wallet</Icon>HARDWARE WALLET</DialogTitle>
                     <div style={{ textAlign: "center" }}>
-                        <FormLabel component="legend">Select wallet to use.</FormLabel>
+                        <FormLabel>Select wallet to use.</FormLabel>
                         <RadioGroup style={{ width: "70%", margin: "auto" }} aria-label="hardwareWalletType" name="hardwareWalletType" value={this.state.hardwareWalletType} onChange={(data) => { this.handleInputChange(data) }}>
                             <FormControlLabel value="ledger" control={<Radio />} label="Ledger" />
                             <FormControlLabel value="bitbox" control={<Radio />} label="Digital Bitbox" />

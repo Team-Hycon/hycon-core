@@ -1,8 +1,8 @@
+import { encodingMnemonic } from "@glosfer/hyconjs-util"
 import { Button, Card, CardContent, FormControl, Grid, Icon, Input, InputLabel, Select } from "@material-ui/core"
 import { Dialog, IconButton, MenuItem, TextField } from "material-ui"
 import * as React from "react"
 import { Redirect } from "react-router"
-import { encodingMnemonic } from "./stringUtil"
 
 export class RecoverWallet extends React.Component<any, any> {
     public mounted: boolean = false

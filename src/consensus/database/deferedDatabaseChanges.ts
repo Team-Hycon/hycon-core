@@ -1,5 +1,4 @@
 import levelup = require("levelup")
-import { hycontoString } from "../../api/client/stringUtil"
 import { Hash } from "../../util/hash"
 import { BlockStatus } from "../sync"
 import { Database } from "./database"

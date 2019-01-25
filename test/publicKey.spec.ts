@@ -10,7 +10,7 @@ import { Hash } from "../src/util/hash"
 
 import * as blake2b from "blake2b"
 import secp256k1 = require("secp256k1")
-
+process.env.NODE_ENV = "test"
 describe("PublicKey", () => {
     let pubKey: PublicKey
     let pubKey2: PublicKey

@@ -4,7 +4,7 @@ import * as Long from "long"
 import { Address } from "../src/common/address"
 import { GenesisTx } from "../src/common/txGenesis"
 import * as proto from "../src/serialization/proto"
-
+process.env.NODE_ENV = "test"
 const logger = getLogger("GenesisTx")
 
 describe("GenesisTx", () => {

@@ -28,21 +28,10 @@ export class PrivateKey {
 
     public sign(tx: (Tx | GenesisTx)): (SignedTx | GenesisSignedTx) {
         if (tx instanceof Tx) {
-            const newHash = signatureHash(tx).toBuffer()
-            const newSignature = secp256k1.sign(newHash, this.privKey)
-            if (Date.now() <= 1544241600000) {
-                const oldHash = new Hash(tx).toBuffer()
-                const oldSignatrue = secp256k1.sign(oldHash, this.privKey)
-                const tx2 = Object.assign(tx, {
-                    recovery: oldSignatrue.recovery,
-                    signature: oldSignatrue.signature,
-                    transitionRecovery: newSignature.recovery,
-                    transitionSignature: newSignature.signature,
-                })
-                return new SignedTx(tx2)
-            } else {
-                return new SignedTx(tx, newSignature.signature, newSignature.recovery)
-            }
+            const hash = signatureHash(tx).toBuffer()
+            const sign = secp256k1.sign(hash, this.privKey)
+
+            return new SignedTx(tx, sign.signature, sign.recovery)
         } else {
             const hash = new Hash(tx).toBuffer()
             const signature = secp256k1.sign(hash, this.privKey)

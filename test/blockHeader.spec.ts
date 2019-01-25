@@ -1,16 +1,14 @@
 import { BlockHeader } from "../src/common/blockHeader"
-import { SignedTx } from "../src/common/txSigned"
 import { Hash } from "../src/util/hash"
 
 import { randomBytes } from "crypto"
-import { Tx } from "../src/common/tx"
 
 import * as proto from "../src/serialization/proto"
 
 import { } from "jasmine"
 import * as Long from "long"
 import { Address } from "../src/common/address"
-
+process.env.NODE_ENV = "test"
 describe("BlockHeader", () => {
     let iBlock: proto.BlockHeader
     let blockHeader: BlockHeader

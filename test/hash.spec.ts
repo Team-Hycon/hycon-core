@@ -1,14 +1,12 @@
 import * as Base58 from "base-58"
-import * as blake2b from "blake2b"
 import { randomBytes } from "crypto"
 import { } from "jasmine"
 import Long = require("long")
 import { Address } from "../src/common/address"
 import { Tx } from "../src/common/tx"
-import { SignedTx } from "../src/common/txSigned"
-import * as proto from "../src/serialization/proto"
 import { Hash } from "../src/util/hash"
 
+process.env.NODE_ENV = "test"
 describe("Hash", () => {
     const addSpyObj: jasmine.SpyObj<Address> = jasmine.createSpyObj("address", ["encode"])
     beforeEach(() => {

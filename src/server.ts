@@ -1,5 +1,5 @@
 import { getLogger } from "log4js"
-import { HttpServer } from "./api/server/server"
+import { HttpServer } from "./api/server"
 import { TxPool } from "./common/txPool"
 import { Consensus } from "./consensus/consensus"
 import { WorldState } from "./consensus/database/worldState"
@@ -40,7 +40,7 @@ export class Server {
         logger.debug(`API flag is ${userOptions.api}`)
         if (userOptions.api !== false) {
             logger.info(`API Port ${userOptions.api_port}`)
-            this.httpServer = new HttpServer(this.rest, userOptions.api_port, userOptions)
+            this.httpServer = new HttpServer(this.rest, userOptions.api_port)
         }
         await this.network.start()
         await Wallet.walletInit()

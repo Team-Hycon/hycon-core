@@ -1,10 +1,9 @@
 import { randomBytes } from "crypto"
 import { } from "jasmine"
 import { configure } from "log4js"
-import * as Long from "long"
 import { Account } from "../src/consensus/database/account"
 import * as proto from "../src/serialization/proto"
-
+process.env.NODE_ENV = "test"
 configure({
     appenders: {
         console: { type: "log4js-protractor-appender" },

@@ -63,5 +63,6 @@ async function main() {
     const hycon = new Server()
     hycon.run()
 }
-
-main()
+if (process.env.NODE_ENV !== "test") {
+    main()
+}

@@ -1,16 +1,12 @@
-import { randomBytes, randomFillSync } from "crypto"
-import { setServers } from "dns"
+import { randomBytes } from "crypto"
 import { } from "jasmine"
 import * as Long from "long"
-import * as $protobuf from "protobufjs"
-import { Block } from "../src/common/block"
 import { BlockHeader } from "../src/common/blockHeader"
 import * as GenesisHeader from "../src/common/genesisHeader"
 import { DBBlock } from "../src/consensus/database/dbblock"
 import * as proto from "../src/serialization/proto"
-import { BlockDB } from "../src/serialization/proto"
 import { Hash } from "../src/util/hash"
-
+process.env.NODE_ENV = "test"
 describe("DBBlock Test", () => {
     let dbBlock: DBBlock
     let iBlockHeader: proto.IBlockHeader

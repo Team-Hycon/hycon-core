@@ -1,3 +1,4 @@
+import { strictAdd } from "@glosfer/hyconjs-util"
 import { EventEmitter } from "events"
 import * as fs from "fs"
 import { getLogger } from "log4js"
@@ -25,7 +26,6 @@ import { DeferredDatabaseChanges } from "./database/deferedDatabaseChanges"
 import { MinedDatabase } from "./database/minedDatabase"
 import { TxDatabase } from "./database/txDatabase"
 import { TxValidity, WorldState } from "./database/worldState"
-import { strictAdd } from "./database/worldState"
 import { DifficultyAdjuster } from "./difficultyAdjuster"
 import { BlockStatus } from "./sync"
 import { IUncleCandidate, UncleManager, uncleReward } from "./uncleManager"
@@ -507,6 +507,9 @@ export class Consensus extends EventEmitter {
     }
 
     public async getBurnAmount(): Promise<{ amount: Long }> {
+        if (this.txdb === undefined) {
+            throw new Error(`There is no txdb to query the burn amount.`)
+        }
         return this.txdb.getBurnAmount()
     }
 

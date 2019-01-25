@@ -1,6 +1,7 @@
 import { } from "jasmine"
 import { AsyncLock } from "../src/common/asyncLock"
 import { testAsync } from "./async"
+process.env.NODE_ENV = "test"
 async function lockTest(lock: AsyncLock): Promise<boolean> {
     let counter = 0
     const n = 50000

@@ -1,3 +1,4 @@
+import { hyconfromString, strictAdd, strictSub } from "@glosfer/hyconjs-util"
 import { CircularProgress, Dialog, FormControl, Input, InputLabel, Select } from "@material-ui/core"
 import Button from "@material-ui/core/Button"
 import CardContent from "@material-ui/core/CardContent"
@@ -11,17 +12,14 @@ import { AddressBook } from "./addressBook"
 import { MultipleAccountsView } from "./multipleAccountsView"
 import { IHyconWallet, IWalletAddress } from "./rest"
 import { RestClient } from "./restClient"
-import { strictAdd, strictSub } from "./stringUtil"
-import { hyconfromString } from "./stringUtil"
 interface IMakeTransactionProps {
     rest: RestClient
     walletType?: string
     address?: string
     name?: string
     selectedAccount?: string
-    nonce?: number
+    nonce?: string
 }
-
 export class MakeTransaction extends React.Component<IMakeTransactionProps, any> {
     public mounted = false
     public mapWallets: Map<string, IHyconWallet>
@@ -40,7 +38,7 @@ export class MakeTransaction extends React.Component<IMakeTransactionProps, any>
             isMultiple: true,
             minerFee: 1,
             name: props.name ? props.name : "",
-            nonce: props.nonce,
+            nonce: props.nonce !== undefined ? Number(props.nonce) : undefined,
             password: "",
             pendingAmount: "0",
             piggyBank: "0",

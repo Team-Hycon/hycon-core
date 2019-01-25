@@ -1,6 +1,7 @@
 import * as Base58 from "base-58"
 import { } from "jasmine"
 import { Address } from "../src/common/address"
+process.env.NODE_ENV = "test"
 describe("Address", () => {
     let address: Address
 

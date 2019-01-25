@@ -1,8 +1,7 @@
-const UglifyJsPlugin = require ('uglifyjs-webpack-plugin');
-const ExtractTextPlugin = require ('extract-text-webpack-plugin');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 module.exports = {
-  entry: './entry.tsx',
+  entry: ['babel-polyfill', './entry.tsx'],
   output: {
     filename: 'bundle.js',
     path: __dirname + '/../../../data/clientDist',
@@ -20,16 +19,16 @@ module.exports = {
     rules: [
       {
         test: /\.css$/,
-        use: ExtractTextPlugin.extract ({
+        use: ExtractTextPlugin.extract({
           fallback: 'style-loader',
           use: 'css-loader',
         }),
       },
       // All files with a '.ts' or '.tsx' extension will be handled by 'awesome-typescript-loader'.
-      {test: /\.tsx?$/, loader: 'awesome-typescript-loader'},
+      { test: /\.tsx?$/, loader: 'awesome-typescript-loader' },
 
       // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
-      {enforce: 'pre', test: /\.js$/, loader: 'source-map-loader'},
+      { enforce: 'pre', test: /\.js$/, loader: 'source-map-loader' },
     ],
   },
 
@@ -46,6 +45,6 @@ module.exports = {
   },
   plugins: [
     //     new UglifyJsPlugin(),
-    new ExtractTextPlugin ('styles.css'),
+    new ExtractTextPlugin('styles.css'),
   ],
 };

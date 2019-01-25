@@ -1,12 +1,11 @@
 import { randomBytes } from "crypto"
 import { } from "jasmine"
-import * as Long from "long"
 import { Account } from "../src/consensus/database/account"
 import { DBState } from "../src/consensus/database/dbState"
 import { StateNode } from "../src/consensus/database/stateNode"
 import * as proto from "../src/serialization/proto"
 import { Hash } from "../src/util/hash"
-
+process.env.NODE_ENV = "test"
 describe("DBState test", () => {
     let dbState: DBState
     let protoAccount: proto.IAccount

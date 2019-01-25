@@ -1,8 +1,8 @@
 
+import { zeroPad } from "@glosfer/hyconjs-util"
 import { O_CREAT, O_RDONLY, O_RDWR } from "constants"
 import * as fs from "fs-extra"
 import { getLogger } from "log4js"
-import { zeroPad } from "../../api/client/stringUtil"
 import { AsyncLock } from "../../common/asyncLock"
 import { AnyBlock, Block } from "../../common/block"
 

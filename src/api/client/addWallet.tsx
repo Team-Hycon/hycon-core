@@ -1,8 +1,8 @@
+import { encodingMnemonic } from "@glosfer/hyconjs-util"
 import { Button, CardContent, FormControl, Grid, Icon, Input, InputLabel, MenuItem, Select, Step, StepLabel, Stepper } from "@material-ui/core"
 import { Card, Dialog, IconButton, TextField } from "material-ui"
 import * as React from "react"
 import { Redirect } from "react-router"
-import { encodingMnemonic } from "./stringUtil"
 
 const steps = ["Enter wallet information", "Receive and type mnemonic", "Check mnemonic"]
 export class AddWallet extends React.Component<any, any> {

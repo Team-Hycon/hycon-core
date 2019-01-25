@@ -18,6 +18,7 @@ interface IAddressProps {
 interface IAddressView {
     rest: RestClient
     redirectTxView: boolean
+    redirectWalletList: boolean
     hash: string
     txs: ITxProp[],
     pendings: ITxProp[],
@@ -48,6 +49,7 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
             notFound: false,
             pendings: [],
             redirectTxView: false,
+            redirectWalletList: false,
             rest: props.rest,
             txs: [],
             walletType: props.walletType,
@@ -73,9 +75,6 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
             this.state.rest.setLoading(false)
         })
     }
-    public makeTransaction() {
-        this.setState({ redirectTxView: true })
-    }
     public render() {
         if (this.state.notFound) {
             return <NotFound />
@@ -83,18 +82,22 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
         if (!this.state.notFound && this.state.address === undefined) {
             return < div ></div >
         }
+        if (this.state.redirectWalletList) {
+            return <Redirect to={`/wallet`} />
+        }
         if (this.state.redirectTxView) {
             if (this.state.walletType === "hdwallet") {
                 return <Redirect to={`/maketransactionHDWallet/hdwallet/${this.state.name}/${this.state.hash}/${this.state.accountIndex}`} />
             }
             return <Redirect to={`/maketransactionAddress/${this.state.walletType}/${this.state.hash}/${this.state.accountIndex}`} />
         }
-        let count = 0
         let minedIndex = 0
         return (
             <div>
                 <button onClick={() => { this.makeTransaction() }} className="mdl-button" style={{ display: `${this.state.accountIndex === undefined ? ("none") : ("block")}`, float: "right" }}>
                     <i className="material-icons">send</i>TRANSFER</button>
+                <button onClick={() => { this.deleteHDwallet() }} className="mdl-button" style={{ display: `${this.state.accountIndex === undefined ? ("none") : ("block")}`, float: "right" }}>
+                    <i className="material-icons">delete</i>FORGET</button>
                 {(this.state.accountIndex === undefined) ? (<div className="contentTitle">Hycon Address</div>) : (<div className="contentTitle">{this.state.name}</div>)}
                 <div className="sumTablesDiv">
                     <table className="tablesInRow twoTablesInRow">
@@ -122,7 +125,7 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
                     <Tab label="Transaction" style={{ backgroundColor: "#FFF", color: "#000" }}>
                         {this.state.pendings.map((tx: ITxProp) => {
                             return (
-                                <div key={count++}>
+                                <div key={tx.hash}>
                                     <TxLine tx={tx} rest={this.state.rest} index={this.state.accountIndex} address={this.state.hash} walletType={this.state.walletType} name={this.state.name} />
                                     <div>
                                         {tx.from === this.state.hash
@@ -135,7 +138,7 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
                         })}
                         {this.state.txs.map((tx: ITxProp) => {
                             return (
-                                <div key={count++}>
+                                <div key={tx.hash}>
                                     <TxLine tx={tx} rest={this.state.rest} address={this.state.hash} />
                                     <div>
                                         {tx.from === this.state.hash
@@ -191,6 +194,23 @@ export class AddressInfo extends React.Component<IAddressProps, IAddressView> {
                 minedBlocks: update(this.state.minedBlocks, { $push: result }),
                 minerIndex: this.state.minerIndex + 1,
             })
+        })
+    }
+    private makeTransaction() {
+        this.setState({ redirectTxView: true })
+    }
+
+    private deleteHDwallet() {
+        if (!confirm(`This action is to delete the HD wallet. Do you want to proceed with the deletion?`)) {
+            return
+        }
+        this.state.rest.deleteWallet(this.state.name).then((result: boolean) => {
+            if (result) {
+                alert(`Wallet was successfully removed. The screen switches to the wallet list screen.`)
+                this.setState({ redirectWalletList: true })
+            } else {
+                alert(`Failed to delete Wallet.`)
+            }
         })
     }
 }

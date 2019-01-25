@@ -1,10 +1,7 @@
-import { ExpansionPanel } from "@material-ui/core"
 import { randomBytes } from "crypto"
 import { NotFoundError } from "level-errors"
 import * as levelup from "levelup"
 import Long = require("long")
-import rocksdb = require("rocksdb")
-import { AsyncLock } from "../src/common/asyncLock"
 import { AnyBlock, Block } from "../src/common/block"
 import { GenesisBlock } from "../src/common/blockGenesis"
 import { BlockFile } from "../src/consensus/database/blockFile"
@@ -14,6 +11,7 @@ import { BlockStatus } from "../src/consensus/sync"
 import * as proto from "../src/serialization/proto"
 import { Hash } from "../src/util/hash"
 import { testAsync } from "./async"
+process.env.NODE_ENV = "test"
 xdescribe("Database init test", () => {
     let databse: Database
     beforeEach(() => {

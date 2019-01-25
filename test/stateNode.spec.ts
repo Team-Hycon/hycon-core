@@ -3,6 +3,7 @@ import { } from "jasmine"
 import * as Long from "long"
 import { StateNode } from "../src/consensus/database/stateNode"
 import * as proto from "../src/serialization/proto"
+process.env.NODE_ENV = "test"
 describe("StateNode test", () => {
     let stateNode: StateNode
     let protoStateNode: proto.IStateNode

@@ -7,7 +7,7 @@ import { GenesisBlock } from "../src/common/blockGenesis"
 import { BlockHeader } from "../src/common/blockHeader"
 import { SignedTx } from "../src/common/txSigned"
 import * as proto from "../src/serialization/proto"
-import { Hash } from "../src/util/hash"
+process.env.NODE_ENV = "test"
 
 describe("Block", () => {
     const addr1 = "H3zNqBpmhGREvYQsk4VDmYuoFLP6XHnsc"

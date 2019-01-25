@@ -7,7 +7,7 @@ import { Block } from "../src/common/block"
 import { GenesisBlock } from "../src/common/blockGenesis"
 import { BlockFile } from "../src/consensus/database/blockFile"
 import { testAsync } from "./async"
-
+process.env.NODE_ENV = "test"
 describe("blockFile", () => {
     let blockFile: BlockFile
     let genesisBlock: GenesisBlock

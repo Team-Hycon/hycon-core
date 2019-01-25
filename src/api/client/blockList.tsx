@@ -1,3 +1,4 @@
+import { hyconfromString, hycontoString, strictAdd } from "@glosfer/hyconjs-util"
 import { Icon, IconButton, InputAdornment, TextField } from "@material-ui/core"
 import Long = require("long")
 import * as React from "react"
@@ -6,13 +7,7 @@ import * as ReactPaginate from "react-paginate"
 import { Redirect } from "react-router-dom"
 import { BlockLine } from "./blockLine"
 import { IBlock } from "./rest"
-import { RestClient } from "./restClient"
-import { hyconfromString, hycontoString, strictAdd } from "./stringUtil"
 
-interface IBlockListView {
-    rest: RestClient
-    blocks: IBlock[]
-}
 export class BlockList extends React.Component<any, any> {
     public intervalId: any // NodeJS.Timer
     public mounted: boolean = false
@@ -26,6 +21,8 @@ export class BlockList extends React.Component<any, any> {
             rest: props.rest,
             searchWord: undefined,
         }
+
+        this.handlePageClick = this.handlePageClick.bind(this)
     }
     public componentWillUnmount() {
         this.mounted = false
@@ -48,23 +45,9 @@ export class BlockList extends React.Component<any, any> {
                 }
                 block.txSummary = hycontoString(sum)
             }
-            this.setState({
-                blocks: update(
-                    this.state.blocks, { $splice: [[0, this.state.blocks.length]] },
-                ),
-            })
-            this.setState({
-                blocks: update(
-                    this.state.blocks, {
-                        $push: result.blocks,
-                    },
-                ),
-                length: update(
-                    this.state.length, {
-                        $set: result.length,
-                    },
-                ),
-            })
+            this.setState({ blocks: update(this.state.blocks, { $splice: [[0, this.state.blocks.length]] }) })
+            this.setState({ length: update(this.state.length, { $set: result.length }) })
+            this.setState({ blocks: update(this.state.blocks, { $push: result.blocks }) })
         })
     }
 
@@ -131,7 +114,7 @@ export class BlockList extends React.Component<any, any> {
         )
     }
 
-    private handlePageClick = (data: any) => {
+    private handlePageClick(data: any) {
         this.setState({ index: data.selected })
         this.getRecentBlockList(data.selected)
     }

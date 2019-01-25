@@ -1,3 +1,4 @@
+import { hyconfromString, strictAdd, strictSub } from "@glosfer/hyconjs-util"
 import { CircularProgress } from "@material-ui/core"
 import { Dialog } from "@material-ui/core"
 import Button from "@material-ui/core/Button"
@@ -7,10 +8,8 @@ import Icon from "@material-ui/core/Icon"
 import { Card, TextField } from "material-ui"
 import * as React from "react"
 import { Redirect } from "react-router"
-import { strictAdd, strictSub } from "./stringUtil"
 import { AddressBook } from "./addressBook"
 import { IHyconWallet } from "./rest"
-import { hyconfromString } from "./stringUtil"
 
 export class Transaction extends React.Component<any, any> {
     public mounted = false

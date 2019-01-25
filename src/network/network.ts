@@ -218,6 +218,10 @@ export class Network {
         })
     }
 
+    public getPeerDatabase() {
+        return this.peerDatabase
+    }
+
     private async accept(socket: net.Socket): Promise<void> {
         try {
             socket.once("error", (e) => logger.debug(`Accept socket error: ${e}`))

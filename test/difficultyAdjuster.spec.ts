@@ -1,10 +1,5 @@
-import { randomBytes, randomFillSync } from "crypto"
-import * as Long from "long"
-import { Block } from "../src/common/block"
-import { BlockHeader } from "../src/common/blockHeader"
-import { DBBlock } from "../src/consensus/database/dbblock"
 import { DifficultyAdjuster } from "../src/consensus/difficultyAdjuster"
-import * as proto from "../src/serialization/proto"
+process.env.NODE_ENV = "test"
 
 describe("DifficultyAdjuster", () => {
     it("", () => {

@@ -2,11 +2,9 @@ import { randomBytes } from "crypto"
 import * as Long from "long"
 import * as Secp from "secp256k1"
 import { Address } from "../src/common/address"
-import { PublicKey } from "../src/common/publicKey"
 import { GenesisSignedTx } from "../src/common/txGenesisSigned"
 import * as proto from "../src/serialization/proto"
-
-const secp256k1 = Secp
+process.env.NODE_ENV = "test"
 
 describe("GenesisSignedTx", () => {
     let addr: Address

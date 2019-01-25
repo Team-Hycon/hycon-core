@@ -1,5 +1,5 @@
 import { DBTx } from "../src/consensus/database/dbtx"
-
+process.env.NODE_ENV = "test"
 describe("DBTx", () => {
     it("constructor() : should set property using parameters", () => {
         const dbtx = new DBTx("txHash", "blockHash", "toAddress", "fromAddress", "123", "0.001", 1528786237654, 1234)
