@@ -1,5 +1,11 @@
 HYCON CORE CHANGELOG
 ======
+## Version 0.2.1 - Kingfisher
+- Api Updated to Version 3, see [docs.hycon.io](https://docs.hycon.io) for details.
+- Added Docker Support
+- Moved various utility functions to [external repository](https://github.com/Team-Hycon/hyconjs-util) 
+- Various Minor bugfixes
+
 ## Version 0.2.0 - Jabiru - Hard Fork
 - Reduction in mining reward by 90%
 - Decrease in total supply to 5 billion HYC

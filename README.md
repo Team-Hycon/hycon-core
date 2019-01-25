@@ -63,6 +63,10 @@ If you only want to interact with the network (create wallets and transfer funds
 
 [iOS](https://itunes.apple.com/us/app/hycon-pocket/id1439548798?mt=8&app=itunes&ign-mpt=uo%3D4)
 
+## API Documentation
+
+The documentation for all of the api routes available on a hycon node can be found at [docs.hycon.io](https://docs.hycon.io).
+
 ## Mining
 
 HYCON currently uses the ASIC-resistant `cryptonight-v7` proof-of-work algorithm. We have made some adjustments to [xmrig](https://github.com/xmrig) to ensure that the GPU miner runs smoothly with the HYCON node. For your ease of use, binary releases have been created for each variant.
