@@ -435,9 +435,9 @@ export class RestV1Service {
         return Promise.resolve({ height })
     }
 
-    public async getBlockAtHeight(height: number): Promise<IBlock | IResponseError> {
+    public async getBlockAtHeight(height: string): Promise<IBlock | IResponseError> {
         try {
-            const blockResult = await this.consensus.getBlockAtHeight(height)
+            const blockResult = await this.consensus.getBlockAtHeight(Number(height))
             if (blockResult === undefined) {
                 return Promise.resolve({
                     status: 404,
@@ -457,7 +457,7 @@ export class RestV1Service {
                 stateRoot: blockResult.header.stateRoot.toString(),
                 merkleRoot: blockResult.header.merkleRoot.toString(),
                 txs,
-                height,
+                height: Number(height),
                 timeStamp: Number(blockResult.header.timeStamp),
             }
             return Promise.resolve(webBlock)

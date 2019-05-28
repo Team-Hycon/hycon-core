@@ -274,11 +274,11 @@ export class RestV1Router implements IRestRouter {
                 }),
             )
         })
-        this.router.get("/block/:hash/:txcount?", async (req: express.Request, res: express.Response) => {
-            res.json(await this.rest.getBlock(req.params.hash, req.params.txcount))
-        })
         this.router.get("/block/height/:height", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlockAtHeight(req.params.height))
+        })
+        this.router.get("/block/:hash/:txcount?", async (req: express.Request, res: express.Response) => {
+            res.json(await this.rest.getBlock(req.params.hash, req.params.txcount))
         })
         this.router.get("/blockList/:index", async (req: express.Request, res: express.Response) => {
             res.json(await this.rest.getBlockList(req.params.index))
