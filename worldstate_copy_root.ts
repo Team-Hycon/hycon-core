@@ -22,8 +22,8 @@ const logger = getLogger("WorldState-copy")
 async function copy() {
     const stateRoot = await findStateRoot()//// new Hash(Base58.decode(root))
     const root = stateRoot.toString()
-    const rocksOriginal: any = rocksdb("hycon-worldstate")
-    const rocksCopy: any = rocksdb(root)
+    const rocksOriginal: any = rocksdb("worldstate")
+    const rocksCopy: any = rocksdb("worldstate2")
     const dbOriginal = levelup(rocksOriginal)
     const dbCopy = levelup(rocksCopy)
 
@@ -61,7 +61,7 @@ async function copy() {
 }
 
 async function findStateRoot() {
-    const rocksBlockDB: any = rocksdb("hycon-blockdb")
+    const rocksBlockDB: any = rocksdb("blockdb")
     const blockdb = levelup(rocksBlockDB)
     const hashData = new Uint8Array(await blockdb.get("__blockTip"))
     const hash = new Hash(hashData)

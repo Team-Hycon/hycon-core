@@ -19,6 +19,7 @@
         "test": "rm -rf build && tsc && istanbul cover node_modules/jasmine/bin/jasmine.js -x **/proto.*  -- --config=jasmine.json && remap-istanbul -i ./coverage/coverage.json -o ./coverage/remap-report -t html",
         "clear": "rm -rf blockdb* worldstate* rawblock* txDB* peerdb* minedDB*",
         "package": "tsc && pkg package.json",
+        "prune": "./node_modules/.bin/ts-node worldstate_copy_root.ts",
         "block:build": "cd ./src/api/client && webpack"
     },
     "author": "Team HYCON",
