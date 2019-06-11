@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto"
-import { NotFoundError } from "level-errors"
+const NotFoundError = require("level-errors")
 import * as levelup from "levelup"
 import Long = require("long")
 import { AnyBlock, Block } from "../src/common/block"

@@ -2,7 +2,7 @@ import * as bodyParser from "body-parser"
 import * as timeout from "connect-timeout"
 import * as express from "express"
 import { getLogger } from "log4js"
-import opn = require("opn")
+const opn = require("opn")
 import { matchRoutes } from "react-router-config"
 import { userOptions } from "../main"
 import { RestManager } from "../rest/restManager"
@@ -172,7 +172,7 @@ export class HttpServer {
         this.blockModel = new BlockModel(this.hyconServer.consensus)
         this.transactionModel = new TransactionModel(this.hyconServer.consensus, this.hyconServer)
         this.walletModel = new WalletModel(this.hyconServer.consensus)
-        this.addressModel = new AddressModel(this.hyconServer.consensus)
+        this.addressModel = new AddressModel(this.hyconServer.consensus, this.hyconServer.txQueue)
         this.networkModel = new NetworkModel(this.hyconServer.consensus, this.hyconServer.network.getPeerDatabase())
     }
 }
